@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuração inicial — FinanceZap</title>
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+
+<div class="onboarding-layout">
+  <div class="onboarding-card">
+
+    <div class="onboarding-header">
+      <div class="onboarding-icon">🎉</div>
+      <h1>Bem-vindo ao FinanceZap!</h1>
+      <p>Vamos configurar sua conta em 2 passos rápidos</p>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Step 1: Nome -->
+    <div class="onboarding-step active" id="step-1">
+      <h2>Como você se chama?</h2>
+      <p>Usaremos seu nome para personalizar sua experiência.</p>
+      <div class="form-group">
+        <label class="form-label" for="fullname">Seu nome completo</label>
+        <input type="text" id="fullname" class="form-input" placeholder="João Silva" autocomplete="name" />
+        <div class="form-error" id="fullname-error">Informe seu nome</div>
+      </div>
+      <button class="btn-submit" id="btn-step1">Continuar →</button>
+    </div>
+
+    <!-- Step 2: WhatsApp -->
+    <div class="onboarding-step" id="step-2">
+      <h2>Conecte seu WhatsApp</h2>
+      <p>Informe seu número para registrar gastos e receitas direto pelo WhatsApp. Você pode pular e configurar depois.</p>
+      <div class="form-group">
+        <label class="form-label" for="phone">Número do WhatsApp</label>
+        <div class="phone-input-wrapper">
+          <span class="phone-prefix">+55</span>
+          <input type="tel" id="phone" class="form-input"
+            placeholder="11 99999-9999"
+            pattern="[0-9\s\-()]*"
+            inputmode="numeric"
+          />
+        </div>
+        <div class="form-error" id="phone-error">Número inválido</div>
+        <div style="margin-top:.6rem;padding:.75rem;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;">
+          <p style="font-size:.78rem;color:#166534;margin:0;">
+            📱 <strong>Como funciona:</strong> Envie mensagens como "gasto 50 almoço" ou "receita 3000 salário" para o número do FinanceZap e o lançamento aparece automaticamente no dashboard.
+          </p>
+        </div>
+      </div>
+      <button class="btn-submit" id="btn-step2">Salvar e continuar →</button>
+      <div class="skip-link">
+        <button id="btn-skip">Pular por agora</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Concluído -->
+    <div class="onboarding-step" id="step-3">
+      <div style="text-align:center;padding:1rem 0;">
+        <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+        <h2 style="margin-bottom:.5rem;">Tudo pronto!</h2>
+        <p id="access-message" style="margin-bottom:1.5rem;">Sua conta está configurada. Aguardando liberação do acesso.</p>
+        <div id="pending-access" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:1rem;margin-bottom:1.5rem;text-align:left;">
+          <p style="font-size:.85rem;color:#92400E;font-weight:700;margin-bottom:.35rem;">🔐 Acesso pendente</p>
+          <p style="font-size:.82rem;color:#B45309;line-height:1.6;">
+            Seu acesso será liberado após a confirmação do pagamento. Você receberá uma notificação assim que estiver ativo.
+          </p>
+        </div>
+        <div id="has-access" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:1rem;margin-bottom:1.5rem;text-align:left;">
+          <p style="font-size:.85rem;color:#166534;font-weight:700;margin-bottom:.35rem;">🎉 Acesso liberado!</p>
+          <p style="font-size:.82rem;color:#15803D;line-height:1.6;">
+            Seu acesso está ativo. Clique abaixo para ir ao dashboard.
+          </p>
+        </div>
+        <button class="btn-submit" id="btn-finish">Ir para o dashboard →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  (async () => {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    window.__SUPABASE_URL__ = cfg.supabaseUrl;
+    window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+  })();
+</script>
+<script src="/js/auth.js"></script>
+<script>
+  let currentStep = 1;
+  const totalSteps = 3;
+
+  function setStep(n) {
+    document.querySelectorAll('.onboarding-step').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step-${n}`).classList.add('active');
+
+    for (let i = 1; i <= totalSteps; i++) {
+      const dot = document.getElementById(`dot-${i}`);
+      dot.classList.remove('active', 'done');
+      if (i < n) dot.classList.add('done');
+      else if (i === n) dot.classList.add('active');
+    }
+    currentStep = n;
+  }
+
+  // Step 1 → salva nome
+  document.getElementById('btn-step1').addEventListener('click', async () => {
+    const name = document.getElementById('fullname').value.trim();
+    if (!name) {
+      document.getElementById('fullname-error').classList.add('visible');
+      return;
+    }
+    document.getElementById('fullname-error').classList.remove('visible');
+
+    let tries = 0;
+    while (!window.__SUPABASE_URL__ && tries++ < 20) await new Promise(r => setTimeout(r, 100));
+
+    const headers = await getAuthHeader();
+    await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ full_name: name }),
+    });
+
+    setStep(2);
+  });
+
+  // Step 2 → salva telefone
+  document.getElementById('btn-step2').addEventListener('click', async () => {
+    const raw = document.getElementById('phone').value.replace(/\D/g, '');
+    if (raw.length < 10) {
+      document.getElementById('phone-error').classList.add('visible');
+      return;
+    }
+    document.getElementById('phone-error').classList.remove('visible');
+
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ whatsapp_phone: '55' + raw }),
+    });
+
+    await finishOnboarding(res);
+  });
+
+  document.getElementById('btn-skip').addEventListener('click', async () => {
+    await finishOnboarding(null);
+  });
+
+  async function finishOnboarding() {
+    setStep(3);
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/profile', { headers });
+    const profile = await res.json();
+    if (profile.has_access) {
+      document.getElementById('pending-access').style.display = 'none';
+      document.getElementById('has-access').style.display = 'block';
+    }
+  }
+
+  document.getElementById('btn-finish').addEventListener('click', async () => {
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/profile', { headers });
+    const profile = await res.json();
+    if (profile.has_access) {
+      window.location.href = '/insights/';
+    } else {
+      window.location.href = '/login';
+    }
+  });
+
+  // Verifica auth ao carregar
+  window.addEventListener('DOMContentLoaded', async () => {
+    let tries = 0;
+    while (!window.__SUPABASE_URL__ && tries++ < 20) await new Promise(r => setTimeout(r, 100));
+    const session = await getSession();
+    if (!session) window.location.href = '/login';
+  });
+</script>
+
+</body>
+</html>

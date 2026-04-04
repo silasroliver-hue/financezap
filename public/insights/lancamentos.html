@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lançamentos — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-brand">
+        <a href="/" class="dash-sidebar-logo">
+          <div class="dash-sidebar-logo-icon">💰</div>
+          <div>
+            <strong>FinanceZap</strong>
+            <small>Dashboard</small>
+          </div>
+        </a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <div class="dash-sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-page-head">
+        <h1>Novo lançamento</h1>
+        <p>Inclua entradas e saídas manualmente</p>
+      </div>
+      <div id="alert"></div>
+      <div class="dash-card" style="max-width:32rem">
+        <form id="f">
+          <div class="dash-form-row">
+            <label for="kind">Tipo</label>
+            <select id="kind" required>
+              <option value="expense">Saída (gasto)</option>
+              <option value="income">Entrada (receita)</option>
+            </select>
+          </div>
+          <div class="dash-form-row">
+            <label for="categorySelect">Categoria</label>
+            <select id="categorySelect" required style="max-width:28rem">
+              <option value="">Carregando…</option>
+            </select>
+            <div id="categoryCustomWrap" class="dash-form-row" style="display:none;margin-top:.75rem;margin-bottom:0">
+              <label for="categoryCustom">Nome da categoria</label>
+              <input id="categoryCustom" type="text" placeholder="Ex.: Tokio, Aluguel centro" maxlength="200" />
+            </div>
+          </div>
+          <div class="dash-form-row">
+            <label for="amount">Valor (R$)</label>
+            <input id="amount" type="number" step="0.01" min="0.01" required placeholder="0,00" />
+          </div>
+          <div class="dash-form-row">
+            <label for="occurred_on">Data</label>
+            <input id="occurred_on" type="date" required />
+          </div>
+          <div class="dash-form-row">
+            <label for="description">Descrição (opcional)</label>
+            <textarea id="description" rows="2" placeholder="Detalhes"></textarea>
+          </div>
+          <button type="submit" class="dash-btn dash-btn-primary">✚ Salvar lançamento</button>
+        </form>
+      </div>
+      <p class="dash-note" style="margin-top:1.25rem;max-width:32rem">
+        Lançamentos pelo WhatsApp aparecem com origem <strong>whatsapp</strong> em Gastos.
+      </p>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    (async () => {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      window.__SUPABASE_URL__ = cfg.supabaseUrl;
+      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+    })();
+  </script>
+  <script src="/js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    renderSidebarNav("lanc");
+    document.getElementById("occurred_on").value = new Date().toISOString().slice(0, 10);
+
+    const categorySelect = document.getElementById("categorySelect");
+    const categoryCustomWrap = document.getElementById("categoryCustomWrap");
+    const categoryCustom = document.getElementById("categoryCustom");
+
+    function setCategoryMode() {
+      const v = categorySelect.value;
+      if (v === "__new__") {
+        categoryCustomWrap.style.display = "block";
+        categoryCustom.required = true;
+      } else {
+        categoryCustomWrap.style.display = "none";
+        categoryCustom.required = false;
+        categoryCustom.value = "";
+      }
+    }
+
+    categorySelect.addEventListener("change", setCategoryMode);
+
+    function currentKind() {
+      return document.getElementById("kind").value || "expense";
+    }
+
+    async function loadCategories() {
+      categorySelect.innerHTML = '<option value="">Carregando…</option>';
+      const k = currentKind();
+      try {
+        const list = await apiFetch("/categories/" + encodeURIComponent(k));
+        if (!list) return;
+        categorySelect.innerHTML =
+          '<option value="">Selecione a categoria</option>' +
+          list.map(c => `<option value="${escAttr(c)}">${escapeHtml(c)}</option>`).join("") +
+          '<option value="__new__">Outra categoria (digitar)…</option>';
+      } catch(e) {
+        categorySelect.innerHTML = '<option value="">Erro ao carregar</option><option value="__new__">Digitar categoria…</option>';
+      }
+      setCategoryMode();
+    }
+
+    document.getElementById("kind").addEventListener("change", loadCategories);
+
+    function escapeHtml(s) {
+      const d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+    }
+
+    function resolvedCategory() {
+      if (categorySelect.value === "__new__") return (categoryCustom.value || "").trim() || "Geral";
+      return (categorySelect.value || "").trim() || "Geral";
+    }
+
+    document.getElementById("f").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const alertEl = document.getElementById("alert");
+      alertEl.innerHTML = "";
+      if (categorySelect.value === "__new__" && !(categoryCustom.value || "").trim()) {
+        alertEl.innerHTML = '<div class="dash-alert">Informe o nome da nova categoria ou escolha uma da lista.</div>';
+        return;
+      }
+      if (!categorySelect.value) {
+        alertEl.innerHTML = '<div class="dash-alert">Selecione uma categoria.</div>';
+        return;
+      }
+      const body = {
+        kind: document.getElementById("kind").value,
+        category: resolvedCategory(),
+        amount: document.getElementById("amount").value,
+        occurred_on: document.getElementById("occurred_on").value,
+        description: document.getElementById("description").value || null,
+        source: "manual",
+      };
+      try {
+        await apiFetch("/transactions", { method: "POST", body: JSON.stringify(body) });
+        alertEl.innerHTML = '<div class="dash-alert dash-alert-ok">✓ Lançamento salvo com sucesso!</div>';
+        document.getElementById("amount").value = "";
+        document.getElementById("description").value = "";
+        await loadCategories();
+      } catch(e) {
+        alertEl.innerHTML = '<div class="dash-alert">' + (e.message || "Erro") + '</div>';
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      let tries = 0;
+      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
+      const ok = await checkAccess();
+      if (!ok) return;
+      renderSidebarUser();
+      loadCategories();
+    });
+  </script>
+</body>
+</html>

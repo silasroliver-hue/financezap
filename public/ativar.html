@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ativar conta — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth.css" />
+  <style>
+    .email-optional-hint {
+      font-size:.75rem; color:var(--slate); margin-top:.35rem; line-height:1.5; display:block;
+    }
+    .divider-or {
+      display:flex; align-items:center; gap:.75rem; margin:.5rem 0 1rem;
+      font-size:.75rem; color:var(--slate);
+    }
+    .divider-or::before, .divider-or::after {
+      content:''; flex:1; height:1px; background:var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-layout" style="grid-template-columns:1fr 1fr">
+
+  <!-- Painel esquerdo -->
+  <div class="auth-panel auth-panel-left">
+    <div class="auth-panel-left-content">
+      <a href="/" class="auth-brand">
+        <div class="auth-brand-icon">⚡</div>
+        FinanceZap
+      </a>
+      <h2 class="auth-tagline">
+        Bem-vindo ao<br>
+        <span>FinanceZap! 🎉</span>
+      </h2>
+      <p style="color:var(--slate-light);font-size:.9rem;margin-top:.75rem;line-height:1.7;">
+        Seu pagamento foi confirmado!<br>
+        Defina sua senha para acessar o dashboard.<br>
+        <strong style="color:rgba(255,255,255,.7)">Email é opcional</strong> — você pode entrar só com seu celular.
+      </p>
+      <ul class="auth-features">
+        <li><span class="icon">📊</span> Dashboard completo em tempo real</li>
+        <li><span class="icon">📱</span> Registre gastos pelo WhatsApp</li>
+        <li><span class="icon">🏺</span> Lei dos Potes automática</li>
+        <li><span class="icon">🔐</span> Acesso vitalício garantido</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Painel direito -->
+  <div class="auth-panel auth-panel-right">
+    <a href="/" class="auth-logo-mobile"><span class="icon">⚡</span> FinanceZap</a>
+
+    <!-- Estado: carregando -->
+    <div id="state-loading" style="text-align:center;padding:2rem 0">
+      <div style="font-size:2rem;margin-bottom:.75rem">⏳</div>
+      <p style="color:var(--slate)">Verificando seu link...</p>
+    </div>
+
+    <!-- Estado: inválido -->
+    <div id="state-invalid" style="display:none;text-align:center;padding:2rem 0">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">❌</div>
+      <h2 class="auth-title" style="font-size:1.2rem">Link inválido</h2>
+      <p class="auth-subtitle" id="invalid-msg">Este link não é válido ou já foi utilizado.</p>
+      <a href="/" style="display:inline-block;margin-top:1.5rem;font-size:.85rem">← Voltar ao início</a>
+    </div>
+
+    <!-- Estado: formulário -->
+    <div id="state-form" style="display:none">
+      <h1 class="auth-title">Criar sua conta</h1>
+      <p class="auth-subtitle" id="form-subtitle">Defina sua senha de acesso</p>
+
+      <div class="alert alert-error" id="alert-error" style="display:none">
+        <span>⚠️</span><span id="alert-msg"></span>
+      </div>
+
+      <form id="activate-form" novalidate>
+
+        <!-- Email (opcional) -->
+        <div class="form-group">
+          <label class="form-label" for="email">
+            Email
+            <span style="font-size:.7rem;color:var(--slate);font-weight:400">(opcional)</span>
+          </label>
+          <input type="email" id="email" class="form-input" placeholder="seu@email.com"
+            autocomplete="email" />
+          <span class="email-optional-hint">
+            📱 Se deixar vazio, você entra com seu <strong>número de celular</strong>.
+          </span>
+        </div>
+
+        <div class="divider-or">ou</div>
+
+        <!-- Celular (pré-preenchido, somente leitura) -->
+        <div class="form-group">
+          <label class="form-label" for="phone-display">Celular / WhatsApp</label>
+          <input type="tel" id="phone-display" class="form-input"
+            placeholder="Número cadastrado" readonly
+            style="background:rgba(255,255,255,.03);cursor:default;opacity:.8" />
+          <span class="email-optional-hint" style="color:var(--emerald)">
+            ✓ Número vinculado à sua compra
+          </span>
+        </div>
+
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" for="password">Senha</label>
+          <input type="password" id="password" class="form-input" placeholder="Mínimo 6 caracteres"
+            autocomplete="new-password" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password2">Confirmar senha</label>
+          <input type="password" id="password2" class="form-input" placeholder="Repita a senha"
+            autocomplete="new-password" required />
+        </div>
+
+        <button type="submit" class="btn-submit" id="btn-submit">
+          ⚡ Criar conta e acessar
+        </button>
+      </form>
+    </div>
+
+    <!-- Estado: sucesso -->
+    <div id="state-success" style="display:none;text-align:center;padding:2rem 0">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🎉</div>
+      <h2 class="auth-title" style="font-size:1.3rem">Conta criada!</h2>
+      <p class="auth-subtitle">Redirecionando para o login...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get("token") || "";
+  let phoneFromToken = "";
+
+  function showState(id) {
+    ["state-loading","state-invalid","state-form","state-success"].forEach(s => {
+      document.getElementById(s).style.display = s === id ? "block" : "none";
+    });
+  }
+
+  function showAlert(msg) {
+    const el = document.getElementById('alert-error');
+    document.getElementById('alert-msg').textContent = msg;
+    el.style.display = 'flex';
+    el.classList.add('visible');
+  }
+
+  async function verifyToken() {
+    if (!token) {
+      document.getElementById("invalid-msg").textContent = "Nenhum token encontrado no link.";
+      showState("state-invalid");
+      return;
+    }
+    try {
+      const res  = await fetch(`/api/activate?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById("invalid-msg").textContent = data.error || "Link inválido.";
+        showState("state-invalid");
+        return;
+      }
+      // Pré-preenche campos
+      phoneFromToken = data.whatsapp_phone || "";
+      if (data.email) document.getElementById("email").value = data.email;
+      document.getElementById("phone-display").value =
+        phoneFromToken ? formatPhone(phoneFromToken) : "—";
+      document.getElementById("form-subtitle").textContent =
+        `Olá, ${data.name}! Defina sua senha de acesso.`;
+      showState("state-form");
+    } catch(e) {
+      document.getElementById("invalid-msg").textContent = "Erro ao verificar o link. Tente novamente.";
+      showState("state-invalid");
+    }
+  }
+
+  function formatPhone(p) {
+    const d = String(p).replace(/\D/g,"");
+    if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+    if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return p;
+  }
+
+  document.getElementById("activate-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    document.getElementById("alert-error").style.display = "none";
+    document.getElementById("alert-error").classList.remove("visible");
+
+    const emailVal  = document.getElementById("email").value.trim();
+    const password  = document.getElementById("password").value;
+    const password2 = document.getElementById("password2").value;
+
+    // Validações
+    if (emailVal && !emailVal.includes("@")) { showAlert("Email inválido."); return; }
+    if (password.length < 6) { showAlert("Senha deve ter ao menos 6 caracteres."); return; }
+    if (password !== password2) { showAlert("As senhas não coincidem."); return; }
+
+    // Se email não informado, gera email interno a partir do celular
+    const finalEmail = emailVal || `fz_${phoneFromToken}@users.financezap.app`;
+
+    const btn = document.getElementById("btn-submit");
+    btn.disabled = true;
+    btn.textContent = "Criando conta...";
+
+    try {
+      const res = await fetch("/api/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, email: finalEmail, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao criar conta.");
+      showState("state-success");
+      setTimeout(() => { window.location.href = "/login"; }, 2500);
+    } catch(e) {
+      showAlert(e.message);
+      btn.disabled = false;
+      btn.textContent = "⚡ Criar conta e acessar";
+    }
+  });
+
+  verifyToken();
+</script>
+
+</body>
+</html>

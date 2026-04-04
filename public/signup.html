@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar conta — FinanceZap</title>
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+
+<div class="auth-layout">
+  <!-- Painel esquerdo -->
+  <div class="auth-panel auth-panel-left">
+    <div class="auth-panel-left-content">
+      <a href="/" class="auth-brand">
+        <div class="auth-brand-icon">⚡</div>
+        FinanceZap
+      </a>
+      <h2 class="auth-tagline">
+        Comece a controlar<br>
+        suas finanças <span>hoje</span>
+      </h2>
+      <p style="color:var(--slate-light);font-size:.9rem;margin-top:.75rem;line-height:1.7;">
+        Acesso vitalício por apenas <strong style="color:#fff">R$27,90</strong>.<br>
+        Pague uma vez, use para sempre.
+      </p>
+      <ul class="auth-features">
+        <li><span class="icon">⚡</span> Configuração em menos de 5 minutos</li>
+        <li><span class="icon">📱</span> Registre gastos pelo WhatsApp</li>
+        <li><span class="icon">🔐</span> Seus dados nunca são compartilhados</li>
+        <li><span class="icon">♾️</span> Acesso vitalício — sem mensalidade</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Painel direito -->
+  <div class="auth-panel auth-panel-right">
+    <a href="/" class="auth-logo-mobile">
+      <span class="icon">⚡</span>
+      FinanceZap
+    </a>
+
+    <h1 class="auth-title">Criar sua conta</h1>
+    <p class="auth-subtitle">Entre com WhatsApp e senha · Email não obrigatório</p>
+
+    <div class="alert alert-error" id="alert-error">
+      <span>⚠️</span>
+      <span id="alert-msg"></span>
+    </div>
+
+    <form id="signup-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="fullname">Seu nome completo</label>
+        <input type="text" id="fullname" name="fullname"
+          class="form-input" placeholder="João Silva"
+          autocomplete="name" required />
+        <div class="form-error" id="fullname-error">Nome obrigatório</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="whatsapp">WhatsApp / Celular</label>
+        <input type="tel" id="whatsapp" name="whatsapp"
+          class="form-input" placeholder="(11) 99999-9999"
+          autocomplete="tel" required />
+        <small style="font-size:.75rem;color:var(--slate);margin-top:.3rem;display:block">
+          Usado para login e para receber notificações via WhatsApp
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Senha</label>
+        <input type="password" id="password" name="password"
+          class="form-input" placeholder="Mínimo 6 caracteres"
+          autocomplete="new-password" required minlength="6" />
+        <div class="form-error" id="password-error">Mínimo 6 caracteres</div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btn-submit">
+        ⚡ Criar minha conta
+      </button>
+    </form>
+
+    <div class="auth-footer-link">
+      Já tem conta? <a href="/login">Entrar</a>
+    </div>
+    <div class="auth-footer-link" style="margin-top:.5rem">
+      Ainda não pagou? <a href="/checkout">Ver planos →</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  (async () => {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    window.__SUPABASE_URL__      = cfg.supabaseUrl;
+    window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+  })();
+</script>
+<script src="/js/auth.js"></script>
+<script>
+  const form    = document.getElementById('signup-form');
+  const btnEl   = document.getElementById('btn-submit');
+  const alertEl = document.getElementById('alert-error');
+  const alertMsg = document.getElementById('alert-msg');
+
+  function showError(msg) {
+    alertMsg.textContent = msg;
+    alertEl.classList.add('visible');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertEl.classList.remove('visible');
+
+    const fullname = document.getElementById('fullname').value.trim();
+    const whatsapp = document.getElementById('whatsapp').value.trim();
+    const password = document.getElementById('password').value;
+    const rawPhone = whatsapp.replace(/\D/g, '');
+
+    if (!fullname)           { showError('Informe seu nome.'); return; }
+    if (rawPhone.length < 10){ showError('WhatsApp inválido.'); return; }
+    if (password.length < 6) { showError('Senha deve ter pelo menos 6 caracteres.'); return; }
+
+    btnEl.disabled = true;
+    btnEl.textContent = 'Criando conta...';
+
+    let tries = 0;
+    while (!window.__SUPABASE_URL__ && tries++ < 20) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    // Gera email interno a partir do celular (não exibido ao usuário)
+    const internalEmail = `fz_${rawPhone}@users.financezap.app`;
+
+    const { error } = await signUp(internalEmail, password, fullname);
+    if (error) {
+      const msg = error.includes('already registered')
+        ? 'Este celular já possui conta. <a href="/login">Entrar →</a>'
+        : error;
+      alertMsg.innerHTML = msg;
+      alertEl.classList.add('visible');
+      btnEl.disabled = false;
+      btnEl.textContent = '⚡ Criar minha conta';
+      return;
+    }
+
+    // Salva o celular no perfil após cadastro
+    try {
+      const headers = await getAuthHeader();
+      await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp_phone: rawPhone }),
+      });
+    } catch (_) {}
+  });
+</script>
+
+</body>
+</html>

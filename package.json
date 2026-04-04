@@ -1,0 +1,21 @@
+{
+  "name": "gestao-contas-insights",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gestão financeira do casal — dashboard em /insights",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "import-excel": "node scripts/import-excel.js",
+    "clear-import": "node scripts/clear-import.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "xlsx": "^0.18.5"
+  }
+}

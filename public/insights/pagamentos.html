@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contas do mês — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-brand">
+        <a href="/" class="dash-sidebar-logo">
+          <div class="dash-sidebar-logo-icon">💰</div>
+          <div>
+            <strong>FinanceZap</strong>
+            <small>Dashboard</small>
+          </div>
+        </a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <div class="dash-sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-page-head">
+        <h1>Contas do mês</h1>
+        <p>Marque o que já foi pago e acompanhe o progresso</p>
+      </div>
+      <div id="alert"></div>
+
+      <div class="dash-toolbar">
+        <div>
+          <label for="year">Ano</label>
+          <input type="number" id="year" min="2020" max="2100" style="width:5.5rem" />
+        </div>
+        <div>
+          <label for="month">Mês</label>
+          <select id="month"></select>
+        </div>
+        <button type="button" class="dash-btn dash-btn-ghost" id="btn-refresh">↺ Carregar</button>
+      </div>
+
+      <div class="dash-card" style="margin-bottom:1rem">
+        <h2 style="margin:0 0 1rem;font-size:.95rem">Nova conta fixa</h2>
+        <form id="new-bill" class="dash-form-inline">
+          <div class="dash-form-row" style="margin:0">
+            <label for="bname">Nome</label>
+            <input id="bname" type="text" placeholder="Ex.: ENEL, Aluguel, Internet" style="min-width:12rem" />
+          </div>
+          <div class="dash-form-row" style="margin:0">
+            <label for="bval">Valor referência (R$)</label>
+            <input id="bval" type="number" step="0.01" min="0" placeholder="0,00" style="width:8rem" />
+          </div>
+          <button type="submit" class="dash-btn dash-btn-primary">✚ Cadastrar</button>
+        </form>
+      </div>
+
+      <div class="dash-card" id="progress-card" style="display:none;margin-bottom:1rem">
+        <div id="summary-text" style="font-size:1rem;font-weight:800;margin-bottom:.75rem"></div>
+        <div class="breakdown-track"><div class="breakdown-fill" id="progress-bar" style="width:0%"></div></div>
+        <p class="dash-note" id="progress-pct" style="margin-top:.4rem"></p>
+      </div>
+
+      <div id="bills" class="dash-stack"></div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    (async () => {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      window.__SUPABASE_URL__ = cfg.supabaseUrl;
+      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+    })();
+  </script>
+  <script src="/js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    renderSidebarNav("pay");
+
+    const monthSel = document.getElementById("month");
+    ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+     "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+      .forEach((n, i) => {
+        const o = document.createElement("option");
+        o.value = i + 1; o.textContent = n;
+        monthSel.appendChild(o);
+      });
+    const now = new Date();
+    document.getElementById("year").value = now.getFullYear();
+    monthSel.value = String(now.getMonth() + 1);
+
+    function esc(s) {
+      const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
+    }
+
+    async function load() {
+      const alertEl = document.getElementById("alert");
+      alertEl.innerHTML = "";
+      const y = document.getElementById("year").value;
+      const m = monthSel.value;
+      try {
+        const data = await apiFetch(`/bills?year=${y}&month=${m}`);
+        if (!data) return;
+        const items = data.items || [];
+        let paid = 0;
+        items.forEach(it => { if (it.paid) paid++; });
+
+        const progressCard = document.getElementById("progress-card");
+        if (items.length) {
+          const pct = Math.round(100 * paid / items.length);
+          progressCard.style.display = "block";
+          document.getElementById("summary-text").textContent = `${paid} de ${items.length} contas pagas`;
+          document.getElementById("progress-bar").style.width = pct + "%";
+          document.getElementById("progress-pct").textContent = pct + "% do mês quitado.";
+        } else {
+          progressCard.style.display = "none";
+        }
+
+        const root = document.getElementById("bills");
+        if (!items.length) {
+          root.innerHTML = '<p class="dash-empty">Nenhuma conta cadastrada. Cadastre acima ou importe a planilha.</p>';
+          return;
+        }
+
+        root.innerHTML = items.map(it => {
+          const badge = it.paid
+            ? '<span class="dash-badge dash-badge-ok">✓ Pago</span>'
+            : '<span class="dash-badge dash-badge-pending">Pendente</span>';
+          return `<div class="dash-card dash-bill-row" style="padding:.9rem 1.25rem;margin-bottom:.5rem">
+            <div>
+              <strong style="font-size:.95rem">${esc(it.name)}</strong>
+              <div class="dash-note" style="margin-top:.2rem">Ref. ${fmtBRL(it.default_amount)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+              ${badge}
+              <button type="button" class="dash-btn dash-btn-ghost dash-btn-tiny toggle-pay"
+                data-id="${it.id}" data-paid="${it.paid ? "1" : "0"}">
+                ${it.paid ? "Desmarcar" : "Marcar pago"}
+              </button>
+            </div>
+          </div>`;
+        }).join("");
+
+        root.querySelectorAll(".toggle-pay").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            const was = btn.getAttribute("data-paid") === "1";
+            try {
+              await apiFetch("/bills/" + id + "/pay", {
+                method: "PATCH",
+                body: JSON.stringify({ year: Number(y), month: Number(m), paid: !was }),
+              });
+              await load();
+            } catch(e) { alert(e.message); }
+          });
+        });
+      } catch(e) {
+        alertEl.innerHTML = '<div class="dash-alert">' + esc(e.message) + '</div>';
+      }
+    }
+
+    document.getElementById("btn-refresh").addEventListener("click", load);
+
+    document.getElementById("new-bill").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const name = document.getElementById("bname").value.trim();
+      const default_amount = document.getElementById("bval").value || 0;
+      if (!name) return;
+      try {
+        await apiFetch("/bills/template", { method: "POST", body: JSON.stringify({ name, default_amount }) });
+        document.getElementById("bname").value = "";
+        document.getElementById("bval").value = "";
+        await load();
+      } catch(e) {
+        document.getElementById("alert").innerHTML = '<div class="dash-alert">' + esc(e.message) + '</div>';
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      let tries = 0;
+      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
+      const ok = await checkAccess();
+      if (!ok) return;
+      renderSidebarUser();
+      load();
+    });
+  </script>
+</body>
+</html>

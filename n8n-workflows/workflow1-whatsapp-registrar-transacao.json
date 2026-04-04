@@ -1,0 +1,231 @@
+{
+  "name": "FinanceZap — WhatsApp Completo (IA + Venda + Transações)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "financezap-whatsapp",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "w1-0001",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "financezap-whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Extrai dados do webhook da Evolution API ──────────────\nconst body = $input.first().json;\n\n// Ignora mensagens do próprio bot e eventos não-mensagem\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\n// Ignora grupos\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nconst pushName = body?.data?.pushName || 'amigo';\n\nif (!phone || !text) {\n  return [{ json: { action: 'skip', reason: 'no_data' } }];\n}\n\n// ── Detecta se é transação financeira ─────────────────────\nconst lower = text.toLowerCase();\n\nconst ENTRADA_WORDS = ['entrada', 'recebi', 'salario', 'salário', 'renda', 'ganho', 'ganhei', 'pix recebido'];\nconst SAIDA_WORDS = ['saida', 'saída', 'gasto', 'gastei', 'paguei', 'pagamento', 'despesa', 'comprei', 'transferi', 'debito', 'débito'];\n\nlet kind = null;\nfor (const w of ENTRADA_WORDS) {\n  if (lower.startsWith(w) || lower.includes(' ' + w)) { kind = 'income'; break; }\n}\nif (!kind) {\n  for (const w of SAIDA_WORDS) {\n    if (lower.startsWith(w) || lower.includes(' ' + w)) { kind = 'expense'; break; }\n  }\n}\n\nconst amountMatch = text.match(/(\\d+[.,]?\\d*)/);\nconst amount = amountMatch ? parseFloat(amountMatch[1].replace(',', '.')) : null;\n\nif (kind && amount && amount > 0) {\n  let category = 'Geral';\n  if (amountMatch) {\n    const after = text.slice(text.indexOf(amountMatch[1]) + amountMatch[1].length).trim();\n    if (after.length > 1) category = after.charAt(0).toUpperCase() + after.slice(1);\n  }\n  return [{ json: { action: 'transaction', phone, pushName, kind, amount, category, description: text } }];\n}\n\n// ── Qualquer outra mensagem → Agente IA ───────────────────\nreturn [{ json: { action: 'ai_chat', phone, pushName, text } }];\n"
+      },
+      "id": "w1-0002",
+      "name": "Parsear Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 400]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "skip", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "output": 0
+            },
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "ai_chat", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "output": 1
+            },
+            {
+              "conditions": {
+                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "transaction", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "output": 2
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "w1-0003",
+      "name": "Roteador",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [640, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"skipped\": true }"
+      },
+      "id": "w1-skip",
+      "name": "Respond Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [860, 180]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FINANCEZAP_API_URL || 'http://localhost:3000' }}/api/ai/sales-chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": \"{{ $json.text }}\",\n  \"pushName\": \"{{ $json.pushName }}\"\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      },
+      "id": "w1-ai-call",
+      "name": "Agente IA Vendas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 360],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Extrai resposta do agente IA ──────────────────────────\nconst aiResp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\nconst reply = aiResp?.reply || 'Olá! Me diga como posso ajudar. Digite *quero* para conhecer o FinanceZap ⚡';\n\nreturn [{ json: { phone: parsed.phone, msg: reply } }];\n"
+      },
+      "id": "w1-ai-format",
+      "name": "Formatar Resposta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 360]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FINANCEZAP_API_URL || 'http://localhost:3000' }}/api/webhook/whatsapp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"kind\": \"{{ $json.kind }}\",\n  \"amount\": {{ $json.amount }},\n  \"category\": \"{{ $json.category }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"source\": \"whatsapp\"\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 15000
+        }
+      },
+      "id": "w1-tx-api",
+      "name": "Registrar Transação API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 580],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Resultado da transação ─────────────────────────────────\nconst apiResp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\nconst phone = parsed.phone;\n\nif (apiResp.ok) {\n  const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parsed.amount);\n  const emoji = parsed.kind === 'income' ? '💚' : '❤️';\n  const tipo = parsed.kind === 'income' ? 'Entrada' : 'Saída';\n  return [{ json: { phone, msg: `${emoji} *${tipo} registrada!*\\n\\n💰 Valor: *${valor}*\\n🏷️ Categoria: *${parsed.category}*\\n\\n✅ Salvo no FinanceZap!` } }];\n}\n\nif (apiResp.status === 'not_registered') {\n  return [{ json: { phone, msg: `⚡ Você ainda não tem conta no *FinanceZap*!\\n\\nMe manda um *oi* que te explico como funciona 😉` } }];\n}\n\nif (apiResp.status === 'no_access') {\n  return [{ json: { phone, msg: `⏳ Sua conta existe mas o acesso ainda não foi liberado.\\n\\nSe já pagou, aguarde a confirmação. Se não, me manda *quero* que te explico!` } }];\n}\n\nreturn [{ json: { phone, msg: `⚠️ Não consegui registrar. Tente novamente em alguns segundos.` } }];\n"
+      },
+      "id": "w1-tx-result",
+      "name": "Resultado Transação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 580]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "={{ $vars.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.msg }}\"\n}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "w1-send",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 440],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      },
+      "id": "w1-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1520, 440]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [[{ "node": "Parsear Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Parsear Mensagem": {
+      "main": [[{ "node": "Roteador", "type": "main", "index": 0 }]]
+    },
+    "Roteador": {
+      "main": [
+        [{ "node": "Respond Skip", "type": "main", "index": 0 }],
+        [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }],
+        [{ "node": "Registrar Transação API", "type": "main", "index": 0 }],
+        [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agente IA Vendas": {
+      "main": [
+        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }],
+        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Resposta IA": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Registrar Transação API": {
+      "main": [
+        [{ "node": "Resultado Transação", "type": "main", "index": 0 }],
+        [{ "node": "Resultado Transação", "type": "main", "index": 0 }]
+      ]
+    },
+    "Resultado Transação": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Enviar WhatsApp": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "_guia": "COMO FUNCIONA: Toda mensagem que NÃO for transação financeira vai para o Agente IA de vendas (Claude). O agente conversa naturalmente, responde dúvidas, e guia o cliente até a compra. Mensagens financeiras (saída 50 almoço) vão direto para a API de transação.",
+  "_guia_variaveis": {
+    "FINANCEZAP_API_URL": "URL do servidor, ex: https://app.financezap.com.br",
+    "WEBHOOK_SECRET": "Mesmo valor de N8N_WEBHOOK_SECRET no .env",
+    "EVOLUTION_API_URL": "URL da Evolution API, ex: http://localhost:8080",
+    "EVOLUTION_INSTANCE": "Nome da instância, ex: financezap",
+    "EVOLUTION_API_KEY": "API key da Evolution API"
+  }
+}

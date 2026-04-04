@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — FinanceZap</title>
+  <link rel="stylesheet" href="/css/auth.css" />
+  <style>
+    .auth-tabs {
+      display: flex; gap: 0; margin-bottom: 1.75rem;
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .auth-tab {
+      flex: 1; padding: .65rem .5rem; text-align: center;
+      font-size: .85rem; font-weight: 600; cursor: pointer;
+      background: transparent; border: none; color: var(--slate);
+      transition: all .15s; font-family: var(--font);
+    }
+    .auth-tab.active {
+      background: var(--navy); color: #fff;
+    }
+    .auth-tab-panel { display: none; }
+    .auth-tab-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="auth-layout">
+  <!-- Painel esquerdo -->
+  <div class="auth-panel auth-panel-left">
+    <div class="auth-panel-left-content">
+      <a href="/" class="auth-brand">
+        <div class="auth-brand-icon">⚡</div>
+        FinanceZap
+      </a>
+      <h2 class="auth-tagline">
+        Suas finanças,<br>
+        <span>no controle</span>
+      </h2>
+      <p style="color:var(--slate-light);font-size:.9rem;margin-top:.75rem;line-height:1.7;">
+        Dashboard completo, registro via WhatsApp e Lei dos Potes.<br>
+        Tudo num lugar só.
+      </p>
+      <ul class="auth-features">
+        <li><span class="icon">📊</span> Dashboard com gráficos em tempo real</li>
+        <li><span class="icon">📱</span> Registre gastos pelo WhatsApp</li>
+        <li><span class="icon">🏺</span> Lei dos Potes automática</li>
+        <li><span class="icon">🔐</span> Dados 100% privados e seguros</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Painel direito -->
+  <div class="auth-panel auth-panel-right">
+    <a href="/" class="auth-logo-mobile"><span class="icon">⚡</span> FinanceZap</a>
+
+    <h1 class="auth-title">Bem-vindo de volta</h1>
+    <p class="auth-subtitle">Escolha como deseja entrar</p>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('email')">📧 Email</button>
+      <button class="auth-tab"        onclick="switchTab('phone')">📱 Celular</button>
+    </div>
+
+    <div class="alert alert-error" id="alert-error" style="display:none">
+      <span>⚠️</span><span id="alert-msg"></span>
+    </div>
+
+    <!-- Tab: Email -->
+    <div class="auth-tab-panel active" id="panel-email">
+      <form id="email-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input type="email" id="email" class="form-input" placeholder="seu@email.com"
+            autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password-email">Senha</label>
+          <input type="password" id="password-email" class="form-input" placeholder="••••••••"
+            autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-submit" id="btn-email">Entrar</button>
+      </form>
+    </div>
+
+    <!-- Tab: Celular -->
+    <div class="auth-tab-panel" id="panel-phone">
+      <form id="phone-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="phone">WhatsApp / Celular</label>
+          <input type="tel" id="phone" class="form-input" placeholder="(11) 99999-9999"
+            autocomplete="tel" required />
+          <small style="color:var(--slate);font-size:.75rem;margin-top:.3rem;display:block">
+            O mesmo número cadastrado no FinanceZap
+          </small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password-phone">Senha</label>
+          <input type="password" id="password-phone" class="form-input" placeholder="••••••••"
+            autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-submit" id="btn-phone">Entrar</button>
+      </form>
+    </div>
+
+    <div class="auth-footer-link" style="margin-top:1.5rem">
+      Ainda não tem conta? <a href="/checkout">Adquirir acesso</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  (async () => {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    window.__SUPABASE_URL__      = cfg.supabaseUrl;
+    window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+  })();
+</script>
+<script src="/js/auth.js"></script>
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) =>
+      t.classList.toggle('active', (i === 0 && tab === 'email') || (i === 1 && tab === 'phone')));
+    document.getElementById('panel-email').classList.toggle('active', tab === 'email');
+    document.getElementById('panel-phone').classList.toggle('active', tab === 'phone');
+    clearAlert();
+  }
+
+  function showAlert(msg) {
+    const el = document.getElementById('alert-error');
+    document.getElementById('alert-msg').textContent = msg;
+    el.style.display = 'flex';
+    el.classList.add('visible');
+  }
+  function clearAlert() {
+    const el = document.getElementById('alert-error');
+    el.style.display = 'none';
+    el.classList.remove('visible');
+  }
+
+  async function waitConfig(max = 30) {
+    let t = 0;
+    while (!window.__SUPABASE_URL__ && t++ < max) await new Promise(r => setTimeout(r, 100));
+  }
+
+  // ── Login por Email ──────────────────────────────────────────────────────
+  document.getElementById('email-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password-email').value;
+    if (!email || !password) { showAlert('Preencha email e senha.'); return; }
+
+    const btn = document.getElementById('btn-email');
+    btn.disabled = true; btn.textContent = 'Entrando...';
+
+    await waitConfig();
+    const { error } = await signIn(email, password);
+    if (error) {
+      showAlert(error === 'Invalid login credentials' ? 'Email ou senha incorretos.' : error);
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+
+  // ── Login por Celular ────────────────────────────────────────────────────
+  document.getElementById('phone-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
+    const phone    = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password-phone').value;
+    if (!phone || !password) { showAlert('Preencha celular e senha.'); return; }
+
+    const btn = document.getElementById('btn-phone');
+    btn.disabled = true; btn.textContent = 'Verificando...';
+
+    try {
+      await waitConfig();
+      const res = await fetch('/api/auth/phone-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+
+      // Seta a sessão no cliente Supabase
+      const sb = supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+      await sb.auth.setSession({
+        access_token:  data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+      // Salva tokens no localStorage no mesmo formato que auth.js usa
+      localStorage.setItem('fz_access_token',  data.access_token);
+      localStorage.setItem('fz_refresh_token', data.refresh_token);
+
+      window.location.href = '/insights/';
+    } catch (err) {
+      showAlert(err.message);
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules
+.env
+.git
+.claude
+*.md
+*.xlsx
+~$*
+.DS_Store
+n8n-workflows
+supabase

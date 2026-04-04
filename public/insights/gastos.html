@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gastos — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-brand">
+        <a href="/" class="dash-sidebar-logo">
+          <div class="dash-sidebar-logo-icon">💰</div>
+          <div>
+            <strong>FinanceZap</strong>
+            <small>Dashboard</small>
+          </div>
+        </a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <div class="dash-sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-page-head">
+        <h1>Gastos</h1>
+        <p>Acompanhe lançamentos e totais no período</p>
+      </div>
+      <div id="alert"></div>
+      <div class="dash-card">
+        <h2 style="margin:0 0 1rem;font-size:.95rem">Filtrar</h2>
+        <div class="dash-form-inline">
+          <div class="dash-form-row" style="margin:0">
+            <label for="kind">Tipo</label>
+            <select id="kind" style="width:auto;min-width:11rem">
+              <option value="">Todos os lançamentos</option>
+              <option value="expense" selected>Só saídas</option>
+              <option value="income">Só entradas</option>
+            </select>
+          </div>
+          <div class="dash-form-row" style="margin:0">
+            <label for="from">De</label>
+            <input type="date" id="from" style="width:auto" />
+          </div>
+          <div class="dash-form-row" style="margin:0">
+            <label for="to">Até</label>
+            <input type="date" id="to" style="width:auto" />
+          </div>
+          <button type="button" class="dash-btn dash-btn-primary" id="btn-load">Listar</button>
+        </div>
+      </div>
+      <div class="dash-card" style="margin-top:1rem">
+        <h2 style="margin:0 0 1rem;font-size:.95rem">Lançamentos</h2>
+        <div id="table-wrap"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    (async () => {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      window.__SUPABASE_URL__ = cfg.supabaseUrl;
+      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+    })();
+  </script>
+  <script src="/js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    renderSidebarNav("gastos");
+
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 2);
+    document.getElementById("from").value = start.toISOString().slice(0, 10);
+    document.getElementById("to").value = end.toISOString().slice(0, 10);
+
+    function esc(s) {
+      const d = document.createElement("div");
+      d.textContent = s ?? ""; return d.innerHTML;
+    }
+
+    async function load() {
+      const alertEl = document.getElementById("alert");
+      alertEl.innerHTML = "";
+      const kind = document.getElementById("kind").value;
+      const from = document.getElementById("from").value;
+      const to = document.getElementById("to").value;
+      let q = "?limit=300";
+      if (from) q += "&from=" + encodeURIComponent(from);
+      if (to) q += "&to=" + encodeURIComponent(to);
+      if (kind) q += "&kind=" + encodeURIComponent(kind);
+      try {
+        const rows = await apiFetch("/transactions" + q);
+        if (!rows) return;
+        const wrap = document.getElementById("table-wrap");
+        if (!rows.length) {
+          wrap.innerHTML = '<p class="dash-empty">Nenhum lançamento neste período.</p>';
+          return;
+        }
+        let expense = 0, income = 0;
+        rows.forEach(r => {
+          if (r.kind === "expense") expense += Number(r.amount);
+          else income += Number(r.amount);
+        });
+        wrap.innerHTML =
+          `<p class="dash-note" style="margin-bottom:.75rem">No período: entradas <span class="dash-text-inc">${fmtBRL(income)}</span> · saídas <span class="dash-text-exp">${fmtBRL(expense)}</span></p>` +
+          "<table class='dash-table'><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Descrição</th><th>Origem</th><th></th></tr></thead><tbody>" +
+          rows.map(r =>
+            `<tr>
+              <td>${esc(fmtDate(r.occurred_on))}</td>
+              <td><span class="dash-badge ${r.kind==="income"?"dash-badge-inc":"dash-badge-exp"}">${r.kind==="income"?"Entrada":"Saída"}</span></td>
+              <td>${esc(r.category)}</td>
+              <td class="${r.kind==="income"?"dash-text-inc":"dash-text-exp"}">${fmtBRL(r.amount)}</td>
+              <td>${esc(r.description)}</td>
+              <td>${esc(r.source)}</td>
+              <td style="white-space:nowrap"><button type="button" class="dash-btn dash-btn-danger dash-btn-tiny" data-tx-delete="${esc(r.id)}">Excluir</button></td>
+            </tr>`
+          ).join("") +
+          "</tbody></table>";
+      } catch(e) {
+        alertEl.innerHTML = '<div class="dash-alert">' + esc(e.message) + '</div>';
+      }
+    }
+
+    document.getElementById("btn-load").addEventListener("click", load);
+
+    document.getElementById("table-wrap").addEventListener("click", async (ev) => {
+      const btn = ev.target.closest("button[data-tx-delete]");
+      if (!btn) return;
+      const id = btn.getAttribute("data-tx-delete");
+      if (!id) return;
+      const row = btn.closest("tr");
+      const label = row
+        ? `${row.cells[0]?.textContent?.trim()||""} · ${row.cells[2]?.textContent?.trim()||""} · ${row.cells[3]?.textContent?.trim()||""}`
+        : id;
+      if (!confirm("Excluir este lançamento?\n\n" + label)) return;
+      const alertEl = document.getElementById("alert");
+      btn.disabled = true;
+      try {
+        await apiFetch("/transactions/" + encodeURIComponent(id), { method: "DELETE" });
+        await load();
+        alertEl.innerHTML = '<div class="dash-alert dash-alert-ok">Lançamento excluído.</div>';
+      } catch(e) {
+        btn.disabled = false;
+        alertEl.innerHTML = '<div class="dash-alert">' + esc(e.message || "Erro ao excluir") + '</div>';
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      let tries = 0;
+      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
+      const ok = await checkAccess();
+      if (!ok) return;
+      renderSidebarUser();
+      load();
+    });
+  </script>
+</body>
+</html>

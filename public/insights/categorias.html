@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Categorias — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-brand">
+        <a href="/" class="dash-sidebar-logo">
+          <div class="dash-sidebar-logo-icon">💰</div>
+          <div><strong>FinanceZap</strong><small>Dashboard</small></div>
+        </a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <div class="dash-sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-page-head">
+        <h1>Categorias</h1>
+        <p>Crie e organize as categorias de receitas e despesas</p>
+      </div>
+      <div id="alert"></div>
+
+      <div class="dash-card" style="margin-bottom:1rem">
+        <h2 style="margin:0 0 1rem;font-size:.95rem">Nova categoria</h2>
+        <form id="new-cat" class="dash-form-inline">
+          <div class="dash-form-row" style="margin:0;flex:1;min-width:10rem">
+            <label for="cname">Nome</label>
+            <input id="cname" type="text" placeholder="Ex.: Alimentação, Salário" style="max-width:none" />
+          </div>
+          <div class="dash-form-row" style="margin:0">
+            <label for="ckind">Tipo</label>
+            <select id="ckind">
+              <option value="both">Ambos</option>
+              <option value="income">Receita</option>
+              <option value="expense">Despesa</option>
+            </select>
+          </div>
+          <button type="submit" class="dash-btn dash-btn-primary">✚ Adicionar</button>
+        </form>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-head" style="margin-bottom:1rem">
+          <h2 style="margin:0;font-size:.95rem">Suas categorias</h2>
+          <div style="display:flex;gap:.5rem">
+            <button class="dash-btn dash-btn-ghost dash-btn-tiny filter-btn active" data-kind="">Todas</button>
+            <button class="dash-btn dash-btn-ghost dash-btn-tiny filter-btn" data-kind="income">Receita</button>
+            <button class="dash-btn dash-btn-ghost dash-btn-tiny filter-btn" data-kind="expense">Despesa</button>
+          </div>
+        </div>
+        <div id="cat-list" class="dash-stack"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    (async () => {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      window.__SUPABASE_URL__ = cfg.supabaseUrl;
+      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+    })();
+  </script>
+  <script src="/js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    renderSidebarNav("cat");
+
+    let allCats = [];
+    let filterKind = "";
+
+    const KIND_LABEL = { income: "Receita", expense: "Despesa", both: "Ambos" };
+    const KIND_BADGE = {
+      income:  '<span class="dash-badge" style="background:rgba(5,150,105,.15);color:#059669;border:1px solid rgba(5,150,105,.3)">Receita</span>',
+      expense: '<span class="dash-badge" style="background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.2)">Despesa</span>',
+      both:    '<span class="dash-badge" style="background:rgba(100,116,139,.12);color:#94A3B8;border:1px solid rgba(100,116,139,.2)">Ambos</span>',
+    };
+
+    function esc(s) {
+      const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
+    }
+
+    function renderList() {
+      const root = document.getElementById("cat-list");
+      const items = filterKind
+        ? allCats.filter(c => c.kind === filterKind || c.kind === "both")
+        : allCats;
+
+      if (!items.length) {
+        root.innerHTML = '<p class="dash-empty">Nenhuma categoria cadastrada. Adicione acima.</p>';
+        return;
+      }
+
+      root.innerHTML = items.map(c => `
+        <div class="dash-subcard dash-bill-row" style="padding:.8rem 1rem">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <strong style="font-size:.9rem">${esc(c.name)}</strong>
+            ${KIND_BADGE[c.kind] || ""}
+          </div>
+          <div style="display:flex;gap:.4rem">
+            <button class="dash-btn dash-btn-ghost dash-btn-tiny edit-btn" data-id="${c.id}" data-name="${esc(c.name)}" data-kind="${c.kind}">Editar</button>
+            <button class="dash-btn dash-btn-danger dash-btn-tiny del-btn" data-id="${c.id}">Excluir</button>
+          </div>
+        </div>
+      `).join("");
+
+      root.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const name = prompt("Novo nome:", btn.dataset.name);
+          if (!name || !name.trim()) return;
+          const kind = prompt("Tipo (income / expense / both):", btn.dataset.kind);
+          if (!["income","expense","both"].includes(kind)) return;
+          updateCat(id, name.trim(), kind);
+        });
+      });
+
+      root.querySelectorAll(".del-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (!confirm("Excluir esta categoria?")) return;
+          deleteCat(btn.dataset.id);
+        });
+      });
+    }
+
+    async function load() {
+      try {
+        allCats = await apiFetch("/categories/user") || [];
+        renderList();
+      } catch(e) {
+        document.getElementById("alert").innerHTML = `<div class="dash-alert">${esc(e.message)}</div>`;
+      }
+    }
+
+    async function updateCat(id, name, kind) {
+      try {
+        await apiFetch(`/categories/user/${id}`, { method: "PATCH", body: JSON.stringify({ name, kind }) });
+        await load();
+      } catch(e) { alert(e.message); }
+    }
+
+    async function deleteCat(id) {
+      try {
+        await apiFetch(`/categories/user/${id}`, { method: "DELETE" });
+        await load();
+      } catch(e) { alert(e.message); }
+    }
+
+    document.getElementById("new-cat").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const name = document.getElementById("cname").value.trim();
+      const kind = document.getElementById("ckind").value;
+      if (!name) return;
+      try {
+        await apiFetch("/categories/user", { method: "POST", body: JSON.stringify({ name, kind }) });
+        document.getElementById("cname").value = "";
+        await load();
+      } catch(e) {
+        document.getElementById("alert").innerHTML = `<div class="dash-alert">${esc(e.message)}</div>`;
+      }
+    });
+
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        filterKind = btn.dataset.kind;
+        renderList();
+      });
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      let tries = 0;
+      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
+      const ok = await checkAccess();
+      if (!ok) return;
+      renderSidebarUser();
+      load();
+    });
+  </script>
+</body>
+</html>

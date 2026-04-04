@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0F172A; --navy-light: #1E293B; --border: #2D3B55;
+      --emerald: #10B981; --emerald-dark: #059669;
+      --red: #EF4444; --slate: #64748B; --slate-light: #94A3B8;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif; --radius: 14px;
+    }
+    body { font-family: var(--font); background: var(--navy); color: #F8FAFC;
+      min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 2rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .brand { display: flex; align-items: center; gap: .5rem;
+      font-size: 1.05rem; font-weight: 800; color: #fff; }
+    .admin-badge { font-size: .68rem; background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4);
+      color: #FCA5A5; border-radius: 6px; padding: .2rem .5rem; font-weight: 700; letter-spacing: .05em; }
+
+    .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .page-head { margin-bottom: 1.5rem; }
+    .page-head h1 { font-size: 1.4rem; font-weight: 800; }
+    .page-head p { font-size: .85rem; color: var(--slate-light); margin-top: .25rem; }
+
+    /* Auth gate */
+    .auth-gate { max-width: 400px; margin: 4rem auto; }
+    .card { background: var(--navy-light); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem; }
+    .card-title { font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--emerald); margin-bottom: 1rem; }
+
+    .form-input { width: 100%; padding: .7rem 1rem; background: rgba(255,255,255,.05);
+      border: 1px solid var(--border); border-radius: 10px; color: #F8FAFC;
+      font-family: var(--font); font-size: .9rem; outline: none; }
+    .form-input:focus { border-color: var(--emerald); }
+
+    .btn { padding: .7rem 1.25rem; border: none; border-radius: 9px; font-family: var(--font);
+      font-size: .85rem; font-weight: 700; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn-primary { background: linear-gradient(135deg, var(--emerald), var(--emerald-dark)); color: #fff; }
+    .btn-danger { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: #FCA5A5; }
+    .btn-ghost { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); color: #fff; }
+    .btn-sm { padding: .45rem .85rem; font-size: .78rem; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .tab { padding: .5rem 1rem; border-radius: 9px; font-size: .82rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); color: var(--slate-light);
+      background: transparent; transition: all .15s; }
+    .tab.active { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: var(--emerald); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    th { text-align: left; padding: .6rem .9rem; font-size: .7rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--slate);
+      border-bottom: 1px solid var(--border); }
+    td { padding: .8rem .9rem; border-bottom: 1px solid rgba(255,255,255,.04);
+      color: #E2E8F0; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .badge { display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .7rem; font-weight: 700; padding: .25rem .6rem; border-radius: 6px; }
+    .badge-pending { background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3); color: #FCD34D; }
+    .badge-confirmed { background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3); color: #6EE7B7; }
+    .badge-cancelled { background: rgba(100,116,139,.15); border: 1px solid rgba(100,116,139,.3); color: var(--slate-light); }
+
+    .empty { text-align: center; padding: 2.5rem; color: var(--slate); font-size: .9rem; }
+
+    .alert { border-radius: 10px; padding: .75rem 1rem; font-size: .83rem; font-weight: 500;
+      margin-bottom: 1rem; display: none; }
+    .alert.visible { display: block; }
+    .alert-error { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #FCA5A5; }
+    .alert-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #6EE7B7; }
+
+    .link-token { font-size: .72rem; color: var(--emerald); word-break: break-all; }
+
+    .actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span>💰</span> FinanceZap
+    <span class="admin-badge">ADMIN</span>
+  </div>
+</div>
+
+<!-- Auth gate -->
+<div class="wrap auth-gate" id="auth-gate">
+  <div class="card">
+    <div class="card-title">Acesso Administrativo</div>
+    <div class="alert alert-error" id="auth-error"></div>
+    <div style="display:flex;gap:.75rem;margin-top:.25rem">
+      <input type="password" id="secret-input" class="form-input"
+        placeholder="Admin Secret" style="flex:1" onkeydown="if(event.key==='Enter')login()" />
+      <button class="btn btn-primary" onclick="login()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Painel admin -->
+<div class="wrap" id="admin-panel" style="display:none">
+  <div class="page-head">
+    <h1>Painel Administrativo</h1>
+    <p>Gerencie pagamentos e ativações de contas</p>
+  </div>
+
+  <div class="alert alert-error" id="panel-error"></div>
+  <div class="alert alert-success" id="panel-success"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('pending')">⏳ Pendentes</button>
+    <button class="tab" onclick="switchTab('confirmed')">✓ Confirmados</button>
+    <button class="tab" onclick="switchTab('cancelled')">✕ Cancelados</button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>WhatsApp</th>
+            <th>Email</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Data</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="7" class="empty">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let ADMIN_SECRET = "";
+  let currentTab = "pending";
+
+  function login() {
+    const val = document.getElementById("secret-input").value.trim();
+    if (!val) return;
+    ADMIN_SECRET = val;
+    loadPayments();
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab").forEach((t, i) => {
+      t.classList.toggle("active", ["pending","confirmed","cancelled"][i] === tab);
+    });
+    loadPayments();
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  }
+  function fmtBRL(v) {
+    return "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  }
+  function esc(s) {
+    const d = document.createElement("div"); d.textContent = s ?? "—"; return d.innerHTML;
+  }
+
+  function showPanelMsg(type, msg) {
+    const errEl = document.getElementById("panel-error");
+    const okEl = document.getElementById("panel-success");
+    errEl.classList.remove("visible"); okEl.classList.remove("visible");
+    if (type === "error") { errEl.textContent = msg; errEl.classList.add("visible"); }
+    else { okEl.textContent = msg; okEl.classList.add("visible"); }
+    setTimeout(() => { errEl.classList.remove("visible"); okEl.classList.remove("visible"); }, 4000);
+  }
+
+  async function loadPayments() {
+    try {
+      const res = await fetch(`/api/admin/pending-payments?status=${currentTab}`, {
+        headers: { "x-admin-secret": ADMIN_SECRET }
+      });
+      if (res.status === 401) {
+        document.getElementById("auth-error").textContent = "Secret incorreto.";
+        document.getElementById("auth-error").classList.add("visible");
+        document.getElementById("auth-gate").style.display = "block";
+        document.getElementById("admin-panel").style.display = "none";
+        return;
+      }
+      document.getElementById("auth-gate").style.display = "none";
+      document.getElementById("admin-panel").style.display = "block";
+
+      const data = await res.json();
+      renderTable(data);
+    } catch(e) {
+      showPanelMsg("error", e.message);
+    }
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById("table-body");
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">Nenhum registro encontrado.</td></tr>`;
+      return;
+    }
+
+    const appUrl = window.location.origin;
+
+    tbody.innerHTML = rows.map(r => {
+      const badge = r.status === "pending"
+        ? '<span class="badge badge-pending">⏳ Pendente</span>'
+        : r.status === "confirmed"
+        ? '<span class="badge badge-confirmed">✓ Confirmado</span>'
+        : '<span class="badge badge-cancelled">✕ Cancelado</span>';
+
+      const activationLink = r.activation_token
+        ? `${appUrl}/ativar?token=${r.activation_token}`
+        : null;
+
+      let actions = "";
+      if (r.status === "pending") {
+        actions = `
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" onclick="confirmPayment('${r.id}')">✓ Confirmar</button>
+            <button class="btn btn-danger btn-sm" onclick="cancelPayment('${r.id}')">✕ Cancelar</button>
+          </div>`;
+      } else if (r.status === "confirmed" && activationLink) {
+        actions = `
+          <div>
+            <div class="link-token">${esc(activationLink)}</div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:.35rem"
+              onclick="copyLink('${activationLink}')">Copiar link</button>
+          </div>`;
+      }
+
+      return `<tr>
+        <td><strong>${esc(r.name)}</strong></td>
+        <td>${esc(r.whatsapp_phone)}</td>
+        <td>${esc(r.email)}</td>
+        <td style="font-weight:700;color:#6EE7B7">${fmtBRL(r.amount)}</td>
+        <td>${badge}</td>
+        <td style="color:var(--slate-light)">${fmtDate(r.created_at)}</td>
+        <td>${actions || "—"}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  async function confirmPayment(id) {
+    if (!confirm("Confirmar este pagamento? O link de ativação será enviado via WhatsApp.")) return;
+    try {
+      const res = await fetch(`/api/admin/confirm-payment/${id}`, {
+        method: "POST",
+        headers: { "x-admin-secret": ADMIN_SECRET }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showPanelMsg("success", "✓ Pagamento confirmado! Link enviado via WhatsApp.");
+      loadPayments();
+    } catch(e) {
+      showPanelMsg("error", e.message);
+    }
+  }
+
+  async function cancelPayment(id) {
+    if (!confirm("Cancelar este pagamento?")) return;
+    try {
+      const res = await fetch(`/api/admin/cancel-payment/${id}`, {
+        method: "POST",
+        headers: { "x-admin-secret": ADMIN_SECRET }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showPanelMsg("success", "Pagamento cancelado.");
+      loadPayments();
+    } catch(e) {
+      showPanelMsg("error", e.message);
+    }
+  }
+
+  function copyLink(url) {
+    navigator.clipboard.writeText(url).then(() => {
+      showPanelMsg("success", "Link copiado!");
+    });
+  }
+</script>
+
+</body>
+</html>

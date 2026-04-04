@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0F172A;
+      --navy-light: #1E293B;
+      --slate: #64748B;
+      --slate-light: #94A3B8;
+      --border: #2D3B55;
+      --emerald: #10B981;
+      --emerald-dark: #059669;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --radius: 16px;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--navy);
+      color: #F8FAFC;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--emerald); text-decoration: none; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .brand {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: 1.1rem; font-weight: 800; color: #fff;
+    }
+    .brand-icon { font-size: 1.4rem; }
+    .back-link { font-size: .85rem; color: var(--slate-light); }
+    .back-link:hover { color: #fff; }
+
+    .checkout-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    @media(max-width:680px) {
+      .checkout-wrap { grid-template-columns: 1fr; }
+      .pix-side { order: -1; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+    .card-title {
+      font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--emerald); margin-bottom: 1.25rem;
+    }
+
+    /* ── PIX ── */
+    .pix-price {
+      font-size: 2.6rem; font-weight: 800; color: #fff;
+      margin-bottom: .25rem;
+    }
+    .pix-note { font-size: .85rem; color: var(--slate-light); margin-bottom: 1.5rem; }
+
+    .qr-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex; flex-direction: column; align-items: center; gap: .75rem;
+      margin-bottom: 1.5rem;
+    }
+    .qr-placeholder {
+      width: 180px; height: 180px;
+      border: 2px dashed #CBD5E1;
+      border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: .5rem;
+      color: #94A3B8; font-size: .8rem; text-align: center;
+    }
+    .qr-placeholder .qr-icon { font-size: 2rem; }
+    .qr-img { width: 180px; height: 180px; border-radius: 8px; display: none; }
+
+    .pix-key-block {
+      background: rgba(16,185,129,.08);
+      border: 1px solid rgba(16,185,129,.25);
+      border-radius: 10px;
+      padding: .85rem 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    }
+    .pix-key-label { font-size: .72rem; color: var(--slate-light); margin-bottom: .2rem; }
+    .pix-key-value { font-size: .95rem; font-weight: 700; color: #fff; word-break: break-all; }
+    .copy-btn {
+      flex-shrink: 0;
+      background: var(--emerald); border: none; border-radius: 8px;
+      color: #fff; font-size: .78rem; font-weight: 700; padding: .5rem .85rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .copy-btn:hover { background: var(--emerald-dark); }
+    .copy-btn.copied { background: #059669; }
+
+    .pix-steps {
+      list-style: none; margin-top: 1.5rem; display: flex; flex-direction: column; gap: .6rem;
+    }
+    .pix-steps li {
+      display: flex; align-items: flex-start; gap: .65rem;
+      font-size: .83rem; color: var(--slate-light); line-height: 1.5;
+    }
+    .pix-steps li .step-n {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 50%; background: rgba(16,185,129,.15);
+      border: 1px solid rgba(16,185,129,.3);
+      color: var(--emerald); font-size: .7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label {
+      display: block; font-size: .8rem; font-weight: 600;
+      color: var(--slate-light); margin-bottom: .45rem;
+    }
+    .form-input {
+      width: 100%; padding: .75rem 1rem;
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 10px; color: #F8FAFC; font-family: var(--font); font-size: .9rem;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--emerald); background: rgba(16,185,129,.04); }
+    .form-input::placeholder { color: var(--slate); }
+
+    .btn-submit {
+      width: 100%; padding: .9rem;
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-dark));
+      border: none; border-radius: 10px;
+      color: #fff; font-family: var(--font); font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      margin-top: .5rem;
+    }
+    .btn-submit:hover { opacity: .92; }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .5; cursor: default; }
+
+    .alert {
+      border-radius: 10px; padding: .85rem 1rem;
+      font-size: .85rem; font-weight: 500; margin-bottom: 1rem; display: none;
+    }
+    .alert.visible { display: block; }
+    .alert-error { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #FCA5A5; }
+    .alert-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #6EE7B7; }
+
+    .success-box {
+      display: none; text-align: center; padding: 2rem 1rem;
+    }
+    .success-box.visible { display: block; }
+    .success-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .success-box h2 { font-size: 1.3rem; margin-bottom: .5rem; }
+    .success-box p { font-size: .9rem; color: var(--slate-light); line-height: 1.6; }
+
+    .badge-secure {
+      display: flex; align-items: center; gap: .4rem; justify-content: center;
+      font-size: .75rem; color: var(--slate); margin-top: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="brand">
+    <span class="brand-icon">💰</span>
+    FinanceZap
+  </a>
+  <a href="/" class="back-link">← Voltar</a>
+</div>
+
+<div class="checkout-wrap">
+
+  <!-- Coluna esquerda: PIX -->
+  <div class="pix-side">
+    <div class="card">
+      <div class="card-title">Pagamento</div>
+      <div class="pix-price" id="price-display">R$ 27,90</div>
+      <div class="pix-note">Acesso vitalício — pagamento único</div>
+
+      <div class="qr-box">
+        <div id="qr-canvas"></div>
+        <span style="font-size:.75rem;color:#64748B">Escaneie com o app do seu banco</span>
+      </div>
+
+      <!-- Pix Copia e Cola -->
+      <div class="pix-key-block" style="margin-bottom:.75rem">
+        <div style="min-width:0">
+          <div class="pix-key-label">⚡ Pix Copia e Cola</div>
+          <div class="pix-key-value" id="pix-emv-display" style="font-size:.7rem;opacity:.8;word-break:break-all"></div>
+        </div>
+        <button class="copy-btn" id="copy-emv-btn" onclick="copyEmv()">Copiar</button>
+      </div>
+
+      <!-- Chave aleatória -->
+      <div class="pix-key-block">
+        <div>
+          <div class="pix-key-label">Chave PIX (aleatória)</div>
+          <div class="pix-key-value" id="pix-key-display" style="font-size:.8rem"></div>
+        </div>
+        <button class="copy-btn" id="copy-key-btn" onclick="copyKey()">Copiar</button>
+      </div>
+
+      <ul class="pix-steps">
+        <li><span class="step-n">1</span> Preencha seus dados ao lado e clique em "Confirmar"</li>
+        <li><span class="step-n">2</span> Copie a chave PIX ou escaneie o QR Code no seu banco</li>
+        <li><span class="step-n">3</span> Após o pagamento, você receberá o link de ativação via WhatsApp</li>
+        <li><span class="step-n">4</span> Clique no link para criar seu email e senha</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Coluna direita: formulário -->
+  <div class="form-side">
+    <div class="card">
+      <div class="card-title">Seus dados</div>
+
+      <div class="alert alert-error" id="alert-error"></div>
+      <div class="alert alert-success" id="alert-success"></div>
+
+      <div id="form-box">
+        <div class="form-group">
+          <label class="form-label" for="name">Nome completo *</label>
+          <input type="text" id="name" class="form-input" placeholder="Seu nome" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="whatsapp">WhatsApp *</label>
+          <input type="tel" id="whatsapp" class="form-input"
+            placeholder="(11) 99999-9999" required />
+          <small style="font-size:.75rem;color:var(--slate);margin-top:.3rem;display:block">
+            O link de ativação será enviado para este número
+          </small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email (opcional)</label>
+          <input type="email" id="email" class="form-input" placeholder="seu@email.com" />
+        </div>
+
+        <button class="btn-submit" id="btn-submit" type="button" onclick="submitCheckout()">
+          ✔ Confirmar e ver PIX
+        </button>
+        <div class="badge-secure">🔒 Seus dados são 100% privados e seguros</div>
+      </div>
+
+      <div class="success-box" id="success-box">
+        <div class="success-icon">🎉</div>
+        <h2>Quase lá!</h2>
+        <p id="success-msg">
+          Agora realize o pagamento via PIX e aguarde.<br>
+          Você receberá o link de ativação no WhatsApp em até <strong>30 minutos</strong>.
+        </p>
+        <p style="margin-top:1rem;font-size:.8rem;color:var(--slate)">
+          Dúvidas? Fale conosco via WhatsApp.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  // ── Dados PIX ──────────────────────────────────────────────────────────
+  const PIX_EMV   = "00020126580014br.gov.bcb.pix01366369d56a-dbfd-453b-862c-82b2998be04b520400005303986540527.905802BR5924Silas Rafael De Oliveira6009Sao Paulo62220518daqr212880583632866304D484";
+  const PIX_CHAVE = "6369d56a-dbfd-453b-862c-82b2998be04b";
+  const PRICE = 27.90;
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Exibe preço
+  document.getElementById("price-display").textContent =
+    "R$ " + PRICE.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+  // Exibe chave e EMV truncado
+  document.getElementById("pix-key-display").textContent = PIX_CHAVE;
+  document.getElementById("pix-emv-display").textContent = PIX_EMV.slice(0, 48) + "...";
+
+  // Gera QR code assim que DOM estiver pronto
+  window.addEventListener("DOMContentLoaded", function () {
+    new QRCode(document.getElementById("qr-canvas"), {
+      text: PIX_EMV,
+      width: 190,
+      height: 190,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  });
+
+  function copied(btn, original) {
+    btn.textContent = "✓ Copiado!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 2000);
+  }
+  function copyEmv() {
+    navigator.clipboard.writeText(PIX_EMV).then(() =>
+      copied(document.getElementById("copy-emv-btn"), "Copiar"));
+  }
+  function copyKey() {
+    navigator.clipboard.writeText(PIX_CHAVE).then(() =>
+      copied(document.getElementById("copy-key-btn"), "Copiar"));
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("alert-error");
+    el.textContent = msg;
+    el.classList.add("visible");
+    document.getElementById("alert-success").classList.remove("visible");
+  }
+  function clearAlerts() {
+    document.getElementById("alert-error").classList.remove("visible");
+    document.getElementById("alert-success").classList.remove("visible");
+  }
+
+  async function submitCheckout() {
+    clearAlerts();
+    const name = document.getElementById("name").value.trim();
+    const whatsapp = document.getElementById("whatsapp").value.trim();
+    const email = document.getElementById("email").value.trim();
+
+    if (!name) { showError("Preencha seu nome."); return; }
+    if (!whatsapp) { showError("Preencha seu WhatsApp."); return; }
+
+    const btn = document.getElementById("btn-submit");
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, whatsapp_phone: whatsapp, email: email || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao enviar");
+
+      document.getElementById("form-box").style.display = "none";
+      document.getElementById("success-box").classList.add("visible");
+    } catch (e) {
+      showError(e.message);
+      btn.disabled = false;
+      btn.textContent = "✔ Confirmar e ver PIX";
+    }
+  }
+</script>
+
+</body>
+</html>
