@@ -16,7 +16,7 @@ const {
 
 const app = express();
 app.set("strict routing", true);
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || (process.env.NODE_ENV === "production" ? 80 : 3000);
 const BASE = "/insights";
 
 app.use(express.json({ limit: "256kb" }));
