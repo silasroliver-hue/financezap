@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Valida o secret e extrai dados\nconst body    = $input.first().json;\nconst headers = $input.first().json.headers || {};\n\nconst secret      = $vars.WEBHOOK_SECRET || '';\nconst sentSecret  = headers['x-webhook-secret'] || body.secret || '';\n\nif (secret && sentSecret !== secret) {\n  return [{ json: { authorized: false, error: 'Secret inválido' } }];\n}\n\nconst phone   = String(body.phone || '').replace(/[^0-9]/g, '');\nconst message = String(body.message || '').trim();\n\nif (!phone || !message) {\n  return [{ json: { authorized: false, error: 'phone e message são obrigatórios' } }];\n}\n\nreturn [{ json: { authorized: true, phone, message } }];\n"
+        "jsCode": "// Valida o secret e extrai dados\nconst body    = $input.first().json;\nconst headers = $input.first().json.headers || {};\n\nconst secret      = 'defina-um-segredo-longo-para-o-n8n' || '';\nconst sentSecret  = headers['x-webhook-secret'] || body.secret || '';\n\nif (secret && sentSecret !== secret) {\n  return [{ json: { authorized: false, error: 'Secret inválido' } }];\n}\n\nconst phone   = String(body.phone || '').replace(/[^0-9]/g, '');\nconst message = String(body.message || '').trim();\n\nif (!phone || !message) {\n  return [{ json: { authorized: false, error: 'phone e message são obrigatórios' } }];\n}\n\nreturn [{ json: { authorized: true, phone, message } }];\n"
       },
       "id": "b2c3d4e5-0002-0002-0002-000000000002",
       "name": "Validar Secret",
@@ -59,12 +59,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ $vars.EVOLUTION_API_KEY }}" }
+            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
           ]
         },
         "sendBody": true,

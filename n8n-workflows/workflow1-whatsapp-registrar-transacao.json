@@ -73,12 +73,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.FINANCEZAP_API_URL || 'http://localhost:3000' }}/api/ai/sales-chat",
+        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/ai/sales-chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" }
+            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
           ]
         },
         "sendBody": true,
@@ -110,12 +110,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.FINANCEZAP_API_URL || 'http://localhost:3000' }}/api/webhook/whatsapp",
+        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" }
+            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
           ]
         },
         "sendBody": true,
@@ -147,12 +147,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ $vars.EVOLUTION_API_KEY }}" }
+            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
           ]
         },
         "sendBody": true,
