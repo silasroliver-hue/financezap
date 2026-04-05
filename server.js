@@ -1825,19 +1825,20 @@ PREÇO:
 - Pague uma vez, use para sempre
 
 COMO COMPRAR:
-- Pagar via PIX
-- Chave PIX (aleatória): 6369d56a-dbfd-453b-862c-82b2998be04b
-- Após pagar, o link de ativação chega aqui no WhatsApp em minutos
+- Acesse o link de compra: https://financezap.thesilasstudio.com.br/checkout
+- No link o cliente faz o pagamento e já cadastra seus dados (nome, email, WhatsApp)
+- Após a confirmação do pagamento, o link de ativação chega no WhatsApp e no e-mail em minutos
 
 REGRAS:
 - Se o cliente perguntar sobre funcionalidades, explique de forma prática com exemplos
 - Se perguntar o preço, SEMPRE diga R$ 27,90 pagamento único e vitalício
-- Se mostrar interesse, envie a chave PIX e explique que é só pagar e aguardar o link
+- Se mostrar interesse, envie o link: https://financezap.thesilasstudio.com.br/checkout
+- SEMPRE que o cliente quiser comprar, envie o link do checkout — nunca passe chave PIX
 - Se tiver objeção (caro, não sei se preciso), contorne com benefícios reais
 - Se perguntar algo fora do escopo (outros produtos, suporte técnico após compra), diga que pode ajudar com dúvidas sobre o FinanceZap
 - NUNCA invente funcionalidades que não existem
 - NUNCA diga que é uma IA — você é o assistente do FinanceZap
-- Se o cliente disser que já pagou, diga para aguardar alguns minutos que o link chega`;
+- Se o cliente disser que já pagou, diga para aguardar alguns minutos que o link de ativação chega`;
 
 api.post(
   "/ai/sales-chat",
@@ -1850,7 +1851,7 @@ api.post(
     if (!apiKey) {
       // Fallback sem IA: resposta padrão de venda
       return res.json({
-        reply: `Olá! ⚡ O FinanceZap custa apenas R$ 27,90 (pagamento único, acesso vitalício).\n\nChave PIX: 6369d56a-dbfd-453b-862c-82b2998be04b\n\nApós pagar, envio o link de ativação aqui mesmo!`,
+        reply: `Olá! ⚡ O FinanceZap custa apenas R$ 27,90 (pagamento único, acesso vitalício).\n\nFaça sua compra aqui:\n👉 https://financezap.thesilasstudio.com.br/checkout\n\nApós o pagamento, seu link de ativação chega aqui no WhatsApp e no seu e-mail!`,
         fallback: true,
       });
     }
