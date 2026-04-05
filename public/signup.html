@@ -41,7 +41,7 @@
     </a>
 
     <h1 class="auth-title">Criar sua conta</h1>
-    <p class="auth-subtitle">Entre com WhatsApp e senha · Email não obrigatório</p>
+    <p class="auth-subtitle">Preencha seus dados para começar</p>
 
     <div class="alert alert-error" id="alert-error">
       <span>⚠️</span>
@@ -55,6 +55,16 @@
           class="form-input" placeholder="João Silva"
           autocomplete="name" required />
         <div class="form-error" id="fullname-error">Nome obrigatório</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">E-mail</label>
+        <input type="email" id="email" name="email"
+          class="form-input" placeholder="joao@email.com"
+          autocomplete="email" required />
+        <small style="font-size:.75rem;color:var(--slate);margin-top:.3rem;display:block">
+          Usado para enviar seus dados de acesso e notificações
+        </small>
       </div>
 
       <div class="form-group">
@@ -84,7 +94,7 @@
       Já tem conta? <a href="/login">Entrar</a>
     </div>
     <div class="auth-footer-link" style="margin-top:.5rem">
-      Ainda não pagou? <a href="/checkout">Ver planos →</a>
+      Ainda não pagou? <a href="https://financezap.thesilasstudio.com.br/checkout">Ver planos →</a>
     </div>
   </div>
 </div>
@@ -105,7 +115,7 @@
   const alertMsg = document.getElementById('alert-msg');
 
   function showError(msg) {
-    alertMsg.textContent = msg;
+    alertMsg.innerHTML = msg;
     alertEl.classList.add('visible');
   }
 
@@ -114,13 +124,15 @@
     alertEl.classList.remove('visible');
 
     const fullname = document.getElementById('fullname').value.trim();
+    const email    = document.getElementById('email').value.trim();
     const whatsapp = document.getElementById('whatsapp').value.trim();
     const password = document.getElementById('password').value;
     const rawPhone = whatsapp.replace(/\D/g, '');
 
-    if (!fullname)           { showError('Informe seu nome.'); return; }
-    if (rawPhone.length < 10){ showError('WhatsApp inválido.'); return; }
-    if (password.length < 6) { showError('Senha deve ter pelo menos 6 caracteres.'); return; }
+    if (!fullname)            { showError('Informe seu nome.'); return; }
+    if (!email || !email.includes('@')) { showError('Informe um e-mail válido.'); return; }
+    if (rawPhone.length < 10) { showError('WhatsApp inválido.'); return; }
+    if (password.length < 6)  { showError('Senha deve ter pelo menos 6 caracteres.'); return; }
 
     btnEl.disabled = true;
     btnEl.textContent = 'Criando conta...';
@@ -130,28 +142,24 @@
       await new Promise(r => setTimeout(r, 100));
     }
 
-    // Gera email interno a partir do celular (não exibido ao usuário)
-    const internalEmail = `fz_${rawPhone}@users.financezap.app`;
-
-    const { error } = await signUp(internalEmail, password, fullname);
+    const { error } = await signUp(email, password, fullname);
     if (error) {
       const msg = error.includes('already registered')
-        ? 'Este celular já possui conta. <a href="/login">Entrar →</a>'
+        ? 'Este e-mail já possui conta. <a href="/login">Entrar →</a>'
         : error;
-      alertMsg.innerHTML = msg;
-      alertEl.classList.add('visible');
+      showError(msg);
       btnEl.disabled = false;
       btnEl.textContent = '⚡ Criar minha conta';
       return;
     }
 
-    // Salva o celular no perfil após cadastro
+    // Salva celular e email no perfil após cadastro
     try {
       const headers = await getAuthHeader();
       await fetch('/api/profile', {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ whatsapp_phone: rawPhone }),
+        body: JSON.stringify({ whatsapp_phone: rawPhone, email }),
       });
     } catch (_) {}
   });

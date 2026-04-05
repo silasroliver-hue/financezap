@@ -1,0 +1,283 @@
+{
+  "name": "FinanceZap — WhatsApp Completo (IA + Venda + Transações) - 1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "financezap-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0acd7161-e120-40f7-901e-73d701d75633",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "financezap-whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Extrai dados do webhook da Evolution API (n8n v2) ──────────────────────\nconst raw = $input.first().json;\n// n8n webhook v2 coloca o payload dentro de .body\nconst body = raw.body || raw;\n\n// Ignora mensagens do próprio bot\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\n// Ignora eventos que não são mensagens\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\n// Ignora grupos\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nconst pushName = body?.data?.pushName || 'amigo';\n\nif (!phone || !text) {\n  return [{ json: { action: 'skip', reason: 'no_data' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];\n"
+      },
+      "id": "3960ba4d-a1c6-4ee3-be54-014a3f0c9a75",
+      "name": "Parsear Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "skip",
+                    "operator": { "type": "string", "operation": "equals" },
+                    "id": "skip-rule"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "process",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "4c54a862-e3b7-4ac3-bf66-4dbf6ff38cae",
+      "name": "Roteador Skip/Process",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"skipped\": true }",
+        "options": {}
+      },
+      "id": "60b57d6e-ed13-447f-b989-64e6e442d6b7",
+      "name": "Respond Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp-chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.text }}\",\n  \"pushName\": \"{{ $json.pushName }}\"\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 25000
+        }
+      },
+      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+      "name": "Backend Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Roteia resposta do backend ──────────────────────────────────────────────\nconst resp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\n// Erros de rede/timeout\nif ($input.first().json.error && !resp.type) {\n  return [{ json: { action: 'send', phone: parsed.phone, msg: '⚠️ Serviço temporariamente indisponível. Tente novamente em instantes.' } }];\n}\n\nconst type = resp.type || 'user';\n\n// Usuário não registrado → vai para agente de vendas\nif (type === 'sales') {\n  return [{ json: { action: 'sales', phone: parsed.phone, text: parsed.text, pushName: parsed.pushName } }];\n}\n\n// Usuário registrado (com ou sem acesso) → envia resposta direta\nconst reply = resp.reply || 'Olá! Como posso ajudar?';\nreturn [{ json: { action: 'send', phone: parsed.phone, msg: reply } }];\n"
+      },
+      "id": "b2c3d4e5-2222-3333-4444-555566667777",
+      "name": "Processar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 480]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "sales",
+                    "operator": { "type": "string", "operation": "equals" },
+                    "id": "sales-rule"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "send",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "c3d4e5f6-3333-4444-5555-666677778888",
+      "name": "Roteador Sales/Send",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/ai/sales-chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": \"{{ $json.text }}\",\n  \"pushName\": \"{{ $json.pushName }}\"\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      },
+      "id": "d4e5f6a7-4444-5555-6666-777788889999",
+      "name": "Agente IA Vendas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 360],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Formata resposta do agente de vendas ──────────────────────────────────\nconst aiResp = $input.first()?.json || {};\nconst parsed = $('Processar Resposta').first()?.json || {};\n\nlet reply = aiResp.reply ||\n  'Olá! 👋 Conheça o FinanceZap — controle financeiro pelo WhatsApp.\\n\\nDigite *quero saber mais* para ver como funciona! ⚡';\n\nreply = String(reply)\n  .replace(/\\r/g, '')\n  .replace(/\\n/g, '\\\\n')\n  .replace(/\"/g, '\\\\\"')\n  .trim();\n\nconst phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (!phone) throw new Error('Telefone inválido.');\n\nreturn [{ json: { phone, msg: reply } }];\n"
+      },
+      "id": "e5f6a7b8-5555-6666-7777-888899990000",
+      "name": "Formatar Resposta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.msg }}\"\n}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "2ba1bc39-acd3-49ee-a81b-e7476af7a46f",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": {}
+      },
+      "id": "e1e1cce6-37cf-4c82-8566-23b21c87b6c6",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2220, 480]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [[{ "node": "Parsear Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Parsear Mensagem": {
+      "main": [[{ "node": "Roteador Skip/Process", "type": "main", "index": 0 }]]
+    },
+    "Roteador Skip/Process": {
+      "main": [
+        [{ "node": "Respond Skip", "type": "main", "index": 0 }],
+        [{ "node": "Backend Chat", "type": "main", "index": 0 }]
+      ]
+    },
+    "Backend Chat": {
+      "main": [
+        [{ "node": "Processar Resposta", "type": "main", "index": 0 }],
+        [{ "node": "Processar Resposta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Processar Resposta": {
+      "main": [[{ "node": "Roteador Sales/Send", "type": "main", "index": 0 }]]
+    },
+    "Roteador Sales/Send": {
+      "main": [
+        [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }],
+        [{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agente IA Vendas": {
+      "main": [
+        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }],
+        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Resposta IA": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Enviar WhatsApp": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "bd50c94b-4299-4510-b7bc-98cac225a80f",
+  "meta": {
+    "instanceId": "cc0470caf224343477a718c4b592ef1203acb31a19dc39cd7d8b6ac0079b02ce"
+  },
+  "id": "WGSAHmUSmknsQLvU",
+  "tags": []
+}

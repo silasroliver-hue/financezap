@@ -7,6 +7,7 @@
     { href: "pagamentos.html",   id: "pay",    label: "Contas do mês",  icon: "🗓️" },
     { href: "contas.html",       id: "contas", label: "Contas bancárias",icon: "🏦" },
     { href: "categorias.html",   id: "cat",    label: "Categorias",     icon: "🏷️" },
+    { href: "cartoes.html",      id: "cartoes",label: "Cartões",         icon: "💳" },
   ];
 
   window.renderNav = function (activeId) {

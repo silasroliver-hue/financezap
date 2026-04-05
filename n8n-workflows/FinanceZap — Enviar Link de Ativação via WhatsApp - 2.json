@@ -1,29 +1,29 @@
 {
-  "name": "FinanceZap — Enviar Link de Ativação via WhatsApp",
+  "name": "FinanceZap — Enviar Link de Ativação via WhatsApp - 2",
   "nodes": [
     {
       "parameters": {
-        "path": "financezap-send-whatsapp",
         "httpMethod": "POST",
+        "path": "financezap-send-whatsapp",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "b2c3d4e5-0001-0001-0001-000000000001",
+      "id": "3f8c4ce0-bda7-4721-947c-f7b620458224",
       "name": "Webhook Ativação",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [240, 400],
       "webhookId": "financezap-send-whatsapp"
     },
     {
       "parameters": {
-        "jsCode": "// Valida o secret e extrai dados\nconst body    = $input.first().json;\nconst headers = $input.first().json.headers || {};\n\nconst secret      = 'defina-um-segredo-longo-para-o-n8n' || '';\nconst sentSecret  = headers['x-webhook-secret'] || body.secret || '';\n\nif (secret && sentSecret !== secret) {\n  return [{ json: { authorized: false, error: 'Secret inválido' } }];\n}\n\nconst phone   = String(body.phone || '').replace(/[^0-9]/g, '');\nconst message = String(body.message || '').trim();\n\nif (!phone || !message) {\n  return [{ json: { authorized: false, error: 'phone e message são obrigatórios' } }];\n}\n\nreturn [{ json: { authorized: true, phone, message } }];\n"
+        "jsCode": "// ── Valida o secret e extrai dados (corrigido para n8n webhook v2) ─────────\nconst raw     = $input.first().json;\n// n8n webhook v2: payload real fica em raw.body, headers em raw.headers\nconst body    = raw.body    || raw;\nconst headers = raw.headers || {};\n\nconst EXPECTED_SECRET = 'defina-um-segredo-longo-para-o-n8n';\nconst sentSecret = headers['x-webhook-secret'] || body.secret || '';\n\nif (EXPECTED_SECRET && sentSecret !== EXPECTED_SECRET) {\n  return [{ json: { authorized: false, error: 'Secret inválido' } }];\n}\n\nconst phone   = String(body.phone   || '').replace(/[^0-9]/g, '');\nconst message = String(body.message || '').trim();\n\nif (!phone || phone.length < 8) {\n  return [{ json: { authorized: false, error: 'phone inválido ou ausente' } }];\n}\n\nif (!message) {\n  return [{ json: { authorized: false, error: 'message ausente' } }];\n}\n\nreturn [{ json: { authorized: true, phone, message } }];\n"
       },
-      "id": "b2c3d4e5-0002-0002-0002-000000000002",
+      "id": "84833bb6-bb6e-42b5-9c6c-cf28d61d0715",
       "name": "Validar Secret",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [460, 400]
     },
     {
       "parameters": {
@@ -36,25 +36,26 @@
               "operator": { "type": "boolean", "operation": "true" }
             }
           ]
-        }
+        },
+        "options": {}
       },
-      "id": "b2c3d4e5-0003-0003-0003-000000000003",
+      "id": "1a961ab9-1551-4b41-8031-4c4f37aef660",
       "name": "Autorizado?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [680, 400]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseCode": 401,
-        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}"
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {}
       },
-      "id": "b2c3d4e5-0004-0004-0004-000000000004",
+      "id": "dddcaea5-f211-4d63-9b06-f6f1eac0a196",
       "name": "Respond 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 440]
+      "position": [900, 560]
     },
     {
       "parameters": {
@@ -75,37 +76,39 @@
           "timeout": 15000
         }
       },
-      "id": "b2c3d4e5-0005-0005-0005-000000000005",
+      "id": "93b0dd74-d940-4b23-b644-c1fa4560b6c6",
       "name": "Enviar WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 200],
+      "position": [900, 280],
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"ok\": true, \"sent\": true }"
+        "responseBody": "={ \"ok\": true, \"sent\": true }",
+        "options": {}
       },
-      "id": "b2c3d4e5-0006-0006-0006-000000000006",
+      "id": "b4af9cca-e099-4651-9cd9-b786bf35a0ec",
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1120, 140]
+      "position": [1120, 200]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseCode": 500,
-        "responseBody": "={ \"ok\": false, \"error\": \"Falha ao enviar WhatsApp\" }"
+        "responseBody": "={ \"ok\": false, \"error\": \"Falha ao enviar WhatsApp\" }",
+        "options": {}
       },
-      "id": "b2c3d4e5-0007-0007-0007-000000000007",
+      "id": "3f25c5c8-c32b-45f5-9031-b86067701db9",
       "name": "Respond Erro Envio",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1120, 320]
+      "position": [1120, 400]
     }
   ],
+  "pinData": {},
   "connections": {
     "Webhook Ativação": {
       "main": [[{ "node": "Validar Secret", "type": "main", "index": 0 }]]
@@ -116,24 +119,22 @@
     "Autorizado?": {
       "main": [
         [{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }],
-        [{ "node": "Respond 401", "type": "main", "index": 0 }]
+        [{ "node": "Respond 401",     "type": "main", "index": 0 }]
       ]
     },
     "Enviar WhatsApp": {
       "main": [
-        [{ "node": "Respond OK", "type": "main", "index": 0 }],
-        [{ "node": "Respond Erro Envio", "type": "main", "index": 0 }]
+        [{ "node": "Respond OK",        "type": "main", "index": 0 }],
+        [{ "node": "Respond Erro Envio","type": "main", "index": 0 }]
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "dafe7083-49e4-493a-baa2-976967a03c4b",
+  "meta": {
+    "instanceId": "cc0470caf224343477a718c4b592ef1203acb31a19dc39cd7d8b6ac0079b02ce"
   },
-  "_variablesGuide": {
-    "WEBHOOK_SECRET": "Mesmo valor de N8N_WEBHOOK_SECRET no .env do servidor",
-    "EVOLUTION_API_URL": "URL da Evolution API, ex: http://localhost:8080",
-    "EVOLUTION_INSTANCE": "Nome da instância no Evolution API, ex: financezap",
-    "EVOLUTION_API_KEY": "API key da Evolution API"
-  }
+  "id": "mQTxYmSSjenywr2T",
+  "tags": []
 }

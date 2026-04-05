@@ -1,77 +1,86 @@
-# Como importar os workflows no n8n
+# Como importar os workflows n8n — FinanceZap
 
-## 1. Importar os arquivos
-
-No n8n, vá em **Workflows → Import from File** e importe:
-
-- `workflow1-whatsapp-registrar-transacao.json`
-- `workflow2-enviar-link-ativacao.json`
+## Pré-requisitos
+- n8n instalado e rodando
+- Evolution API configurada com a instância `financezap`
+- Variável `GEMINI_API_KEY` configurada no servidor (para o agente de vendas)
 
 ---
 
-## 2. Configurar as Variáveis (Settings → Variables)
+## Workflow 1 — WhatsApp Completo
 
-Crie estas variáveis em **Settings → Variables** no n8n:
+**Arquivo:** `FinanceZap — WhatsApp Completo (IA + Venda + Transações) - 1.json`
 
-| Variável | Valor | Exemplo |
-|---|---|---|
-| `FINANCEZAP_API_URL` | URL do servidor Node.js | `https://app.financezap.com.br` |
-| `WEBHOOK_SECRET` | Mesmo valor do `.env` (`N8N_WEBHOOK_SECRET`) | `meu-segredo-longo` |
-| `EVOLUTION_API_URL` | URL da sua Evolution API | `http://localhost:8080` |
-| `EVOLUTION_INSTANCE` | Nome da instância no Evolution | `financezap` |
-| `EVOLUTION_API_KEY` | API Key da Evolution API | `sua-api-key` |
+**O que faz:**
+1. Recebe webhook da Evolution API com mensagens do WhatsApp
+2. Ignora mensagens do bot, grupos e eventos que não são mensagens
+3. Chama o backend (`/api/webhook/whatsapp-chat`) que gerencia toda a lógica:
+   - **Usuário cadastrado com acesso:** menu guiado com 6 opções (extrato, receita, despesa, investimento, saldo, dúvidas)
+   - **Usuário não cadastrado:** agente de IA de vendas com link para checkout
+4. Envia a resposta via Evolution API
+
+**Fluxo do menu (para usuários cadastrados):**
+```
+Oi / menu → Mostra menu com 6 opções
+  1 → Extrato → pergunta quantos dias → retorna extrato formatado
+  2 → Receita → lista categorias → pede valor → registra
+  3 → Despesa → lista categorias → pede valor → registra
+  4 → Investimento → pede banco → pede saldo → atualiza
+  5 → Saldo → lista todas as contas e patrimônio total
+  6 → Dúvida → responde com IA
+```
+
+**Após importar, altere:**
+| Campo | Onde | Valor |
+|-------|------|-------|
+| `x-webhook-secret` | Nodes "Backend Chat" e "Agente IA Vendas" | Mesmo valor de `N8N_WEBHOOK_SECRET` no `.env` |
+| URL do backend | Node "Backend Chat" | `https://seu-dominio.com.br` |
+| URL Evolution API | Node "Enviar WhatsApp" | `https://evo.seu-dominio.com.br` |
+| `apikey` | Node "Enviar WhatsApp" | Sua chave da Evolution API |
+| Nome da instância | Node "Enviar WhatsApp" | Nome da sua instância (ex: `financezap`) |
 
 ---
 
-## 3. Atualizar o .env do servidor
+## Workflow 2 — Enviar Link de Ativação
 
-Abra `.env` e preencha:
+**Arquivo:** `FinanceZap — Enviar Link de Ativação via WhatsApp - 2.json`
+
+**O que faz:**
+- Recebe uma requisição do servidor quando o admin confirma um pagamento
+- Valida o secret de segurança (corrigido para n8n webhook v2)
+- Envia a mensagem de ativação via Evolution API para o telefone do cliente
+
+**Após importar, altere:**
+| Campo | Onde | Valor |
+|-------|------|-------|
+| `EXPECTED_SECRET` | Node "Validar Secret" (linha 6) | Mesmo valor de `N8N_WEBHOOK_SECRET` no `.env` |
+| URL Evolution API | Node "Enviar WhatsApp" | `https://evo.seu-dominio.com.br` |
+| `apikey` | Node "Enviar WhatsApp" | Sua chave da Evolution API |
+| Nome da instância | Node "Enviar WhatsApp" | Nome da sua instância |
+
+---
+
+## Variáveis de ambiente necessárias no servidor (.env)
 
 ```env
-N8N_WEBHOOK_SECRET=meu-segredo-longo
-N8N_SEND_WHATSAPP_URL=https://SEU_N8N/webhook/financezap-send-whatsapp
-APP_URL=https://app.financezap.com.br
+N8N_WEBHOOK_SECRET=defina-um-segredo-longo-aqui
+N8N_SEND_WHATSAPP_URL=https://seu-n8n.com/webhook/financezap-send-whatsapp
+GEMINI_API_KEY=sua-chave-gemini
+RESEND_API_KEY=sua-chave-resend         # para envio de email
+EMAIL_FROM=FinanceZap <noreply@financezap.app>
+APP_URL=https://financezap.thesilasstudio.com.br
+ADMIN_SECRET=sua-senha-admin
 ```
 
 ---
 
-## 4. Configurar a Evolution API para enviar ao Workflow 1
+## Passos para importar
 
-Na sua Evolution API, configure o webhook da instância para apontar para:
-
-```
-POST https://SEU_N8N/webhook/financezap-whatsapp
-```
-
-Eventos a ativar: **messages.upsert**
-
----
-
-## Fluxo Workflow 1 — Registrar transação via WhatsApp
-
-```
-Usuário manda mensagem no WhatsApp
-  → Evolution API dispara webhook para o n8n
-  → n8n parseia a mensagem (tipo, valor, categoria)
-  → n8n chama POST /api/webhook/whatsapp no servidor
-  → n8n envia confirmação via WhatsApp para o usuário
-```
-
-**Exemplos de mensagens aceitas:**
-- `saída 50 restaurante`
-- `gasto 25.50 transporte`
-- `entrada 3000 salário`
-- `recebi 1500 freela`
-- `paguei 120 conta de luz`
-
----
-
-## Fluxo Workflow 2 — Enviar link de ativação
-
-```
-Admin confirma pagamento no /admin
-  → Servidor chama N8N_SEND_WHATSAPP_URL
-  → n8n valida o secret
-  → n8n envia a mensagem com o link de ativação via Evolution API
-  → Usuário recebe no WhatsApp e clica no link
-```
+1. Acesse seu n8n → **Workflows** → **Import from file**
+2. Importe o arquivo JSON do Workflow 1
+3. Substitua os valores conforme tabela acima
+4. Ative o workflow (toggle no canto superior direito)
+5. Repita para o Workflow 2
+6. No painel da Evolution API, configure o webhook apontando para a URL do Workflow 1:
+   - `https://seu-n8n.com/webhook/financezap-whatsapp`
+   - Evento: `MESSAGES_UPSERT`

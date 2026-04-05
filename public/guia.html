@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guia de Uso — FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0F172A; --navy-light: #1E293B; --border: #2D3B55;
+      --emerald: #10B981; --slate: #64748B; --slate-light: #94A3B8;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    body { font-family: var(--font); background: var(--navy); color: #F8FAFC; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+
+    /* ── Header ── */
+    header { background: linear-gradient(135deg, #0F172A 0%, #162032 100%); border-bottom: 1px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .brand { font-size: 1.1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: .5rem; text-decoration: none; }
+    .badge-guide { font-size: .68rem; background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.4); color: #6EE7B7; border-radius: 6px; padding: .2rem .5rem; font-weight: 700; }
+    .access-btn { background: linear-gradient(135deg, var(--emerald), #059669); color: #fff; border: none; padding: .6rem 1.25rem; border-radius: 10px; font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; text-decoration: none; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 3rem 2rem 2rem; max-width: 680px; margin: 0 auto; }
+    .hero h1 { font-size: 2rem; font-weight: 800; line-height: 1.25; margin-bottom: .75rem; }
+    .hero h1 span { color: var(--emerald); }
+    .hero p { color: var(--slate-light); font-size: 1rem; }
+
+    /* ── Layout ── */
+    .container { max-width: 760px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+    /* ── TOC ── */
+    .toc { background: var(--navy-light); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; }
+    .toc h3 { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--emerald); margin-bottom: .75rem; }
+    .toc ol { list-style: none; counter-reset: toc-counter; }
+    .toc ol li { counter-increment: toc-counter; padding: .3rem 0; font-size: .88rem; }
+    .toc ol li::before { content: counter(toc-counter) ". "; color: var(--emerald); font-weight: 700; }
+    .toc a { color: var(--slate-light); text-decoration: none; }
+    .toc a:hover { color: #fff; }
+
+    /* ── Sections ── */
+    .guide-section { margin-bottom: 2.5rem; }
+    .guide-section h2 { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+    .guide-section h2 .icon { font-size: 1.4rem; }
+    .guide-section p { color: var(--slate-light); font-size: .92rem; margin-bottom: .75rem; }
+    .guide-section ul, .guide-section ol { padding-left: 1.25rem; color: var(--slate-light); font-size: .92rem; }
+    .guide-section li { margin-bottom: .4rem; }
+    .guide-section strong { color: #E2E8F0; }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: .75rem; margin: 1rem 0; }
+    .step { background: var(--navy-light); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { background: var(--emerald); color: #fff; font-weight: 800; font-size: .85rem; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: .1rem; }
+    .step-body h4 { font-size: .92rem; font-weight: 700; color: #fff; margin-bottom: .25rem; }
+    .step-body p { color: var(--slate-light); font-size: .85rem; margin: 0; }
+
+    /* ── WhatsApp examples ── */
+    .wa-examples { background: #1a2535; border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; }
+    .wa-examples h4 { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--emerald); margin-bottom: .75rem; }
+    .wa-msg { display: flex; flex-direction: column; gap: .5rem; }
+    .msg-out, .msg-in { border-radius: 10px; padding: .5rem .9rem; font-size: .85rem; max-width: 85%; }
+    .msg-out { background: #1a3c2f; color: #6EE7B7; align-self: flex-end; text-align: right; }
+    .msg-in  { background: #1E293B; color: #CBD5E1; align-self: flex-start; }
+    .msg-in strong { color: var(--emerald); }
+
+    /* ── Tip cards ── */
+    .tip { background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.2); border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; font-size: .88rem; color: var(--slate-light); }
+    .tip strong { color: var(--emerald); }
+
+    /* ── Menu cheat-sheet ── */
+    .menu-sheet { background: var(--navy-light); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 1rem 0; }
+    .menu-row { display: flex; align-items: flex-start; gap: 1rem; padding: .75rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .menu-row:last-child { border-bottom: none; }
+    .menu-num { background: rgba(16,185,129,.15); color: var(--emerald); font-weight: 800; font-size: .8rem; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .menu-content h4 { font-size: .88rem; font-weight: 700; color: #fff; margin-bottom: .15rem; }
+    .menu-content p { font-size: .8rem; color: var(--slate-light); margin: 0; }
+
+    /* ── CTA final ── */
+    .cta-box { background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(16,185,129,.05)); border: 1px solid rgba(16,185,129,.3); border-radius: 16px; padding: 2rem; text-align: center; margin-top: 2rem; }
+    .cta-box h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: .5rem; }
+    .cta-box p { color: var(--slate-light); font-size: .9rem; margin-bottom: 1.25rem; }
+    .cta-box a { display: inline-block; background: linear-gradient(135deg, var(--emerald), #059669); color: #fff; font-weight: 700; padding: .85rem 2rem; border-radius: 12px; text-decoration: none; font-size: .95rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="brand"><span>⚡</span> FinanceZap <span class="badge-guide">Guia de Uso</span></a>
+  <a href="/insights/" class="access-btn">Acessar dashboard →</a>
+</header>
+
+<div class="hero">
+  <h1>Bem-vindo ao <span>FinanceZap</span> 🎉</h1>
+  <p>Este guia vai te mostrar passo a passo como configurar sua conta e aproveitar ao máximo o controle financeiro pelo WhatsApp.</p>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <h3>Índice</h3>
+    <ol>
+      <li><a href="#passo1">Primeiro acesso — criando sua conta</a></li>
+      <li><a href="#passo2">Configurando bancos e contas</a></li>
+      <li><a href="#passo3">Configurando categorias</a></li>
+      <li><a href="#passo4">Lançando pelo WhatsApp</a></li>
+      <li><a href="#passo5">Usando o menu do WhatsApp</a></li>
+      <li><a href="#passo6">Lançamentos manuais no dashboard</a></li>
+      <li><a href="#passo7">Contas a pagar e recorrentes</a></li>
+      <li><a href="#passo8">Investimentos</a></li>
+      <li><a href="#passo9">Cartões de crédito</a></li>
+      <li><a href="#passo10">Dicas e boas práticas</a></li>
+    </ol>
+  </div>
+
+  <!-- PASSO 1 -->
+  <div class="guide-section" id="passo1">
+    <h2><span class="icon">🔐</span> 1. Primeiro acesso</h2>
+    <p>Você recebeu um link de ativação no WhatsApp e por e-mail. Clique nele para criar sua senha e ativar sua conta.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Acesse o link de ativação</h4>
+          <p>Clique no link que chegou no seu WhatsApp ou e-mail. Ele é único e só funciona uma vez.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Crie sua senha</h4>
+          <p>Defina uma senha de pelo menos 6 caracteres. Guarde-a em local seguro.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Faça login</h4>
+          <p>Acesse <strong>financezap.thesilasstudio.com.br/login</strong> com seu celular (ou e-mail) e senha.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 2 -->
+  <div class="guide-section" id="passo2">
+    <h2><span class="icon">🏦</span> 2. Configurando bancos e contas</h2>
+    <p>Antes de lançar transações, cadastre suas contas bancárias para ter um controle completo do saldo.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Acesse "Contas bancárias" no menu lateral</h4>
+          <p>No dashboard, clique em <strong>🏦 Contas bancárias</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Adicione cada conta</h4>
+          <p>Para cada banco (Nubank, Itaú, Bradesco, PicPay etc.), informe o nome, tipo (corrente, digital, poupança) e o saldo atual.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Atualize o saldo periodicamente</h4>
+          <p>O saldo das contas é atualizado manualmente por você, conforme extrato do banco.</p>
+        </div>
+      </div>
+    </div>
+    <div class="tip">
+      <strong>💡 Dica:</strong> Cadastre todas as contas onde você recebe e gasta dinheiro — incluindo carteiras digitais como PicPay, Mercado Pago e afins.
+    </div>
+  </div>
+
+  <!-- PASSO 3 -->
+  <div class="guide-section" id="passo3">
+    <h2><span class="icon">🏷️</span> 3. Configurando categorias</h2>
+    <p>As categorias ajudam você a entender <em>onde</em> seu dinheiro está entrando e saindo.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Acesse "Categorias" no menu lateral</h4>
+          <p>Você encontrará abas separadas para <strong>Receitas</strong> e <strong>Despesas</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Adicione suas categorias de receita</h4>
+          <p>Ex: Salário, Freelance, Aluguel recebido, Renda extra, Dividendos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Adicione suas categorias de despesa</h4>
+          <p>Ex: Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Streaming, Academia.</p>
+        </div>
+      </div>
+    </div>
+    <div class="tip">
+      <strong>💡 Dica:</strong> Quanto mais específicas suas categorias, mais fácil identificar onde cortar gastos. Evite usar "Outros" para tudo.
+    </div>
+  </div>
+
+  <!-- PASSO 4 -->
+  <div class="guide-section" id="passo4">
+    <h2><span class="icon">📱</span> 4. Lançando pelo WhatsApp</h2>
+    <p>A maior vantagem do FinanceZap é registrar gastos e receitas <strong>direto pelo WhatsApp</strong>, sem abrir nenhum app.</p>
+
+    <div class="wa-examples">
+      <h4>Exemplos de lançamento rápido</h4>
+      <div class="wa-msg">
+        <div class="msg-out">saída 45 mercado</div>
+        <div class="msg-in">❤️ <strong>Despesa registrada!</strong><br>💸 R$ 45,00 — Mercado<br>✅ Salvo no FinanceZap!</div>
+        <div class="msg-out">recebi 3500 salário</div>
+        <div class="msg-in">💚 <strong>Receita registrada!</strong><br>💰 R$ 3.500,00 — Salário<br>✅ Salvo no FinanceZap!</div>
+        <div class="msg-out">gastei 89,90 farmácia</div>
+        <div class="msg-in">❤️ <strong>Despesa registrada!</strong><br>💸 R$ 89,90 — Farmácia<br>✅ Salvo no FinanceZap!</div>
+      </div>
+    </div>
+
+    <p><strong>Padrão:</strong> Comece com uma palavra-chave seguida do valor e da categoria.</p>
+    <ul>
+      <li><strong>Para despesas:</strong> saída, saiu, gasto, gastei, paguei, comprei, transferi, despesa</li>
+      <li><strong>Para receitas:</strong> entrada, recebi, salário, renda, ganho, ganhei</li>
+    </ul>
+  </div>
+
+  <!-- PASSO 5 -->
+  <div class="guide-section" id="passo5">
+    <h2><span class="icon">📋</span> 5. Usando o menu do WhatsApp</h2>
+    <p>Mande <strong>"menu"</strong> ou <strong>"oi"</strong> para o FinanceZap e acesse as opções guiadas:</p>
+
+    <div class="menu-sheet">
+      <div class="menu-row">
+        <div class="menu-num">1</div>
+        <div class="menu-content">
+          <h4>Extrato por período</h4>
+          <p>Veja todas as transações dos últimos X dias com o saldo do período.</p>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-num">2</div>
+        <div class="menu-content">
+          <h4>Lançar receita</h4>
+          <p>Escolha a categoria e informe o valor — a receita é registrada automaticamente.</p>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-num">3</div>
+        <div class="menu-content">
+          <h4>Lançar despesa</h4>
+          <p>Escolha a categoria e informe o valor — a despesa é registrada na hora.</p>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-num">4</div>
+        <div class="menu-content">
+          <h4>Lançar investimento</h4>
+          <p>Informe o banco/corretora e o saldo atual — mantém seu patrimônio atualizado.</p>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-num">5</div>
+        <div class="menu-content">
+          <h4>Ver saldo das contas</h4>
+          <p>Lista o saldo de todas as suas contas bancárias e investimentos em um resumo.</p>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-num">6</div>
+        <div class="menu-content">
+          <h4>Tirar uma dúvida</h4>
+          <p>Faça qualquer pergunta sobre finanças pessoais — o assistente responde na hora.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Comandos rápidos:</strong> Você pode digitar diretamente "extrato 30", "saldo", "1", "menu" ou qualquer palavra-chave sem precisar do menu guiado. Para cancelar qualquer operação, mande "cancelar".
+    </div>
+  </div>
+
+  <!-- PASSO 6 -->
+  <div class="guide-section" id="passo6">
+    <h2><span class="icon">✏️</span> 6. Lançamentos manuais no dashboard</h2>
+    <p>Prefere usar o computador? No dashboard, acesse <strong>Lançamentos</strong> para adicionar, visualizar e excluir transações com mais detalhes.</p>
+    <ul>
+      <li>Filtre por período, tipo (receita/despesa) e categoria</li>
+      <li>Adicione descrição detalhada em cada lançamento</li>
+      <li>Exclua lançamentos duplicados ou incorretos</li>
+      <li>Veja o histórico completo com ordenação por data</li>
+    </ul>
+  </div>
+
+  <!-- PASSO 7 -->
+  <div class="guide-section" id="passo7">
+    <h2><span class="icon">🗓️</span> 7. Contas a pagar e recorrentes</h2>
+    <p>Cadastre suas contas fixas mensais (aluguel, internet, energia, streaming) e marque como pagas a cada mês.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Acesse "Contas do mês"</h4>
+          <p>No menu lateral, clique em <strong>🗓️ Contas do mês</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Adicione uma conta recorrente</h4>
+          <p>Informe nome, valor padrão e o dia de vencimento (ex: Aluguel, R$ 1.200, dia 5).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Marque como paga todo mês</h4>
+          <p>Ao pagar cada conta, marque no dashboard. O sistema registra automaticamente a data e o valor pago.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 8 -->
+  <div class="guide-section" id="passo8">
+    <h2><span class="icon">📈</span> 8. Investimentos</h2>
+    <p>Acompanhe o saldo de todas as suas aplicações financeiras em um único lugar.</p>
+    <ul>
+      <li>Acesse <strong>📈 Investimentos</strong> no menu lateral</li>
+      <li>Adicione cada instituição (Nubank, XP, Tesouro, etc.) com o saldo atual</li>
+      <li>Atualize o saldo mensalmente para ter uma visão real do seu patrimônio</li>
+      <li>O dashboard soma tudo e exibe o total investido no resumo financeiro</li>
+    </ul>
+    <div class="tip">
+      <strong>💡 Dica:</strong> Você também pode atualizar investimentos pelo WhatsApp! Mande "menu" e escolha a opção <strong>4 — Lançar investimento</strong>.
+    </div>
+  </div>
+
+  <!-- PASSO 9 -->
+  <div class="guide-section" id="passo9">
+    <h2><span class="icon">💳</span> 9. Cartões de crédito</h2>
+    <p>Controle o que você gasta no crédito, incluindo parcelas futuras.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Acesse "💳 Cartões" no menu lateral</h4>
+          <p>Clique em <strong>Adicionar cartão</strong> e informe os dados: nome, banco, limite, dia de fechamento e vencimento.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Lance compras no cartão</h4>
+          <p>Clique em <strong>"+ Lançar"</strong> no cartão desejado. Para compras parceladas, informe o número de parcelas — o sistema distribui automaticamente nos meses corretos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Acompanhe a fatura</h4>
+          <p>Veja o total da fatura de cada mês e o percentual do limite utilizado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 10 -->
+  <div class="guide-section" id="passo10">
+    <h2><span class="icon">💡</span> 10. Dicas e boas práticas</h2>
+    <ul>
+      <li><strong>Lance na hora:</strong> Registre o gasto imediatamente pelo WhatsApp enquanto ainda lembra.</li>
+      <li><strong>Crie categorias específicas:</strong> "Ifood", "Combustível", "Academia" são melhores que só "Alimentação" ou "Outros".</li>
+      <li><strong>Confira o dashboard semanalmente:</strong> Gaste 5 minutos todo domingo revisando o extrato da semana.</li>
+      <li><strong>Use o extrato do WhatsApp:</strong> Mande "extrato 7" para ver como foi a semana sem abrir o computador.</li>
+      <li><strong>Cadastre todas as contas:</strong> Quanto mais completo o cadastro, mais preciso será o saldo total exibido.</li>
+      <li><strong>Atualize investimentos mensalmente:</strong> Após o fechamento do mês, atualize os saldos de cada aplicação.</li>
+    </ul>
+  </div>
+
+  <div class="cta-box">
+    <h3>Pronto para começar? 🚀</h3>
+    <p>Acesse o dashboard e comece configurando suas contas e categorias.</p>
+    <a href="/insights/">Acessar meu dashboard →</a>
+  </div>
+
+</div>
+</body>
+</html>
