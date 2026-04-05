@@ -1,6 +1,7 @@
 require("dotenv").config();
 const path = require("path");
 const express = require("express");
+const nodemailer = require("nodemailer");
 const { getSupabase } = require("./lib/supabase");
 const { dashboardRoute } = require("./lib/dashboard-route");
 const { authRequired, authOnly } = require("./lib/auth-middleware");
@@ -879,12 +880,16 @@ api.post(
     }
 
     // Enviar email de ativação
+    let emailResult = { ok: false, reason: "no_email" };
     if (data.email) {
       const emailHtml = buildActivationEmail(data.name, activationLink, guiaLink);
-      await sendEmail({ to: data.email, subject: "🎉 Seu acesso ao FinanceZap está pronto!", html: emailHtml });
+      emailResult = await sendEmail({ to: data.email, subject: "🎉 Seu acesso ao FinanceZap está pronto!", html: emailHtml });
+      console.log("📧 Email result for", data.email, ":", JSON.stringify(emailResult));
+    } else {
+      console.warn("⚠️ Sem email no pending_payment id:", req.params.id);
     }
 
-    res.json({ ok: true, payment: data });
+    res.json({ ok: true, payment: data, emailResult });
   })
 );
 
@@ -2066,24 +2071,64 @@ function buildActivationEmail(name, activationLink, guiaLink) {
 
 // ─── Helper: envio de email via Resend (ou SMTP genérico) ─────────────────
 
+// ── Transporter de email (Gmail SMTP ou Resend) ───────────────────────────
+let _mailTransporter = null;
+function getMailTransporter() {
+  if (_mailTransporter) return _mailTransporter;
+  const provider = (process.env.EMAIL_PROVIDER || "gmail").toLowerCase();
+
+  if (provider === "gmail") {
+    _mailTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+    console.log("📧 Email provider: Gmail SMTP (" + process.env.GMAIL_USER + ")");
+  } else {
+    // Resend via SMTP (alternativa)
+    _mailTransporter = nodemailer.createTransport({
+      host: "smtp.resend.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "resend",
+        pass: process.env.RESEND_API_KEY,
+      },
+    });
+    console.log("📧 Email provider: Resend SMTP");
+  }
+  return _mailTransporter;
+}
+
 async function sendEmail({ to, subject, html }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || "FinanceZap <noreply@financezap.app>";
-  if (!apiKey) {
-    console.warn("RESEND_API_KEY não configurado — email não enviado para", to);
+  const fromEmail = process.env.EMAIL_FROM || `FinanceZap <${process.env.GMAIL_USER || "noreply@financezap.app"}>`;
+  const provider = (process.env.EMAIL_PROVIDER || "gmail").toLowerCase();
+
+  // Validar config
+  if (provider === "gmail" && (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD)) {
+    console.warn("❌ GMAIL_USER ou GMAIL_APP_PASSWORD não configurado — email não enviado para", to);
+    return { ok: false, reason: "no_gmail_config" };
+  }
+  if (provider === "resend" && !process.env.RESEND_API_KEY) {
+    console.warn("❌ RESEND_API_KEY não configurado — email não enviado para", to);
     return { ok: false, reason: "no_api_key" };
   }
+
+  console.log("📧 Enviando email via", provider, "de:", fromEmail, "para:", to);
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: fromEmail, to, subject, html }),
+    const transporter = getMailTransporter();
+    const info = await transporter.sendMail({
+      from: fromEmail,
+      to,
+      subject,
+      html,
     });
-    const data = await res.json();
-    if (!res.ok) { console.warn("Resend error:", data); return { ok: false, error: data }; }
-    return { ok: true, id: data.id };
+    console.log("✅ Email enviado com sucesso! MessageId:", info.messageId);
+    return { ok: true, messageId: info.messageId };
   } catch (e) {
-    console.warn("sendEmail error:", e.message);
+    console.error("❌ sendEmail error:", e.message);
     return { ok: false, error: e.message };
   }
 }
