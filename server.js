@@ -854,6 +854,10 @@ api.post(
     const activationLink = `${appUrl}/ativar?token=${data.activation_token}`;
     const guiaLink = `${appUrl}/guia`;
 
+    // Garante código do país 55 no telefone
+    let whatsappPhone = String(data.whatsapp_phone).replace(/\D/g, "");
+    if (!whatsappPhone.startsWith("55")) whatsappPhone = "55" + whatsappPhone;
+
     const whatsappMsg =
       `🎉 Olá, ${data.name}! Seu pagamento foi confirmado!\n\n` +
       `👉 Crie sua conta aqui:\n${activationLink}\n\n` +
@@ -867,7 +871,7 @@ api.post(
         await fetch(sendUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-webhook-secret": process.env.N8N_WEBHOOK_SECRET || "" },
-          body: JSON.stringify({ phone: data.whatsapp_phone, message: whatsappMsg }),
+          body: JSON.stringify({ phone: whatsappPhone, message: whatsappMsg }),
         });
       } catch (e) {
         console.warn("Aviso: falha ao enviar WhatsApp:", e.message);
