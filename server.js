@@ -965,6 +965,26 @@ api.post(
   })
 );
 
+// ─── Admin: restaurar pagamento cancelado → volta para pendente ────────────
+
+api.post(
+  "/admin/restore-payment/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("pending_payments")
+      .update({ status: "pending" })
+      .eq("id", req.params.id)
+      .eq("status", "cancelled")
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Não encontrado ou não está cancelado" });
+    res.json({ ok: true, payment: data });
+  })
+);
+
 // ─── Admin: revogar acesso ─────────────────────────────────────────────────
 
 api.post(

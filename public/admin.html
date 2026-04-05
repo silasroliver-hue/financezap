@@ -668,6 +668,10 @@ function renderPayments(rows) {
           <button class="btn btn-blue btn-sm" onclick="resendActivation('${r.id}')">🔄 Reenviar</button>
         </div>
       </div>`;
+    } else if (r.status === 'cancelled') {
+      actions = `<div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="restorePayment('${r.id}')">♻️ Restaurar</button>
+      </div>`;
     }
     return `<tr>
       <td><strong>${esc(r.name)}</strong></td>
@@ -700,6 +704,17 @@ async function cancelPayment(id) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showMsg('success', 'Pagamento cancelado.');
+    loadPayments();
+  } catch(e) { showMsg('error', e.message); }
+}
+
+async function restorePayment(id) {
+  if (!confirm('Restaurar este pagamento para pendente?')) return;
+  try {
+    const res = await apiAdmin(`/admin/restore-payment/${id}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showMsg('success', '♻️ Pagamento restaurado para pendente.');
     loadPayments();
   } catch(e) { showMsg('error', e.message); }
 }
