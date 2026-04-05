@@ -679,28 +679,83 @@ body.dash-body {
   .dash-sidebar {
     width: 100%;
     height: auto;
-    position: static;
-    flex-direction: column;
-    padding: .85rem 1rem .5rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    z-index: 100;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 -2px 20px rgba(0,0,0,.3);
   }
 
-  .dash-sidebar-brand { padding: 0 0 .75rem; border-bottom: none; margin-bottom: .25rem; }
+  .dash-sidebar-brand { display: none; }
 
   .dash-sidebar nav {
     flex-direction: row;
-    flex-wrap: wrap;
-    gap: 4px;
+    flex-wrap: nowrap;
+    gap: 0;
     padding: 0;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .dash-sidebar nav::-webkit-scrollbar { display: none; }
 
   .dash-sidebar nav a {
-    border-radius: 8px;
-    padding: .4rem .7rem;
-    font-size: .8rem;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: .15rem;
+    padding: .5rem .65rem .4rem;
+    border-radius: 0;
+    font-size: .6rem;
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .dash-sidebar nav a .nav-icon { font-size: 1.15rem; width: auto; }
+
+  .dash-sidebar nav a.active {
+    background: rgba(16,185,129,.15);
+    border-radius: 0;
   }
 
   .dash-sidebar-footer { display: none; }
 
-  .dash-main { padding: 1.25rem 1rem 2rem; }
+  .dash-main { padding: 1.25rem 1rem 5rem; } /* extra bottom padding for fixed nav */
   .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+
+  .dash-header { flex-direction: column; gap: .5rem; }
+  .dash-header h1 { font-size: 1.25rem; }
+
+  .dash-toolbar {
+    flex-direction: column;
+    gap: .5rem;
+    padding: .75rem 1rem;
+  }
+
+  .dash-grid-2 { grid-template-columns: 1fr !important; }
+
+  .dash-card { padding: 1rem; }
+
+  .dash-table { font-size: .75rem; }
+  .dash-table th { font-size: .6rem; }
+  .dash-table td { padding: .45rem .35rem; }
+
+  .breakdown-row { font-size: .78rem; }
+}
+
+/* Extra small phones */
+@media (max-width: 380px) {
+  .dash-kpis { grid-template-columns: 1fr; }
+  .dash-main { padding: 1rem .75rem 5rem; }
+  .dash-kpi strong { font-size: 1.15rem; }
 }

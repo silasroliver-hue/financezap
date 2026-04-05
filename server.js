@@ -1531,8 +1531,18 @@ api.post(
       return res.json({ type: "user", reply: `${emoji} *${tipo} registrada!*\n\n💰 ${brl(amount)} — ${category}\n✅ Salvo no FinanceZap!\n\nDigite *menu* para mais opções.` });
     }
 
-    // Sem intenção detectada → envia menu
-    return res.json({ type: "user", reply: WHATSAPP_MENU(profile.full_name) });
+    // Sem intenção detectada → envia menu com dica
+    return res.json({
+      type: "user",
+      reply: `Não entendi o que você quer fazer, *${profile.full_name}*. 🤔\n\nEscolha uma das opções abaixo:\n\n` +
+        `1️⃣ Extrato por período\n` +
+        `2️⃣ Lançar receita\n` +
+        `3️⃣ Lançar despesa\n` +
+        `4️⃣ Lançar investimento\n` +
+        `5️⃣ Ver saldo das contas\n` +
+        `6️⃣ Tirar uma dúvida\n\n` +
+        `_Digite apenas o número da opção (ex: *1* para extrato)._`,
+    });
   })
 );
 

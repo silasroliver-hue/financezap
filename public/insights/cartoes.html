@@ -67,6 +67,21 @@
     .dash-form-row select option { background: #1E293B; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
     .installments-label { font-size: .72rem; color: var(--slate-light); margin-top: .25rem; }
+
+    /* Override dashboard.css for dark theme pages */
+    body.dash-body { background: #0F172A; color: #F8FAFC; }
+    .dash-main { background: #0F172A; }
+    .dash-card { background: #1E293B; border-color: #2D3B55; color: #F8FAFC; }
+    .dash-page-head h1 { color: #F8FAFC; }
+    .dash-page-head p { color: #94A3B8; }
+
+    @media (max-width: 768px) {
+      .cards-grid { grid-template-columns: 1fr; }
+      .modal { max-width: 95vw; padding: 1.5rem; }
+      .two-col { grid-template-columns: 1fr; }
+      .summary-bar { flex-wrap: wrap; gap: 1rem; }
+      .month-nav { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body class="dash-body">
@@ -203,6 +218,13 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    (async () => {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      window.__SUPABASE_URL__ = cfg.supabaseUrl;
+      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
+    })();
+  </script>
   <script src="/js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/nav.js"></script>
@@ -222,7 +244,7 @@
     }
 
     async function loadCards() {
-      const data = await apiFetch("/api/credit-cards");
+      const data = await apiFetch("/credit-cards");
       cards = data || [];
       renderCards();
     }
@@ -290,7 +312,7 @@
       document.getElementById("statement-title").textContent = `Fatura — ${card.name}`;
       document.getElementById("month-label").textContent = `${MONTHS_PT[curMonth - 1]} ${curYear}`;
 
-      const data = await apiFetch(`/api/credit-cards/${selectedCardId}/statement?year=${curYear}&month=${curMonth}`);
+      const data = await apiFetch(`/credit-cards/${selectedCardId}/statement?year=${curYear}&month=${curMonth}`);
       renderStatement(data);
     }
 
@@ -389,9 +411,9 @@
       if (!body.name) { showAlert("Informe o nome do cartão."); return; }
       try {
         if (editingCardId) {
-          await apiFetch(`/api/credit-cards/${editingCardId}`, { method: "PATCH", body: JSON.stringify(body) });
+          await apiFetch(`/credit-cards/${editingCardId}`, { method: "PATCH", body: JSON.stringify(body) });
         } else {
-          await apiFetch("/api/credit-cards", { method: "POST", body: JSON.stringify(body) });
+          await apiFetch("/credit-cards", { method: "POST", body: JSON.stringify(body) });
         }
         closeCardModal();
         await loadCards();
@@ -402,7 +424,7 @@
       const c = cards.find(x => x.id === id);
       if (!confirm(`Excluir cartão "${c?.name}"? Todos os lançamentos serão removidos.`)) return;
       try {
-        await apiFetch(`/api/credit-cards/${id}`, { method: "DELETE" });
+        await apiFetch(`/credit-cards/${id}`, { method: "DELETE" });
         if (selectedCardId === id) {
           selectedCardId = null;
           document.getElementById("statement-section").classList.remove("visible");
@@ -427,11 +449,19 @@
 
     async function loadCategoriesForSelect() {
       try {
-        const cats = await apiFetch("/api/categories/expense");
+        const cats = await apiFetch("/categories/user?kind=expense");
         const sel = document.getElementById("tx-category");
-        sel.innerHTML = (cats || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-        if (!sel.options.length) sel.innerHTML = '<option>Geral</option>';
-      } catch (_) {}
+        const names = (cats || []).map(c => c.name || c);
+        sel.innerHTML = names.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+        if (!sel.options.length) {
+          sel.innerHTML = ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
+            .map(c => `<option value="${c}">${c}</option>`).join("");
+        }
+      } catch (_) {
+        const sel = document.getElementById("tx-category");
+        sel.innerHTML = ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
+          .map(c => `<option value="${c}">${c}</option>`).join("");
+      }
     }
 
     document.getElementById("tx-installments").addEventListener("input", function() {
@@ -461,7 +491,7 @@
       if (!body.description) { showAlert("Informe a descrição."); return; }
       if (!body.amount || body.amount <= 0) { showAlert("Informe um valor válido."); return; }
       try {
-        await apiFetch("/api/credit-card-transactions", { method: "POST", body: JSON.stringify(body) });
+        await apiFetch("/credit-card-transactions", { method: "POST", body: JSON.stringify(body) });
         closeTxModal();
         if (selectedCardId === txCardId) loadStatement();
         else { selectedCardId = txCardId; renderCards(); document.getElementById("statement-section").classList.add("visible"); loadStatement(); }
@@ -471,12 +501,21 @@
     async function deleteTx(id) {
       if (!confirm("Excluir este lançamento?")) return;
       try {
-        await apiFetch(`/api/credit-card-transactions/${id}`, { method: "DELETE" });
+        await apiFetch(`/credit-card-transactions/${id}`, { method: "DELETE" });
         loadStatement();
       } catch (e) { showAlert(e.message); }
     }
 
-    loadCards();
+    renderSidebarNav("cartoes");
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      let tries = 0;
+      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
+      const ok = await checkAccess();
+      if (!ok) return;
+      renderSidebarUser();
+      loadCards();
+    });
   </script>
 </body>
 </html>

@@ -214,13 +214,17 @@
         if (!d) return;
 
         const balAll = d.balanceTotalAllTime != null ? d.balanceTotalAllTime : 0;
+        const bankTotal = d.bankAccountsTotal || 0;
+        const invTotal = d.investmentsTotal || 0;
+        const patrimonio = bankTotal + invTotal;
         const asOf = d.accumulatedThroughDate ? fmtDate(d.accumulatedThroughDate) : "";
         document.getElementById("kpis").innerHTML = `
           <div class="dash-kpi"><span>Entradas no mês</span><strong class="inc">${fmtBRL(d.income)}</strong></div>
           <div class="dash-kpi"><span>Saídas no mês</span><strong class="exp">${fmtBRL(d.expense)}</strong></div>
           <div class="dash-kpi"><span>Saldo no mês</span><strong class="${d.balance >= 0 ? 'inc' : 'exp'}">${fmtBRL(d.balance)}</strong></div>
-          <div class="dash-kpi"><span>Saldo acumulado</span><strong class="${balAll >= 0 ? 'inc' : 'exp'}">${fmtBRL(balAll)}</strong><small class="dash-note" style="display:block;margin-top:.35rem;line-height:1.3">Até ${esc(asOf)}</small></div>
-          <div class="dash-kpi"><span>Investimentos</span><strong>${fmtBRL(d.investmentsTotal)}</strong></div>
+          <div class="dash-kpi"><span>Saldo em contas</span><strong class="${bankTotal >= 0 ? 'inc' : 'exp'}">${fmtBRL(bankTotal)}</strong></div>
+          <div class="dash-kpi"><span>Investimentos</span><strong>${fmtBRL(invTotal)}</strong></div>
+          <div class="dash-kpi"><span>Patrimônio total</span><strong class="inc">${fmtBRL(patrimonio)}</strong><small class="dash-note" style="display:block;margin-top:.35rem;line-height:1.3">Contas + Invest.</small></div>
         `;
 
         renderDailyChart(d.daily || []);
