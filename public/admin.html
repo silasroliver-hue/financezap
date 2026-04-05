@@ -663,7 +663,10 @@ function renderPayments(rows) {
     } else if (r.status === 'confirmed' && activationLink) {
       actions = `<div>
         <div class="link-token">${esc(activationLink)}</div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:.35rem" onclick="copyLink('${activationLink}')">Copiar link</button>
+        <div class="actions" style="margin-top:.4rem">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('${activationLink}')">📋 Copiar link</button>
+          <button class="btn btn-blue btn-sm" onclick="resendActivation('${r.id}')">🔄 Reenviar</button>
+        </div>
       </div>`;
     }
     return `<tr>
@@ -703,6 +706,19 @@ async function cancelPayment(id) {
 
 function copyLink(url) {
   navigator.clipboard.writeText(url).then(() => showMsg('success', 'Link copiado!'));
+}
+
+async function resendActivation(id) {
+  if (!confirm('Reenviar link de ativação via WhatsApp e Email?')) return;
+  try {
+    const res = await apiAdmin(`/admin/resend-activation/${id}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const msgs = [];
+    if (data.results.whatsapp) msgs.push('WhatsApp');
+    if (data.results.email) msgs.push('Email');
+    showMsg('success', msgs.length ? `✓ Reenviado via ${msgs.join(' e ')}!` : '⚠️ Nenhum canal enviou (verifique configs).');
+  } catch(e) { showMsg('error', e.message); }
 }
 </script>
 </body>

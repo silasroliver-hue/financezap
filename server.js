@@ -888,6 +888,61 @@ api.post(
   })
 );
 
+// ─── Admin: reenviar WhatsApp + Email de ativação ─────────────────────────
+
+api.post(
+  "/admin/resend-activation/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("pending_payments")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (error || !data) return res.status(404).json({ error: "Pagamento não encontrado" });
+    if (data.status !== "confirmed") return res.status(400).json({ error: "Pagamento não está confirmado" });
+
+    const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+    const activationLink = `${appUrl}/ativar?token=${data.activation_token}`;
+    const guiaLink = `${appUrl}/guia`;
+
+    let whatsappPhone = String(data.whatsapp_phone).replace(/\D/g, "");
+    if (!whatsappPhone.startsWith("55")) whatsappPhone = "55" + whatsappPhone;
+
+    const results = { whatsapp: false, email: false };
+
+    // Reenviar WhatsApp
+    const sendUrl = process.env.N8N_SEND_WHATSAPP_URL;
+    if (sendUrl) {
+      const whatsappMsg =
+        `🎉 Olá, ${data.name}! Reenviando seu link de ativação:\n\n` +
+        `👉 Crie sua conta aqui:\n${activationLink}\n\n` +
+        `📖 Guia de uso:\n${guiaLink}\n\n` +
+        `Dúvidas? É só chamar aqui! 😊`;
+      try {
+        const r = await fetch(sendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-webhook-secret": process.env.N8N_WEBHOOK_SECRET || "" },
+          body: JSON.stringify({ phone: whatsappPhone, message: whatsappMsg }),
+        });
+        results.whatsapp = r.ok;
+      } catch (e) {
+        console.warn("Resend WhatsApp error:", e.message);
+      }
+    }
+
+    // Reenviar Email
+    if (data.email) {
+      const emailHtml = buildActivationEmail(data.name, activationLink, guiaLink);
+      const emailResult = await sendEmail({ to: data.email, subject: "🎉 Seu acesso ao FinanceZap está pronto!", html: emailHtml });
+      results.email = emailResult.ok;
+    }
+
+    res.json({ ok: true, results });
+  })
+);
+
 api.post(
   "/admin/cancel-payment/:id",
   requireAdmin,
