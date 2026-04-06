@@ -10,11 +10,6 @@ const {
   distinctCategoriesByKind,
 } = require("./lib/transactions-aggregate");
 const {
-  PLANILHA_INCOME_CATEGORIES,
-  PLANILHA_EXPENSE_CATEGORIES,
-  mergeCategoryLists,
-} = require("./lib/planilha-category-defaults");
-const {
   buildCreditCardInstallmentRows,
   groupInstallmentRows,
   monthKeyFromDate,
@@ -68,17 +63,7 @@ function normalizeKindQuery(v) {
   return null;
 }
 
-const CATEGORIES_LEGACY_FALLBACK = [
-  "Moradia",
-  "Alimentação",
-  "Transporte",
-  "Saúde",
-  "Educação",
-  "Lazer",
-  "Salário / renda",
-  "Investimentos",
-  "Outros",
-];
+const CATEGORIES_LEGACY_FALLBACK = ["Outros"];
 
 async function buildCategoryList(sb, kind, userId) {
   // Primeiro tenta categorias do usuário (user_categories)
@@ -89,20 +74,18 @@ async function buildCategoryList(sb, kind, userId) {
   const fromUser = (userCats || []).map(c => c.name);
   if (fromUser.length > 0) return fromUser;
 
-  // Fallback: categorias extraídas das transações + padrões do planilha
+  // Fallback: somente categorias já usadas em transações do usuário.
   if (kind === "income") {
-    return [...PLANILHA_INCOME_CATEGORIES];
+    const fromDb = await distinctCategoriesByKind(sb, "income", userId);
+    return fromDb.length ? fromDb : CATEGORIES_LEGACY_FALLBACK;
   }
   if (kind === "expense") {
     const fromDb = await distinctCategoriesByKind(sb, "expense", userId);
-    const list = mergeCategoryLists(fromDb, PLANILHA_EXPENSE_CATEGORIES);
+    const list = [...fromDb];
     return list.length ? list : CATEGORIES_LEGACY_FALLBACK;
   }
   const fromDb = await distinctCategories(sb, userId);
-  let list = mergeCategoryLists(fromDb, [
-    ...PLANILHA_INCOME_CATEGORIES,
-    ...PLANILHA_EXPENSE_CATEGORIES,
-  ]);
+  let list = [...fromDb];
   if (!list.length) list = CATEGORIES_LEGACY_FALLBACK;
   return list;
 }
