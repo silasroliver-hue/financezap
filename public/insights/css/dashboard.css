@@ -724,20 +724,20 @@ body.dash-body {
     border-top: 1px solid rgba(255,255,255,.1);
     box-shadow: 0 -4px 24px rgba(0,0,0,.3);
     z-index: 200;
+    flex-wrap: wrap;
   }
 
   .dash-sidebar-brand { display: none; }
   .dash-sidebar-footer { display: none; }
 
   .dash-sidebar nav {
-    width: 100%;
     display: flex;
     flex-wrap: nowrap;
     justify-content: stretch;
     gap: 0;
     padding: 0;
     padding-bottom: env(safe-area-inset-bottom, 0);
-    position: relative;
+    flex: 1;
   }
 
   /* Hide items beyond 4 on mobile */
@@ -799,13 +799,14 @@ body.dash-body {
   /* "More" dropdown */
   .nav-more-dropdown {
     display: none;
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    left: 0;
+    position: fixed;
+    bottom: 70px;
+    right: 8px;
+    left: 8px;
     background: var(--dash-sidebar);
-    border-top: 1px solid rgba(255,255,255,.1);
-    box-shadow: 0 -8px 32px rgba(0,0,0,.4);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.5);
     padding: .5rem;
     z-index: 210;
   }

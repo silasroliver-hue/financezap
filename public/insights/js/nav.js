@@ -10,7 +10,6 @@
     { href: "cartoes.html",      id: "cartoes", label: "Cartoes",       shortLabel: "Cartoes",   icon: "💳" },
   ];
 
-  // Mobile: only show first 4 + "More" button
   const MOBILE_MAX = 4;
 
   window.renderNav = function (activeId) {
@@ -26,64 +25,73 @@
   window.renderSidebarNav = function (activeId) {
     const nav = document.getElementById("sidebar-nav");
     if (!nav) return;
+    const sidebar = nav.closest(".dash-sidebar");
 
-    // Check if active item is beyond mobile limit
     const activeIndex = links.findIndex(l => l.id === activeId);
     const isActiveInMore = activeIndex >= MOBILE_MAX;
 
-    const html = links.map((l, i) => {
+    // Desktop: all links inside nav
+    nav.innerHTML = links.map((l, i) => {
       const isActive = l.id === activeId;
-      // On mobile: hide items beyond MOBILE_MAX (CSS handles this)
       const mobileClass = i >= MOBILE_MAX ? "nav-more-item" : "nav-main-item";
-      return `<a href="${l.href}" class="${isActive ? "active" : ""} ${mobileClass}" data-index="${i}">
+      return `<a href="${l.href}" class="${isActive ? "active" : ""} ${mobileClass}">
         <span class="nav-icon">${l.icon}</span>
         <span class="nav-text">${l.label}</span>
         <span class="nav-short">${l.shortLabel}</span>
       </a>`;
     }).join("");
 
-    // Add "More" toggle button for mobile
-    const moreActive = isActiveInMore ? "active" : "";
-    const moreBtn = `<button class="nav-more-btn ${moreActive}" id="nav-more-toggle" onclick="toggleMoreMenu()">
-      <span class="nav-icon">☰</span>
-      <span class="nav-short">Mais</span>
-    </button>`;
+    // Remove old mobile elements if they exist
+    const oldBtn = sidebar.querySelector(".nav-more-btn");
+    const oldDrop = sidebar.querySelector(".nav-more-dropdown");
+    if (oldBtn) oldBtn.remove();
+    if (oldDrop) oldDrop.remove();
 
-    // More dropdown (hidden by default)
-    const moreDropdown = `<div class="nav-more-dropdown" id="nav-more-dropdown">
-      ${links.slice(MOBILE_MAX).map(l => {
-        const isActive = l.id === activeId;
-        return `<a href="${l.href}" class="nav-more-link ${isActive ? "active" : ""}">
-          <span class="nav-icon">${l.icon}</span>
-          <span>${l.label}</span>
-        </a>`;
-      }).join("")}
-    </div>`;
+    // "More" button — appended to sidebar, not inside nav
+    const moreBtn = document.createElement("button");
+    moreBtn.className = "nav-more-btn" + (isActiveInMore ? " active" : "");
+    moreBtn.id = "nav-more-toggle";
+    moreBtn.innerHTML = `<span class="nav-icon">☰</span><span class="nav-short">Mais</span>`;
+    moreBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleMoreMenu();
+    });
+    sidebar.appendChild(moreBtn);
 
-    nav.innerHTML = html + moreBtn + moreDropdown;
+    // "More" dropdown — appended to sidebar
+    const moreDropdown = document.createElement("div");
+    moreDropdown.className = "nav-more-dropdown";
+    moreDropdown.id = "nav-more-dropdown";
+    moreDropdown.innerHTML = links.slice(MOBILE_MAX).map(l => {
+      const isActive = l.id === activeId;
+      return `<a href="${l.href}" class="nav-more-link ${isActive ? "active" : ""}">
+        <span class="nav-icon">${l.icon}</span>
+        <span>${l.label}</span>
+      </a>`;
+    }).join("");
+    sidebar.appendChild(moreDropdown);
   };
 
-  // Toggle "More" dropdown on mobile
   window.toggleMoreMenu = function () {
     const dropdown = document.getElementById("nav-more-dropdown");
     const btn = document.getElementById("nav-more-toggle");
-    if (!dropdown) return;
+    if (!dropdown || !btn) return;
+
     const isOpen = dropdown.classList.contains("open");
     dropdown.classList.toggle("open");
     btn.classList.toggle("expanded");
 
-    // Close on outside click
     if (!isOpen) {
-      setTimeout(() => {
-        const close = (e) => {
-          if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-            dropdown.classList.remove("open");
-            btn.classList.remove("expanded");
-            document.removeEventListener("click", close);
-          }
-        };
+      const close = function (e) {
+        if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+          dropdown.classList.remove("open");
+          btn.classList.remove("expanded");
+          document.removeEventListener("click", close);
+        }
+      };
+      setTimeout(function () {
         document.addEventListener("click", close);
-      }, 10);
+      }, 50);
     }
   };
 
