@@ -632,6 +632,24 @@ body.dash-body {
   flex-wrap: wrap;
 }
 
+/* ── Gastos — filtro ──────────────────────────── */
+.gastos-filter { display: flex; flex-direction: column; gap: .75rem; }
+.gastos-filter-dates { display: flex; gap: .75rem; }
+.gastos-filter-dates .dash-form-row input { width: 100%; max-width: 100%; }
+.gastos-filter-actions { display: flex; gap: .75rem; align-items: flex-end; }
+.gastos-filter-actions .dash-form-row select { width: 100%; max-width: 100%; }
+.gastos-filter-actions button { flex-shrink: 0; white-space: nowrap; }
+
+/* ── Categorias — form ────────────────────────── */
+.cat-form { display: flex; flex-direction: column; gap: .75rem; }
+.cat-form .dash-form-row input { max-width: 100%; width: 100%; }
+.cat-form-bottom { display: flex; gap: .75rem; align-items: flex-end; }
+.cat-form-bottom .dash-form-row select { width: 100%; max-width: 100%; }
+
+/* ── Investimentos — form ─────────────────────── */
+.inv-form { display: flex; flex-direction: column; gap: .75rem; }
+.inv-form .dash-form-row input { max-width: 100%; width: 100%; }
+
 /* ── Contas Bancárias — layout ────────────────── */
 .accounts-summary {
   display: grid;

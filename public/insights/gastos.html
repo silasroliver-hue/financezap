@@ -33,29 +33,35 @@
       <div id="alert"></div>
       <div class="dash-card">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Filtrar</h2>
-        <div class="dash-form-inline">
-          <div class="dash-form-row" style="margin:0">
-            <label for="kind">Tipo</label>
-            <select id="kind" style="width:auto;min-width:11rem">
-              <option value="">Todos os lançamentos</option>
-              <option value="expense" selected>Só saídas</option>
-              <option value="income">Só entradas</option>
-            </select>
+        <div class="gastos-filter">
+          <div class="gastos-filter-dates">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="from">De</label>
+              <input type="date" id="from" />
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="to">Até</label>
+              <input type="date" id="to" />
+            </div>
           </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="from">De</label>
-            <input type="date" id="from" style="width:auto" />
+          <div class="gastos-filter-actions">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="kind">Tipo</label>
+              <select id="kind">
+                <option value="">Todos os lançamentos</option>
+                <option value="expense" selected>Só saídas</option>
+                <option value="income">Só entradas</option>
+              </select>
+            </div>
+            <button type="button" class="dash-btn dash-btn-primary" id="btn-load">Listar</button>
           </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="to">Até</label>
-            <input type="date" id="to" style="width:auto" />
-          </div>
-          <button type="button" class="dash-btn dash-btn-primary" id="btn-load">Listar</button>
         </div>
       </div>
       <div class="dash-card" style="margin-top:1rem">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Lançamentos</h2>
-        <div id="table-wrap"></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <div id="table-wrap"></div>
+        </div>
       </div>
     </main>
   </div>

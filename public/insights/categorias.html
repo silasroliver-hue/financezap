@@ -31,20 +31,22 @@
 
       <div class="dash-card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Nova categoria</h2>
-        <form id="new-cat" class="dash-form-inline">
-          <div class="dash-form-row" style="margin:0;flex:1;min-width:10rem">
-            <label for="cname">Nome</label>
-            <input id="cname" type="text" placeholder="Ex.: Alimentação, Salário" style="max-width:none" />
-          </div>
+        <form id="new-cat" class="cat-form">
           <div class="dash-form-row" style="margin:0">
-            <label for="ckind">Tipo</label>
-            <select id="ckind">
-              <option value="both">Ambos</option>
-              <option value="income">Receita</option>
-              <option value="expense">Despesa</option>
-            </select>
+            <label for="cname">Nome</label>
+            <input id="cname" type="text" placeholder="Ex.: Alimentação, Salário" />
           </div>
-          <button type="submit" class="dash-btn dash-btn-primary">✚ Adicionar</button>
+          <div class="cat-form-bottom">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="ckind">Tipo</label>
+              <select id="ckind">
+                <option value="both">Ambos</option>
+                <option value="income">Receita</option>
+                <option value="expense">Despesa</option>
+              </select>
+            </div>
+            <button type="submit" class="dash-btn dash-btn-primary" style="flex-shrink:0;white-space:nowrap;align-self:flex-end">+ Adicionar</button>
+          </div>
         </form>
       </div>
 

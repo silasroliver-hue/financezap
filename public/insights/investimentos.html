@@ -34,20 +34,22 @@
 
       <div class="dash-card">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Nova posição</h2>
-        <form id="add-form" class="dash-form-inline" style="align-items:flex-end">
-          <div class="dash-form-row" style="margin:0">
-            <label for="broker">Instituição</label>
-            <input id="broker" type="text" required placeholder="Ex.: Nubank, XP, C6" style="min-width:12rem" />
+        <form id="add-form" class="inv-form">
+          <div class="accounts-form-row2">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="broker">Instituição</label>
+              <input id="broker" type="text" required placeholder="Ex.: Nubank, XP, C6" />
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="balance">Saldo (R$)</label>
+              <input id="balance" type="number" step="0.01" min="0" required placeholder="0,00" />
+            </div>
           </div>
           <div class="dash-form-row" style="margin:0">
-            <label for="balance">Saldo (R$)</label>
-            <input id="balance" type="number" step="0.01" min="0" required style="width:8rem" />
-          </div>
-          <div class="dash-form-row" style="margin:0;flex:1;min-width:10rem">
             <label for="notes">Observações</label>
-            <input id="notes" type="text" placeholder="Opcional" style="max-width:none" />
+            <input id="notes" type="text" placeholder="Opcional (ex.: Tesouro Direto, CDB)" />
           </div>
-          <button type="submit" class="dash-btn dash-btn-primary">✚ Adicionar</button>
+          <button type="submit" class="dash-btn dash-btn-primary accounts-submit-btn">+ Adicionar</button>
         </form>
       </div>
 
