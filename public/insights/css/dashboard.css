@@ -733,23 +733,33 @@ body.dash-body {
   .dash-sidebar-brand { display: none; }
   .dash-sidebar-footer { display: none; }
 
-  /* Tab bar: nav + config btn distribuídos igualmente */
+  /* Tab bar: nav ocupa 4 slots, config btn ocupa 1 — total 5 iguais */
   .dash-sidebar nav {
     display: flex;
     flex-wrap: nowrap;
     gap: 0;
     padding: 0;
     padding-bottom: env(safe-area-inset-bottom, 0);
-    flex: 1;
+    flex: 4 4 0;   /* 4 itens dentro = 4 slots */
   }
 
   /* Hide config links on mobile tab bar — only first 4 show */
   .dash-sidebar nav a:nth-child(n+5) { display: none; }
 
-  /* Tab items — 5 equal slots (4 links + Menu btn) */
-  .dash-sidebar nav a,
+  /* Tab items — cada link = 1 slot dentro do nav */
+  .dash-sidebar nav a {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Menu btn = 1 slot, mesmo tamanho de cada link */
   .nav-config-btn {
     flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .dash-sidebar nav a,
+  .nav-config-btn {
     min-width: 0;
     flex-direction: column;
     align-items: center;
