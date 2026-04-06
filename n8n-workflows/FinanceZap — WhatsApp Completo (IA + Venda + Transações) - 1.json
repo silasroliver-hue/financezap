@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Extrai dados do webhook da Evolution API (n8n v2) ──────────────────────\nconst raw = $input.first().json;\n// n8n webhook v2 coloca o payload dentro de .body\nconst body = raw.body || raw;\n\n// Ignora mensagens do próprio bot\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\n// Ignora eventos que não são mensagens\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\n// Ignora grupos\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nconst pushName = body?.data?.pushName || 'amigo';\n\nif (!phone || !text) {\n  return [{ json: { action: 'skip', reason: 'no_data' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];\n"
+        "jsCode": "// ── Extrai dados do webhook da Evolution API (n8n v2) ──────────────────────\nconst raw = $input.first().json;\nconst body = raw.body || raw;\n\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nconst pushName = body?.data?.pushName || 'amigo';\n\nif (!phone || !text) {\n  return [{ json: { action: 'skip', reason: 'no_data' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];\n"
       },
       "id": "3960ba4d-a1c6-4ee3-be54-014a3f0c9a75",
       "name": "Parsear Mensagem",
@@ -90,8 +90,14 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, text: $json.text, pushName: $json.pushName }) }}",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "text", "value": "={{ $json.text }}" },
+            { "name": "pushName", "value": "={{ $json.pushName }}" }
+          ]
+        },
         "options": {
           "response": { "response": { "responseFormat": "json" } },
           "timeout": 25000
@@ -167,8 +173,14 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, message: $json.text, pushName: $json.pushName }) }}",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "message", "value": "={{ $json.text }}" },
+            { "name": "pushName", "value": "={{ $json.pushName }}" }
+          ]
+        },
         "options": {
           "response": { "response": { "responseFormat": "json" } },
           "timeout": 30000
@@ -203,8 +215,13 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.msg }) }}",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $json.phone }}" },
+            { "name": "text", "value": "={{ $json.msg }}" }
+          ]
+        },
         "options": { "timeout": 15000 }
       },
       "id": "2ba1bc39-acd3-49ee-a81b-e7476af7a46f",
