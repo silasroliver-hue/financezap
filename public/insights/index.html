@@ -3,158 +3,180 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard — FinanceZap</title>
+  <title>Dashboard - FinanceZap</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ── Dashboard V2 — Inspired by Assessor layout ── */
-    .period-nav { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-    .period-nav .month-label {
-      font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em;
-      min-width: 140px; text-align: center;
-    }
-    .period-nav .nav-arrow {
-      width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--dash-border);
-      background: var(--dash-card); display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: .9rem; color: var(--dash-ink); transition: all .15s;
-    }
-    .period-nav .nav-arrow:hover { border-color: var(--dash-accent); color: var(--dash-accent); }
-    .period-filters { display: flex; gap: .35rem; margin-left: auto; }
-    .period-filters button {
-      padding: .4rem .85rem; border-radius: 8px; border: 1.5px solid var(--dash-border);
-      background: var(--dash-card); font-family: var(--dash-font); font-size: .78rem;
-      font-weight: 600; color: var(--dash-muted); cursor: pointer; transition: all .15s;
-    }
-    .period-filters button.active,
-    .period-filters button:hover {
-      background: var(--dash-ink); color: #fff; border-color: var(--dash-ink);
-    }
-
-    /* ── Two-column layout ── */
-    .dash-layout { display: grid; grid-template-columns: 340px 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .dash-col-left { display: flex; flex-direction: column; gap: 1rem; }
-    .dash-col-right { display: flex; flex-direction: column; gap: 1rem; }
-
-    /* ── Result card (Resultado do Periodo) ── */
-    .result-card {
-      background: var(--dash-card); border: 1px solid var(--dash-border);
-      border-radius: var(--dash-radius); padding: 1.5rem;
-      box-shadow: var(--dash-shadow); position: relative;
-    }
-    .result-card .result-label { font-size: .78rem; font-weight: 600; color: var(--dash-muted); margin-bottom: .5rem; }
-    .result-card .result-value {
-      font-size: 2rem; font-weight: 800; letter-spacing: -.03em;
-      color: var(--dash-ink); line-height: 1.1;
-    }
-    .result-card .result-sub { font-size: .75rem; color: var(--dash-subtle); margin-top: .35rem; }
-    .result-card .result-badge {
-      position: absolute; top: 1.25rem; right: 1.25rem;
-      display: flex; align-items: center; gap: .25rem;
-      font-size: .78rem; font-weight: 700; padding: .3rem .65rem;
-      border-radius: 8px;
-    }
-    .result-badge.positive { background: #D1FAE5; color: #059669; }
-    .result-badge.negative { background: #FEE2E2; color: #DC2626; }
-
-    /* ── Summary cards (Entradas/Saidas) ── */
-    .summary-card {
-      background: var(--dash-card); border: 1px solid var(--dash-border);
-      border-radius: var(--dash-radius); padding: 1.25rem 1.5rem;
-      box-shadow: var(--dash-shadow);
-    }
-    .summary-card-head {
-      display: flex; align-items: center; justify-content: space-between;
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .8rem;
+      flex-wrap: wrap;
       margin-bottom: 1rem;
     }
-    .summary-card-head h3 { font-size: .95rem; font-weight: 700; margin: 0; }
-    .summary-tag {
-      font-size: .65rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .06em; padding: .25rem .6rem; border-radius: 6px;
-    }
-    .summary-tag.inc { background: #D1FAE5; color: #059669; }
-    .summary-tag.exp { background: #FEE2E2; color: #DC2626; }
-    .summary-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: .5rem 0; border-bottom: 1px solid var(--dash-border-soft);
-    }
-    .summary-row:last-child { border-bottom: none; }
-    .summary-row .label { font-size: .85rem; color: var(--dash-muted); }
-    .summary-row .value { font-size: .95rem; font-weight: 700; }
-    .summary-row .value.inc { color: var(--dash-income); }
-    .summary-row .value.exp { color: var(--dash-expense); }
 
-    /* ── Patrimonio strip ── */
-    .patrimonio-strip {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex-wrap: wrap;
     }
-    .pat-card {
-      background: var(--dash-card); border: 1px solid var(--dash-border);
-      border-radius: var(--dash-radius); padding: 1.1rem 1.25rem;
-      box-shadow: var(--dash-shadow); text-align: center;
-    }
-    .pat-card .pat-icon { font-size: 1.5rem; margin-bottom: .35rem; }
-    .pat-card .pat-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--dash-muted); margin-bottom: .35rem; }
-    .pat-card .pat-value { font-size: 1.15rem; font-weight: 800; }
 
-    /* ── Chart card ── */
-    .chart-card {
-      background: var(--dash-card); border: 1px solid var(--dash-border);
-      border-radius: var(--dash-radius); padding: 1.5rem;
-      box-shadow: var(--dash-shadow);
+    .month-nav button {
+      border: 1px solid var(--dash-border);
+      background: #fff;
+      border-radius: 10px;
+      padding: .35rem .65rem;
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--dash-ink);
+      cursor: pointer;
+      font-family: var(--dash-font);
     }
-    .chart-card h2 { font-size: .95rem; font-weight: 700; margin: 0 0 1rem; }
-    .chart-card canvas { width: 100% !important; max-height: 220px; }
 
-    /* ── Donut section ── */
-    .donut-section {
-      display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
-    }
-    .donut-wrap { position: relative; width: 200px; height: 200px; flex-shrink: 0; }
-    .donut-center {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    .month-nav strong {
+      min-width: 128px;
       text-align: center;
     }
-    .donut-center .donut-total { font-size: 1.1rem; font-weight: 800; color: var(--dash-ink); }
-    .donut-center .donut-label { font-size: .68rem; color: var(--dash-muted); }
-    .cat-list { flex: 1; min-width: 180px; }
-    .cat-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: .45rem 0; border-bottom: 1px solid var(--dash-border-soft);
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: .8rem;
+      margin-bottom: 1rem;
     }
-    .cat-item:last-child { border-bottom: none; }
-    .cat-item-left { display: flex; align-items: center; gap: .5rem; }
-    .cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .cat-name { font-size: .82rem; font-weight: 600; }
-    .cat-item-right { text-align: right; }
-    .cat-amount { font-size: .82rem; font-weight: 700; }
-    .cat-pct { font-size: .68rem; color: var(--dash-muted); }
 
-    /* ── Bottom grid ── */
-    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-
-    /* ── WhatsApp FAB ── */
-    .whatsapp-fab {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; width: 56px; height: 56px;
-      border-radius: 50%; background: #25D366; color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.6rem; box-shadow: 0 4px 16px rgba(37,211,102,.4);
-      text-decoration: none; z-index: 90; transition: transform .15s;
+    .summary-card {
+      border: 1px solid var(--dash-border);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--dash-shadow);
+      padding: .9rem;
     }
-    .whatsapp-fab:hover { transform: scale(1.1); }
 
-    @media (max-width: 768px) {
-      .dash-layout { grid-template-columns: 1fr; }
-      .patrimonio-strip { grid-template-columns: 1fr; }
-      .bottom-grid { grid-template-columns: 1fr; }
-      .period-nav { flex-direction: column; align-items: flex-start; }
-      .period-filters { margin-left: 0; }
-      .donut-section { flex-direction: column; align-items: center; }
-      .donut-wrap { width: 180px; height: 180px; }
-      .result-card .result-value { font-size: 1.5rem; }
-      .whatsapp-fab { bottom: 5rem; }
+    .summary-card label {
+      display: block;
+      font-size: .68rem;
+      text-transform: uppercase;
+      color: var(--dash-muted);
+      letter-spacing: .05em;
+      margin-bottom: .3rem;
+    }
+
+    .summary-card strong {
+      font-size: 1.1rem;
+      color: var(--dash-ink);
+    }
+
+    .summary-card strong.inc { color: var(--dash-income); }
+    .summary-card strong.exp { color: var(--dash-expense); }
+
+    .dash-grid {
+      display: grid;
+      gap: .9rem;
+    }
+
+    @media (min-width: 980px) {
+      .dash-grid {
+        grid-template-columns: 1.2fr .8fr;
+      }
+    }
+
+    .simple-list {
+      display: grid;
+      gap: .65rem;
+      margin-top: .75rem;
+    }
+
+    .simple-item {
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: .75rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .6rem;
+    }
+
+    .simple-item-title {
+      margin: 0;
+      font-size: .88rem;
+      font-weight: 800;
+      color: var(--dash-ink);
+    }
+
+    .simple-item-sub {
+      margin-top: .25rem;
+      font-size: .76rem;
+      color: var(--dash-muted);
+    }
+
+    .cat-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .5rem;
+      align-items: center;
+      padding: .45rem 0;
+      border-bottom: 1px solid var(--dash-border-soft);
+      font-size: .83rem;
+    }
+
+    .cat-row:last-child {
+      border-bottom: none;
+    }
+
+    .setup-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #78350f;
+      border-radius: 12px;
+      padding: .8rem;
+      margin-bottom: 1rem;
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(2, 6, 23, .45);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border: 1px solid var(--dash-border);
+      border-radius: 14px;
+      box-shadow: 0 20px 56px rgba(2, 6, 23, .24);
+      padding: 1rem;
+    }
+
+    .modal-card h3 {
+      margin: 0 0 .9rem;
+      font-size: 1rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .5rem;
+      margin-top: 1rem;
     }
   </style>
 </head>
@@ -175,156 +197,67 @@
     </aside>
 
     <main class="dash-main">
-      <!-- Period Navigation -->
-      <div class="period-nav" style="margin-bottom:1.5rem">
-        <button class="nav-arrow" onclick="changeMonth(-1)" title="Mês anterior">&#8249;</button>
-        <span class="month-label" id="month-label">—</span>
-        <button class="nav-arrow" onclick="changeMonth(1)" title="Próximo mês">&#8250;</button>
-        <div class="period-filters">
-          <a class="dash-btn dash-btn-primary" href="lancamentos.html" style="font-size:.78rem;padding:.4rem .85rem">+ Novo lançamento</a>
+      <div class="head-row">
+        <div class="month-nav">
+          <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
+          <strong id="month-label">-</strong>
+          <button type="button" onclick="changeMonth(1)">Proximo mes</button>
         </div>
+        <a class="dash-btn dash-btn-primary" href="gastos.html?novo=1">+ Novo lancamento</a>
       </div>
 
       <div id="alert"></div>
+      <div id="setup-box"></div>
 
-      <!-- Main 2-column layout -->
-      <div class="dash-layout">
-        <!-- LEFT COLUMN -->
-        <div class="dash-col-left">
-          <!-- Resultado do Periodo -->
-          <div class="result-card" id="result-card">
-            <div class="result-label">Resultado do Periodo</div>
-            <div class="result-value" id="result-value">R$ 0,00</div>
-            <div class="result-sub" id="result-sub">—</div>
-            <div class="result-badge positive" id="result-badge" style="display:none">
-              <span id="result-arrow"></span>
-              <span id="result-pct"></span>
-            </div>
+      <section class="cards-grid">
+        <article class="summary-card">
+          <label>Saldo da conta unica</label>
+          <strong id="balance-total">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Entradas no mes</label>
+          <strong id="income-month" class="inc">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Saidas no mes</label>
+          <strong id="expense-month" class="exp">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Resultado do mes</label>
+          <strong id="balance-month">R$ 0,00</strong>
+        </article>
+      </section>
+
+      <section class="dash-grid">
+        <article class="dash-card">
+          <div class="dash-card-head" style="margin-bottom:.65rem">
+            <h2 style="margin:0">Lançamentos recentes</h2>
+            <a class="dash-link" href="gastos.html">Ver tudo</a>
           </div>
+          <div id="recent-list" class="simple-list"></div>
+        </article>
 
-          <!-- Entradas -->
-          <div class="summary-card">
-            <div class="summary-card-head">
-              <h3>Entradas</h3>
-              <span class="summary-tag inc">Receitas</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Realizado</span>
-              <span class="value inc" id="income-val">R$ 0,00</span>
-            </div>
-            <div class="summary-row">
-              <span class="label" id="bank-val-label">Saldo em contas</span>
-              <span class="value inc" id="bank-val">R$ 0,00</span>
-            </div>
-          </div>
-
-          <!-- Saidas -->
-          <div class="summary-card">
-            <div class="summary-card-head">
-              <h3>Saidas</h3>
-              <span class="summary-tag exp">Despesas</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Realizado</span>
-              <span class="value exp" id="expense-val">R$ 0,00</span>
-            </div>
-            <div class="summary-row">
-              <span class="label">Contas do mes</span>
-              <span class="value" id="bills-val" style="color:var(--dash-muted)">—</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="dash-col-right">
-          <!-- Line chart -->
-          <div class="chart-card">
-            <h2>Evolucao do Saldo no Periodo</h2>
-            <canvas id="line-chart"></canvas>
-          </div>
-
-          <!-- Donut chart -->
-          <div class="chart-card">
-            <div class="dash-card-head" style="margin-bottom:1rem">
-              <h2 style="margin:0">Despesas por Categoria</h2>
-              <a class="dash-link" href="gastos.html">Detalhes &#8594;</a>
-            </div>
-            <div class="donut-section">
-              <div class="donut-wrap">
-                <canvas id="donut-chart"></canvas>
-                <div class="donut-center">
-                  <div class="donut-total" id="donut-total">R$ 0</div>
-                  <div class="donut-label">Total Gastos</div>
-                </div>
-              </div>
-              <div class="cat-list" id="cat-list">
-                <p class="dash-note">Sem dados.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Patrimonio strip -->
-      <div class="patrimonio-strip" id="patrimonio-strip"></div>
-
-      <!-- Bottom grid: Receitas breakdown + Contas do mes -->
-      <div class="bottom-grid">
-        <div class="dash-card">
-          <div class="dash-card-head">
-            <h2>Receitas por Categoria</h2>
-            <a class="dash-link" href="gastos.html">Ver &#8594;</a>
-          </div>
-          <div id="breakdown-income"></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-head">
-            <h2>Contas do Mes</h2>
-            <a class="dash-link" href="pagamentos.html">Abrir &#8594;</a>
-          </div>
-          <div id="bills-box"></div>
-        </div>
-      </div>
-
-      <!-- Potes -->
-      <div class="dash-card" style="margin-bottom:1rem">
-        <h2>Lei dos Potes</h2>
-        <p class="dash-note" style="margin:0 0 1rem">
-          Distribuicao das saidas por pote com base nas categorias.
-        </p>
-        <div class="dash-table-wrap">
-          <table class="dash-table" id="pots-table">
-            <thead>
-              <tr>
-                <th>Pote</th><th>Meta %</th><th>Ideal (R$)</th>
-                <th>Gasto</th><th>% gastos</th><th>Gasto / ideal</th>
-              </tr>
-            </thead>
-            <tbody id="pots-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Ultimas movimentacoes -->
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <h2>Ultimas Movimentacoes</h2>
-          <a class="dash-link" href="gastos.html">Ver todas &#8594;</a>
-        </div>
-        <div class="dash-table-wrap">
-          <table class="dash-table">
-            <thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Origem</th></tr></thead>
-            <tbody id="recent-body"></tbody>
-          </table>
-        </div>
-      </div>
+        <article class="dash-card">
+          <h2 style="margin:0 0 .65rem">Categorias com mais gasto</h2>
+          <div id="cats-list"></div>
+        </article>
+      </section>
     </main>
   </div>
 
-  <!-- WhatsApp FAB -->
-  <a class="whatsapp-fab" href="https://wa.me/5511971466908" target="_blank" title="Falar no WhatsApp">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.75.75 0 00.917.918l4.462-1.494A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.287 0-4.406-.744-6.122-2.004l-.427-.316-2.648.886.886-2.652-.346-.45A9.959 9.959 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-  </a>
+  <div class="modal-overlay" id="setup-modal">
+    <div class="modal-card">
+      <h3>Definir saldo inicial da conta</h3>
+      <div class="dash-form-row" style="margin:0">
+        <label for="setup-amount">Saldo inicial (R$)</label>
+        <input id="setup-amount" type="number" min="0" step="0.01" placeholder="Ex.: 2500" />
+      </div>
+      <div class="modal-actions">
+        <button class="dash-btn dash-btn-ghost" onclick="closeSetupModal()">Agora nao</button>
+        <button class="dash-btn dash-btn-primary" onclick="saveInitialBalance()">Salvar</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/js/auth.js"></script>
@@ -333,307 +266,152 @@
   <script>
     renderSidebarNav("dash");
 
-    const MONTHS = ["Janeiro","Fevereiro","Marco","Abril","Maio","Junho",
-      "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    const MONTHS_PT = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     let curYear = new Date().getFullYear();
     let curMonth = new Date().getMonth() + 1;
-    let lineChartInstance = null;
-    let donutChartInstance = null;
+    let dashboardData = null;
 
-    const DONUT_COLORS = [
-      '#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6',
-      '#EC4899','#14B8A6','#F97316','#6366F1','#64748B'
-    ];
+    function esc(value) {
+      const div = document.createElement("div");
+      div.textContent = value == null ? "" : String(value);
+      return div.innerHTML;
+    }
 
-    function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+    function monthLabel(year, month) {
+      return `${MONTHS_PT[month - 1]} ${year}`;
+    }
 
-    function updateMonthLabel() {
-      document.getElementById("month-label").textContent = `${MONTHS[curMonth - 1]} ${curYear}`;
+    function showAlert(message, type) {
+      const el = document.getElementById("alert");
+      const cls = type === "ok" ? "dash-alert dash-alert-ok" : "dash-alert";
+      el.innerHTML = `<div class="${cls}">${esc(message)}</div>`;
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
     }
 
     function changeMonth(delta) {
       curMonth += delta;
-      if (curMonth > 12) { curMonth = 1; curYear++; }
-      if (curMonth < 1) { curMonth = 12; curYear--; }
-      updateMonthLabel();
-      load();
+      if (curMonth < 1) {
+        curMonth = 12;
+        curYear -= 1;
+      } else if (curMonth > 12) {
+        curMonth = 1;
+        curYear += 1;
+      }
+      loadDashboard().catch((err) => showAlert(err.message || "Nao foi possivel carregar o dashboard."));
     }
 
-    function localTodayYMD() {
-      const d = new Date();
-      return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    function renderSummary(d) {
+      document.getElementById("month-label").textContent = monthLabel(curYear, curMonth);
+      document.getElementById("balance-total").textContent = fmtBRL(d.balanceTotalAllTime || 0);
+      document.getElementById("income-month").textContent = fmtBRL(d.income || 0);
+      document.getElementById("expense-month").textContent = fmtBRL(d.expense || 0);
+
+      const monthBalance = Number(d.balance || 0);
+      const monthEl = document.getElementById("balance-month");
+      monthEl.textContent = fmtBRL(monthBalance);
+      monthEl.className = monthBalance < 0 ? "exp" : "inc";
     }
 
-    function renderBreakdown(container, items, emptyMsg) {
-      if (!items.length) { container.innerHTML = '<p class="dash-note">' + esc(emptyMsg) + '</p>'; return; }
-      const max = items[0].amount || 1;
-      container.innerHTML = items.slice(0, 8).map(row => {
-        const pct = Math.min(100, Math.round(100 * row.amount / max));
-        return `<div class="breakdown-row">
-          <span class="name">${esc(row.category)}</span>
-          <span class="val">${fmtBRL(row.amount)}</span>
-          <div class="breakdown-track"><div class="breakdown-fill" style="width:${pct}%"></div></div>
-        </div>`;
-      }).join("");
-    }
+    function renderSetupHint(d) {
+      const box = document.getElementById("setup-box");
+      const hasRecent = Array.isArray(d.recentTransactions) && d.recentTransactions.length > 0;
+      const totalAbs = Math.abs(Number(d.balanceTotalAllTime || 0));
 
-    function renderLineChart(daily) {
-      const ctx = document.getElementById("line-chart").getContext("2d");
-      if (lineChartInstance) lineChartInstance.destroy();
-
-      const labels = (daily || []).map(d => {
-        const parts = d.date.split("-");
-        return `${parts[2]}/${parts[1]}`;
-      });
-
-      // Calcular saldo acumulado dia a dia
-      let runningBalance = 0;
-      const balanceData = (daily || []).map(d => {
-        runningBalance += (d.income || 0) - (d.expense || 0);
-        return runningBalance;
-      });
-
-      lineChartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Receitas",
-              data: (daily || []).map(d => d.income || 0),
-              borderColor: "#10B981",
-              backgroundColor: "rgba(16,185,129,.08)",
-              borderWidth: 2, fill: false, tension: .3, pointRadius: 0,
-            },
-            {
-              label: "Despesas",
-              data: (daily || []).map(d => d.expense || 0),
-              borderColor: "#EF4444",
-              backgroundColor: "rgba(239,68,68,.08)",
-              borderWidth: 2, fill: false, tension: .3, pointRadius: 0,
-            },
-            {
-              label: "Saldo Acumulado",
-              data: balanceData,
-              borderColor: "#3B82F6",
-              backgroundColor: "rgba(59,130,246,.1)",
-              borderWidth: 2.5, fill: true, tension: .3, pointRadius: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { intersect: false, mode: "index" },
-          plugins: {
-            legend: { position: "bottom", labels: { boxWidth: 10, padding: 15, font: { size: 11 } } },
-            tooltip: {
-              callbacks: {
-                label: (c) => `${c.dataset.label}: ${fmtBRL(c.raw)}`,
-              },
-            },
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 10 } },
-            y: {
-              grid: { color: "rgba(0,0,0,.05)" },
-              ticks: { font: { size: 10 }, callback: (v) => fmtBRL(v) },
-            },
-          },
-        },
-      });
-    }
-
-    function renderDonutChart(expByCategory, totalExpense) {
-      const ctx = document.getElementById("donut-chart").getContext("2d");
-      if (donutChartInstance) donutChartInstance.destroy();
-
-      document.getElementById("donut-total").textContent = fmtBRL(totalExpense);
-
-      const items = (expByCategory || []).slice(0, 8);
-      if (!items.length) {
-        document.getElementById("cat-list").innerHTML = '<p class="dash-note">Sem despesas neste mes.</p>';
+      if (hasRecent || totalAbs > 0.009) {
+        box.innerHTML = "";
         return;
       }
 
-      donutChartInstance = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: items.map(i => i.category),
-          datasets: [{
-            data: items.map(i => i.amount),
-            backgroundColor: DONUT_COLORS.slice(0, items.length),
-            borderWidth: 2, borderColor: "#fff",
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          cutout: "65%",
-          plugins: { legend: { display: false }, tooltip: {
-            callbacks: { label: (c) => `${c.label}: ${fmtBRL(c.raw)}` },
-          }},
-        },
-      });
+      box.innerHTML = `
+        <div class="setup-box">
+          Sua conta ainda está zerada. Para começar, você pode definir um saldo inicial e depois só lançar entradas e saídas normalmente.<br />
+          <button class="dash-btn dash-btn-secondary" style="margin-top:.55rem" onclick="openSetupModal()">Definir saldo inicial</button>
+        </div>
+      `;
+    }
 
-      document.getElementById("cat-list").innerHTML = items.map((item, i) => {
-        const pct = totalExpense > 0 ? ((item.amount / totalExpense) * 100).toFixed(1) : 0;
-        return `<div class="cat-item">
-          <div class="cat-item-left">
-            <div class="cat-dot" style="background:${DONUT_COLORS[i]}"></div>
-            <span class="cat-name">${esc(item.category)}</span>
-          </div>
-          <div class="cat-item-right">
-            <div class="cat-amount">${fmtBRL(item.amount)}</div>
-            <div class="cat-pct">${pct}%</div>
-          </div>
-        </div>`;
+    function renderRecent(d) {
+      const list = document.getElementById("recent-list");
+      const items = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
+      if (!items.length) {
+        list.innerHTML = '<p class="dash-empty">Nenhum lançamento recente.</p>';
+        return;
+      }
+
+      list.innerHTML = items.slice(0, 10).map((row) => {
+        const isIncome = row.kind === "income";
+        return `
+          <article class="simple-item">
+            <div style="min-width:0;flex:1">
+              <h3 class="simple-item-title">${esc(row.description || row.category || "Lancamento")}</h3>
+              <div class="simple-item-sub">${esc(row.category || "Geral")} · ${esc(fmtDate(row.occurred_on))}</div>
+            </div>
+            <strong class="${isIncome ? "dash-text-inc" : "dash-text-exp"}">${fmtBRL(row.amount || 0)}</strong>
+          </article>
+        `;
       }).join("");
     }
 
-    async function load() {
-      const alertEl = document.getElementById("alert");
-      alertEl.innerHTML = "";
+    function renderCategories(d) {
+      const el = document.getElementById("cats-list");
+      const rows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
+      if (!rows.length) {
+        el.innerHTML = '<p class="dash-empty">Sem gastos categorizados neste mes.</p>';
+        return;
+      }
+
+      el.innerHTML = rows.slice(0, 10).map((row) => `
+        <div class="cat-row">
+          <span>${esc(row.category || "Geral")}</span>
+          <strong>${fmtBRL(row.amount || 0)}</strong>
+        </div>
+      `).join("");
+    }
+
+    async function loadDashboard() {
+      const d = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}`);
+      dashboardData = d || {};
+      renderSummary(dashboardData);
+      renderSetupHint(dashboardData);
+      renderRecent(dashboardData);
+      renderCategories(dashboardData);
+    }
+
+    function openSetupModal() {
+      document.getElementById("setup-amount").value = "";
+      document.getElementById("setup-modal").classList.add("open");
+    }
+
+    function closeSetupModal() {
+      document.getElementById("setup-modal").classList.remove("open");
+    }
+
+    async function saveInitialBalance() {
+      const amount = Number(document.getElementById("setup-amount").value);
+      if (!Number.isFinite(amount) || amount < 0) {
+        showAlert("Informe um saldo inicial valido.");
+        return;
+      }
+
       try {
-        const asOfQ = encodeURIComponent(localTodayYMD());
-        const d = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}&accumulatedAsOf=${asOfQ}`);
-        if (d == null) {
-          alertEl.innerHTML =
-            '<div class="dash-alert">Não foi possível carregar o painel (sessão ou API). Recarregue a página ou faça login de novo.</div>';
-          return;
-        }
-
-        const balance = d.balance || 0;
-        const income = d.income || 0;
-        const expense = d.expense || 0;
-        const bankTotal = d.bankAccountsTotal || 0;
-        const invTotal = d.investmentsTotal || 0;
-        const patrimonio = bankTotal + invTotal;
-        const bankSrc = d.bankBalanceSource || "bank_accounts";
-        const bankCount = Number(d.bankAccountsCount) || 0;
-
-        // Resultado do periodo
-        document.getElementById("result-value").textContent = fmtBRL(balance);
-        document.getElementById("result-value").className = `result-value ${balance >= 0 ? 'inc' : 'exp'}`;
-        const daysInMonth = new Date(curYear, curMonth, 0).getDate();
-        document.getElementById("result-sub").textContent = `1 de ${MONTHS[curMonth-1].toLowerCase().slice(0,3)}. - ${daysInMonth} de ${MONTHS[curMonth-1].toLowerCase().slice(0,3)}.`;
-
-        // Percentage badge
-        const badge = document.getElementById("result-badge");
-        if (expense > 0) {
-          const pct = ((balance / expense) * 100).toFixed(1);
-          badge.style.display = "flex";
-          badge.className = `result-badge ${balance >= 0 ? "positive" : "negative"}`;
-          document.getElementById("result-arrow").textContent = balance >= 0 ? "↑" : "↓";
-          document.getElementById("result-pct").textContent = `${balance >= 0 ? "+" : ""}${pct}%`;
-        } else {
-          badge.style.display = "none";
-        }
-
-        // Entradas
-        document.getElementById("income-val").textContent = fmtBRL(income);
-        document.getElementById("bank-val").textContent = fmtBRL(bankTotal);
-        const bankLbl = document.getElementById("bank-val-label");
-        if (bankLbl) {
-          bankLbl.textContent =
-            bankSrc === "transactions" || bankSrc === "transactions_unset_balances"
-              ? "Saldo acumulado (caixa)"
-              : "Saldo em contas";
-        }
-
-        // Saidas
-        document.getElementById("expense-val").textContent = fmtBRL(expense);
-        const bp = d.billsProgress;
-        document.getElementById("bills-val").textContent = bp ? `${bp.paid}/${bp.total} pagas` : "Sem contas";
-
-        // Patrimonio strip
-        const bankPatTitle =
-          bankSrc === "transactions" || bankSrc === "transactions_unset_balances"
-            ? "Caixa (lançamentos)"
-            : "Saldo em Contas";
-        let bankPatHint = "";
-        if (bankSrc === "transactions") {
-          bankPatHint = `<div class="dash-note" style="margin-top:.35rem;font-size:.7rem;line-height:1.35">Soma entradas − saídas até ${esc(
-            fmtDate(d.accumulatedThroughDate)
-          )}. Cadastre contas em <a href="contas.html" class="dash-link">Contas</a> para saldos reais nos bancos.</div>`;
-        } else if (bankSrc === "transactions_unset_balances") {
-          bankPatHint = `<div class="dash-note" style="margin-top:.35rem;font-size:.7rem;line-height:1.35">Você tem ${bankCount} conta(s) em <a href="contas.html" class="dash-link">Contas</a>, mas os saldos cadastrados estão zerados. Exibindo o caixa pelos lançamentos até ${esc(
-            fmtDate(d.accumulatedThroughDate)
-          )}. Use <strong>Atualizar saldo</strong> em cada conta para o painel usar os valores reais.</div>`;
-        }
-        document.getElementById("patrimonio-strip").innerHTML = `
-          <div class="pat-card">
-            <div class="pat-icon">🏦</div>
-            <div class="pat-label">${esc(bankPatTitle)}</div>
-            <div class="pat-value" style="color:${bankTotal >= 0 ? 'var(--dash-income)' : 'var(--dash-expense)'}">${fmtBRL(bankTotal)}</div>
-            ${bankPatHint}
-          </div>
-          <div class="pat-card">
-            <div class="pat-icon">📈</div>
-            <div class="pat-label">Investimentos</div>
-            <div class="pat-value" style="color:var(--dash-income)">${fmtBRL(invTotal)}</div>
-          </div>
-          <div class="pat-card">
-            <div class="pat-icon">🏆</div>
-            <div class="pat-label">Patrimonio Total</div>
-            <div class="pat-value" style="color:var(--dash-accent)">${fmtBRL(patrimonio)}</div>
-          </div>
-        `;
-
-        // Charts
-        renderLineChart(d.daily || []);
-        renderDonutChart(d.expenseByCategory || [], expense);
-
-        // Breakdown receitas
-        renderBreakdown(document.getElementById("breakdown-income"), d.incomeByCategory || [], "Nenhuma entrada neste mes.");
-
-        // Bills box
-        const bb = document.getElementById("bills-box");
-        if (bp && bp.total > 0) {
-          const pct = Math.round(100 * bp.paid / bp.total);
-          bb.innerHTML = `<p style="margin:0;font-size:1.1rem;font-weight:800">${bp.paid} / ${bp.total} contas pagas</p>
-            <div class="breakdown-track" style="margin-top:.75rem"><div class="breakdown-fill" style="width:${pct}%"></div></div>
-            <p class="dash-note">${pct}% do mes quitado.</p>`;
-        } else {
-          bb.innerHTML = '<p class="dash-note">Sem contas cadastradas para este mes.</p>';
-        }
-
-        // Potes
-        const pf = d.potsFromSpending || { rows: [], unallocated: 0, totalExpense: 0, pctUnallocated: 0 };
-        const tbody = document.getElementById("pots-body");
-        let html = "";
-        for (const r of pf.rows) {
-          const vs = r.vsTarget != null && Number.isFinite(r.vsTarget)
-            ? (r.vsTarget * 100).toFixed(0) + "%" : "—";
-          html += `<tr>
-            <td>${esc(r.name)}</td>
-            <td>${((r.targetPercent||0)*100).toFixed(1)}%</td>
-            <td>${fmtBRL(r.targetAmount)}</td>
-            <td>${fmtBRL(r.spent)}</td>
-            <td>${((r.pctOfTotalExpenses||0)*100).toFixed(1)}%</td>
-            <td>${esc(vs)}</td>
-          </tr>`;
-        }
-        if (pf.unallocated > 0.005) {
-          html += `<tr><td><em>Nao alocado</em></td><td>—</td><td>—</td><td>${fmtBRL(pf.unallocated)}</td><td>${(pf.pctUnallocated*100).toFixed(1)}%</td><td>—</td></tr>`;
-        }
-        tbody.innerHTML = pf.rows.length
-          ? (html || '<tr><td colspan="6">—</td></tr>')
-          : '<tr><td colspan="6" class="dash-note">Cadastre os potes para comparar meta com gastos reais.</td></tr>';
-
-        // Ultimas movimentacoes
-        const rec = d.recentTransactions || [];
-        document.getElementById("recent-body").innerHTML = rec.length
-          ? rec.map(t => `<tr>
-              <td>${esc(fmtDate(t.occurred_on))}</td>
-              <td><span class="dash-badge ${t.kind==="income"?"dash-badge-inc":"dash-badge-exp"}">${t.kind==="income"?"Entrada":"Saida"}</span></td>
-              <td>${esc(t.category)}</td>
-              <td class="${t.kind==="income"?"dash-text-inc":"dash-text-exp"}">${fmtBRL(t.amount)}</td>
-              <td>${esc(t.source)}</td>
-            </tr>`).join("")
-          : '<tr><td colspan="5" class="dash-note">Nenhum lancamento neste mes.</td></tr>';
-      } catch(e) {
-        alertEl.innerHTML = '<div class="dash-alert">Nao foi possivel carregar.<br><small>' + esc(e.message) + '</small></div>';
+        await apiFetch("/transactions", {
+          method: "POST",
+          body: JSON.stringify({
+            kind: "income",
+            category: "Saldo inicial",
+            amount,
+            occurred_on: new Date().toISOString().slice(0, 10),
+            description: "Saldo inicial da conta",
+            source: "manual",
+          }),
+        });
+        closeSetupModal();
+        await loadDashboard();
+        showAlert("Saldo inicial salvo com sucesso.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel salvar o saldo inicial.");
       }
     }
 
@@ -641,15 +419,10 @@
       try {
         const ok = await checkAccess();
         if (!ok) return;
-        updateMonthLabel();
         await renderSidebarUser();
-        await load();
-      } catch (e) {
-        const alertEl = document.getElementById("alert");
-        if (alertEl) {
-          alertEl.innerHTML =
-            '<div class="dash-alert">Erro ao iniciar o painel.<br><small>' + esc(e.message) + "</small></div>";
-        }
+        await loadDashboard();
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel carregar o dashboard.");
       }
     });
   </script>

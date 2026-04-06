@@ -3,11 +3,84 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gastos — FinanceZap</title>
+  <title>Movimentacoes - FinanceZap</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <style>
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .8rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .filter-row {
+      display: grid;
+      gap: .8rem;
+      margin-bottom: .8rem;
+    }
+
+    .filter-row .dash-form-row {
+      margin: 0;
+    }
+
+    @media (min-width: 880px) {
+      .filter-row {
+        grid-template-columns: 1fr 1fr 1fr auto;
+      }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(2, 6, 23, .45);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--dash-border);
+      border-radius: 14px;
+      box-shadow: 0 20px 56px rgba(2, 6, 23, .24);
+      padding: 1rem;
+    }
+
+    .modal-card h3 {
+      margin: 0 0 .9rem;
+      font-size: 1rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .5rem;
+      margin-top: 1rem;
+    }
+
+    .summary-inline {
+      margin: .2rem 0 .8rem;
+      font-size: .83rem;
+      color: var(--dash-muted);
+    }
+  </style>
 </head>
 <body class="dash-body">
   <div class="dash-shell">
@@ -26,44 +99,114 @@
     </aside>
 
     <main class="dash-main">
-      <div class="dash-page-head">
-        <h1>Gastos</h1>
-        <p>Acompanhe lançamentos e totais no período</p>
+      <div class="head-row">
+        <div class="dash-page-head" style="margin:0">
+          <h1>Movimentacoes</h1>
+          <p>Entradas, saidas e compras no cartao em um lugar so</p>
+        </div>
+        <button class="dash-btn dash-btn-primary" type="button" onclick="openModal()">+ Novo lancamento</button>
       </div>
+
       <div id="alert"></div>
+
       <div class="dash-card">
-        <h2 style="margin:0 0 1rem;font-size:.95rem">Filtrar</h2>
-        <div class="gastos-filter">
-          <div class="gastos-filter-dates">
-            <div class="dash-form-row" style="margin:0;flex:1">
-              <label for="from">De</label>
-              <input type="date" id="from" />
-            </div>
-            <div class="dash-form-row" style="margin:0;flex:1">
-              <label for="to">Até</label>
-              <input type="date" id="to" />
-            </div>
+        <h2 style="margin:0 0 .9rem">Filtrar</h2>
+        <div class="filter-row">
+          <div class="dash-form-row">
+            <label for="from">De</label>
+            <input type="date" id="from" />
           </div>
-          <div class="gastos-filter-actions">
-            <div class="dash-form-row" style="margin:0;flex:1">
-              <label for="kind">Tipo</label>
-              <select id="kind">
-                <option value="">Todos os lançamentos</option>
-                <option value="expense" selected>Só saídas</option>
-                <option value="income">Só entradas</option>
-              </select>
-            </div>
-            <button type="button" class="dash-btn dash-btn-primary" id="btn-load">Listar</button>
+          <div class="dash-form-row">
+            <label for="to">Ate</label>
+            <input type="date" id="to" />
           </div>
+          <div class="dash-form-row">
+            <label for="kind">Tipo</label>
+            <select id="kind">
+              <option value="">Todos</option>
+              <option value="income">Entradas</option>
+              <option value="expense">Saidas</option>
+            </select>
+          </div>
+          <button class="dash-btn dash-btn-secondary" type="button" id="btn-load" style="height:40px;align-self:end">Aplicar</button>
         </div>
       </div>
+
       <div class="dash-card" style="margin-top:1rem">
-        <h2 style="margin:0 0 1rem;font-size:.95rem">Lançamentos</h2>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <h2 style="margin:0 0 .35rem">Lancamentos</h2>
+        <div class="summary-inline" id="summary-inline"></div>
+        <div style="overflow-x:auto">
           <div id="table-wrap"></div>
         </div>
       </div>
     </main>
+  </div>
+
+  <div class="modal-overlay" id="modal-lancamento">
+    <div class="modal-card">
+      <h3>Novo lancamento</h3>
+      <form id="form-lancamento">
+        <div class="dash-form-row">
+          <label for="m-kind">Tipo</label>
+          <select id="m-kind" required>
+            <option value="expense">Saida</option>
+            <option value="income">Entrada</option>
+            <option value="credit_card">Compra no cartao</option>
+          </select>
+        </div>
+
+        <div id="normal-fields">
+          <div class="dash-form-row">
+            <label for="m-category">Categoria</label>
+            <select id="m-category"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-payment">Forma de pagamento</label>
+            <select id="m-payment">
+              <option value="">Nao informar</option>
+              <option value="pix">PIX</option>
+              <option value="debito">Debito</option>
+              <option value="boleto">Boleto</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="card-fields" style="display:none">
+          <div class="dash-form-row">
+            <label for="m-card-id">Qual cartao?</label>
+            <select id="m-card-id"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-card-category">Categoria</label>
+            <select id="m-card-category"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-installments">Parcelas</label>
+            <input id="m-installments" type="number" min="1" max="60" value="1" />
+          </div>
+        </div>
+
+        <div class="dash-form-row">
+          <label for="m-amount">Valor (R$)</label>
+          <input id="m-amount" type="number" min="0.01" step="0.01" required />
+        </div>
+        <div class="dash-form-row">
+          <label for="m-date">Data</label>
+          <input id="m-date" type="date" required />
+        </div>
+        <div class="dash-form-row">
+          <label for="m-description">Descricao</label>
+          <input id="m-description" type="text" placeholder="Ex.: Mercado, Aluguel, Salario" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="dash-btn dash-btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="dash-btn dash-btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -78,84 +221,251 @@
     start.setMonth(start.getMonth() - 2);
     document.getElementById("from").value = start.toISOString().slice(0, 10);
     document.getElementById("to").value = end.toISOString().slice(0, 10);
+    document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
 
-    function esc(s) {
+    const kindEl = document.getElementById("m-kind");
+    const normalFields = document.getElementById("normal-fields");
+    const cardFields = document.getElementById("card-fields");
+
+    function esc(value) {
       const d = document.createElement("div");
-      d.textContent = s ?? ""; return d.innerHTML;
+      d.textContent = value == null ? "" : String(value);
+      return d.innerHTML;
+    }
+
+    function escAttr(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;");
+    }
+
+    function showAlert(message, type) {
+      const el = document.getElementById("alert");
+      const cls = type === "ok" ? "dash-alert dash-alert-ok" : "dash-alert";
+      el.innerHTML = `<div class="${cls}">${esc(message)}</div>`;
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
+    }
+
+    function openModal() {
+      document.getElementById("modal-lancamento").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modal-lancamento").classList.remove("open");
+    }
+
+    async function loadCategories(targetId, kind) {
+      const sel = document.getElementById(targetId);
+      sel.innerHTML = '<option value="">Carregando...</option>';
+      try {
+        const list = await apiFetch(`/categories/${encodeURIComponent(kind)}`);
+        const rows = Array.isArray(list) ? list : [];
+        sel.innerHTML = rows.length
+          ? rows.map((item) => `<option value="${escAttr(item)}">${esc(item)}</option>`).join("")
+          : '<option value="Outros">Outros</option>';
+      } catch (_) {
+        sel.innerHTML = '<option value="Outros">Outros</option>';
+      }
+    }
+
+    async function loadCards() {
+      const sel = document.getElementById("m-card-id");
+      sel.innerHTML = '<option value="">Carregando...</option>';
+      try {
+        const cards = await apiFetch("/credit-cards");
+        const rows = Array.isArray(cards) ? cards : [];
+        sel.innerHTML = rows.length
+          ? '<option value="">Selecione o cartao</option>' + rows.map((card) => `<option value="${escAttr(card.id)}">${esc(card.name)}</option>`).join("")
+          : '<option value="">Nenhum cartao cadastrado</option>';
+      } catch (_) {
+        sel.innerHTML = '<option value="">Erro ao carregar cartoes</option>';
+      }
+    }
+
+    async function onModalKindChange() {
+      const kind = kindEl.value;
+      const isCard = kind === "credit_card";
+      normalFields.style.display = isCard ? "none" : "block";
+      cardFields.style.display = isCard ? "block" : "none";
+
+      if (isCard) {
+        await loadCards();
+        await loadCategories("m-card-category", "expense");
+      } else {
+        await loadCategories("m-category", kind === "income" ? "income" : "expense");
+      }
     }
 
     async function load() {
-      const alertEl = document.getElementById("alert");
-      alertEl.innerHTML = "";
-      const kind = document.getElementById("kind").value;
       const from = document.getElementById("from").value;
       const to = document.getElementById("to").value;
+      const kind = document.getElementById("kind").value;
+
       let q = "?limit=300";
-      if (from) q += "&from=" + encodeURIComponent(from);
-      if (to) q += "&to=" + encodeURIComponent(to);
-      if (kind) q += "&kind=" + encodeURIComponent(kind);
+      if (from) q += `&from=${encodeURIComponent(from)}`;
+      if (to) q += `&to=${encodeURIComponent(to)}`;
+      if (kind) q += `&kind=${encodeURIComponent(kind)}`;
+
       try {
-        const rows = await apiFetch("/transactions" + q);
-        if (!rows) return;
-        const wrap = document.getElementById("table-wrap");
-        if (!rows.length) {
-          wrap.innerHTML = '<p class="dash-empty">Nenhum lançamento neste período.</p>';
+        const rows = await apiFetch(`/transactions${q}`);
+        const list = Array.isArray(rows) ? rows : [];
+
+        const summaryEl = document.getElementById("summary-inline");
+        const tableWrap = document.getElementById("table-wrap");
+
+        if (!list.length) {
+          summaryEl.textContent = "Nenhum lancamento no periodo.";
+          tableWrap.innerHTML = '<p class="dash-empty">Sem dados para mostrar.</p>';
           return;
         }
-        let expense = 0, income = 0;
-        rows.forEach(r => {
-          if (r.kind === "expense") expense += Number(r.amount);
-          else income += Number(r.amount);
+
+        let income = 0;
+        let expense = 0;
+        list.forEach((row) => {
+          if (row.kind === "income") income += Number(row.amount || 0);
+          else expense += Number(row.amount || 0);
         });
-        wrap.innerHTML =
-          `<p class="dash-note" style="margin-bottom:.75rem">No período: entradas <span class="dash-text-inc">${fmtBRL(income)}</span> · saídas <span class="dash-text-exp">${fmtBRL(expense)}</span></p>` +
-          "<table class='dash-table'><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Descrição</th><th>Origem</th><th></th></tr></thead><tbody>" +
-          rows.map(r =>
-            `<tr>
-              <td>${esc(fmtDate(r.occurred_on))}</td>
-              <td><span class="dash-badge ${r.kind==="income"?"dash-badge-inc":"dash-badge-exp"}">${r.kind==="income"?"Entrada":"Saída"}</span></td>
-              <td>${esc(r.category)}</td>
-              <td class="${r.kind==="income"?"dash-text-inc":"dash-text-exp"}">${fmtBRL(r.amount)}</td>
-              <td>${esc(r.description)}</td>
-              <td>${esc(r.source)}</td>
-              <td style="white-space:nowrap"><button type="button" class="dash-btn dash-btn-danger dash-btn-tiny" data-tx-delete="${esc(r.id)}">Excluir</button></td>
-            </tr>`
-          ).join("") +
-          "</tbody></table>";
-      } catch(e) {
-        alertEl.innerHTML = '<div class="dash-alert">' + esc(e.message) + '</div>';
+
+        summaryEl.innerHTML = `No periodo: entradas <span class="dash-text-inc">${fmtBRL(income)}</span> · saidas <span class="dash-text-exp">${fmtBRL(expense)}</span>`;
+
+        tableWrap.innerHTML = `
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Descricao</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map((row) => `
+                <tr>
+                  <td>${esc(fmtDate(row.occurred_on))}</td>
+                  <td><span class="dash-badge ${row.kind === "income" ? "dash-badge-inc" : "dash-badge-exp"}">${row.kind === "income" ? "Entrada" : "Saida"}</span></td>
+                  <td>${esc(row.category || "Geral")}</td>
+                  <td class="${row.kind === "income" ? "dash-text-inc" : "dash-text-exp"}">${fmtBRL(row.amount || 0)}</td>
+                  <td>${esc(row.description || "")}</td>
+                  <td><button type="button" class="dash-btn dash-btn-danger dash-btn-tiny" data-delete-id="${row.id}">Excluir</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel listar os lancamentos.");
+      }
+    }
+
+    async function onSubmitModal(event) {
+      event.preventDefault();
+
+      const kind = kindEl.value;
+      const amount = Number(document.getElementById("m-amount").value);
+      const occurredOn = document.getElementById("m-date").value;
+      const description = document.getElementById("m-description").value.trim();
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showAlert("Informe um valor valido.");
+        return;
+      }
+
+      try {
+        if (kind === "credit_card") {
+          const cardId = document.getElementById("m-card-id").value;
+          if (!cardId) {
+            showAlert("Selecione um cartao.");
+            return;
+          }
+
+          const category = document.getElementById("m-card-category").value || "Outros";
+          const installments = Math.max(1, parseInt(String(document.getElementById("m-installments").value || 1), 10) || 1);
+
+          await apiFetch("/credit-card-transactions", {
+            method: "POST",
+            body: JSON.stringify({
+              card_id: cardId,
+              description,
+              category,
+              amount,
+              installments,
+              purchase_date: occurredOn,
+            }),
+          });
+        } else {
+          const category = document.getElementById("m-category").value || "Outros";
+          const paymentMethod = document.getElementById("m-payment").value || null;
+
+          await apiFetch("/transactions", {
+            method: "POST",
+            body: JSON.stringify({
+              kind,
+              category,
+              amount,
+              occurred_on: occurredOn,
+              description,
+              source: "manual",
+              payment_method: paymentMethod,
+            }),
+          });
+        }
+
+        document.getElementById("m-amount").value = "";
+        document.getElementById("m-description").value = "";
+        document.getElementById("m-installments").value = "1";
+        document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+
+        closeModal();
+        await load();
+        showAlert("Lancamento salvo com sucesso.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel salvar o lancamento.");
       }
     }
 
     document.getElementById("btn-load").addEventListener("click", load);
+    document.getElementById("form-lancamento").addEventListener("submit", onSubmitModal);
+    kindEl.addEventListener("change", onModalKindChange);
 
-    document.getElementById("table-wrap").addEventListener("click", async (ev) => {
-      const btn = ev.target.closest("button[data-tx-delete]");
+    document.getElementById("table-wrap").addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-delete-id]");
       if (!btn) return;
-      const id = btn.getAttribute("data-tx-delete");
+
+      const id = btn.getAttribute("data-delete-id");
       if (!id) return;
-      const row = btn.closest("tr");
-      const label = row
-        ? `${row.cells[0]?.textContent?.trim()||""} · ${row.cells[2]?.textContent?.trim()||""} · ${row.cells[3]?.textContent?.trim()||""}`
-        : id;
-      if (!confirm("Excluir este lançamento?\n\n" + label)) return;
-      const alertEl = document.getElementById("alert");
-      btn.disabled = true;
+
+      if (!confirm("Excluir este lancamento?")) return;
+
       try {
-        await apiFetch("/transactions/" + encodeURIComponent(id), { method: "DELETE" });
+        await apiFetch(`/transactions/${encodeURIComponent(id)}`, { method: "DELETE" });
         await load();
-        alertEl.innerHTML = '<div class="dash-alert dash-alert-ok">Lançamento excluído.</div>';
-      } catch(e) {
-        btn.disabled = false;
-        alertEl.innerHTML = '<div class="dash-alert">' + esc(e.message || "Erro ao excluir") + '</div>';
+        showAlert("Lancamento excluido.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel excluir.");
       }
     });
 
     window.addEventListener("DOMContentLoaded", async () => {
-      const ok = await checkAccess();
-      if (!ok) return;
-      await renderSidebarUser();
-      load();
+      try {
+        const ok = await checkAccess();
+        if (!ok) return;
+
+        await renderSidebarUser();
+        await onModalKindChange();
+        await load();
+
+        const query = new URLSearchParams(window.location.search);
+        if (query.get("novo") === "1") {
+          openModal();
+        }
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel carregar a tela.");
+      }
     });
   </script>
 </body>

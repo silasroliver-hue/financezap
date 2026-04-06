@@ -14,18 +14,15 @@
 
   // Itens principais (aparecem na tab bar mobile — max 4)
   const mainLinks = [
-    { href: "index.html",       id: "dash",   label: "Dashboard",    shortLabel: "Início",  icon: SVG.home     },
-    { href: "lancamentos.html", id: "lanc",   label: "Lancamentos",  shortLabel: "Lançar",  icon: SVG.plus     },
-    { href: "gastos.html",      id: "gastos", label: "Gastos",       shortLabel: "Gastos",  icon: SVG.chart    },
-    { href: "pagamentos.html",  id: "pay",    label: "Contas do Mes",shortLabel: "Contas",  icon: SVG.calendar },
+    { href: "index.html",      id: "dash",    label: "Dashboard",      shortLabel: "Inicio",  icon: SVG.home  },
+    { href: "gastos.html",     id: "gastos",  label: "Movimentacoes",  shortLabel: "Movs",    icon: SVG.plus  },
+    { href: "cartoes.html",    id: "cartoes", label: "Cartoes",        shortLabel: "Cartao",  icon: SVG.card  },
+    { href: "categorias.html", id: "cat",     label: "Categorias",     shortLabel: "Categorias", icon: SVG.tag },
   ];
 
   // Itens que ficam dentro do painel "Menu"
   const configLinks = [
-    { href: "investimentos.html",id: "inv",    label: "Investimentos",     icon: SVG.trend  },
-    { href: "contas.html",       id: "contas", label: "Contas bancarias",  icon: SVG.bank   },
-    { href: "categorias.html",   id: "cat",    label: "Categorias",        icon: SVG.tag    },
-    { href: "cartoes.html",      id: "cartoes",label: "Cartoes de credito",icon: SVG.card   },
+    { href: "pagamentos.html",  id: "pay", label: "Contas do mes", icon: SVG.calendar },
   ];
 
   const allLinks = [...mainLinks, ...configLinks];
