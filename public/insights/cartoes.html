@@ -343,17 +343,10 @@
           <h2>Novo cartao</h2>
           <p>Somente dados basicos. Rapido e sem complicacao.</p>
           <form class="simple-form" id="form-card">
-            <div class="simple-row">
-              <div class="dash-form-row">
-                <label for="card-name">Nome do cartao *</label>
-                <input id="card-name" type="text" placeholder="Ex.: Nubank, Inter, Itau" required />
-                <div class="simple-hint">Use um nome que voce reconheca na hora.</div>
-              </div>
-              <div class="dash-form-row">
-                <label for="card-due-day">Dia para pagar (opcional)</label>
-                <input id="card-due-day" type="number" min="1" max="31" placeholder="Ex.: 10" />
-                <div class="simple-hint">Serve apenas para lembrar quando costuma vencer.</div>
-              </div>
+            <div class="dash-form-row">
+              <label for="card-name">Nome do cartao *</label>
+              <input id="card-name" type="text" placeholder="Ex.: Nubank, Inter, Itau" required />
+              <div class="simple-hint">Use um nome que voce reconheca na hora. Nao pedimos numero do cartao.</div>
             </div>
             <div>
               <button class="dash-btn dash-btn-primary" type="submit">Salvar cartao</button>
@@ -379,24 +372,13 @@
 
           <div class="simple-row">
             <div class="dash-form-row">
-              <label for="purchase-category">Categoria</label>
-              <select id="purchase-category"></select>
-            </div>
-            <div class="dash-form-row">
               <label for="purchase-amount">Valor total (R$) *</label>
               <input id="purchase-amount" type="number" min="0.01" step="0.01" required placeholder="0,00" />
             </div>
-          </div>
-
-          <div class="simple-row">
             <div class="dash-form-row">
               <label for="purchase-installments">Parcelas *</label>
               <input id="purchase-installments" type="number" min="1" max="60" value="1" required />
               <div class="simple-hint" id="installment-hint">Vai entrar tudo em um mes.</div>
-            </div>
-            <div class="dash-form-row">
-              <label for="purchase-date">Data da compra</label>
-              <input id="purchase-date" type="date" />
             </div>
           </div>
 
@@ -408,7 +390,7 @@
 
       <section class="simple-box">
         <h2>Meus cartoes</h2>
-        <p>Escolha um cartao para ver o detalhe do mes e excluir compras se precisar.</p>
+        <p>Escolha um cartao para ver o detalhe e excluir se nao usar mais.</p>
         <div class="cards-grid" id="cards-grid"></div>
       </section>
 
@@ -490,12 +472,11 @@
 
       grid.innerHTML = cards.map((card) => {
         const active = card.id === selectedCardId;
-        const dueText = card.due_day ? `Pagar por volta do dia ${card.due_day}` : "Sem dia de pagamento";
         return `
           <article class="card-item${active ? " active" : ""}">
             <div>
               <h3 class="card-name">${esc(card.name)}</h3>
-              <div class="card-meta">${esc(dueText)}</div>
+              <div class="card-meta">Cartao salvo com nome simples</div>
             </div>
 
             <div class="card-values">
@@ -581,25 +562,9 @@
       hint.textContent = `Vai ficar em ${installments} vezes de aproximadamente ${fmtBRL(amount / installments)}.`;
     }
 
-    async function loadExpenseCategories() {
-      const sel = document.getElementById("purchase-category");
-      sel.innerHTML = '<option value="">Carregando...</option>';
-      try {
-        const categories = await apiFetch("/categories/expense");
-        const list = Array.isArray(categories) ? categories : [];
-        sel.innerHTML = list.length
-          ? list.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join("")
-          : '<option value="Outros">Outros</option>';
-      } catch (_) {
-        sel.innerHTML = '<option value="Outros">Outros</option>';
-      }
-    }
-
     async function submitCard(event) {
       event.preventDefault();
       const name = document.getElementById("card-name").value.trim();
-      const dueDayRaw = document.getElementById("card-due-day").value;
-      const dueDay = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
 
       if (!name) {
         showAlert("Informe o nome do cartao.");
@@ -609,11 +574,10 @@
       try {
         await apiFetch("/credit-cards", {
           method: "POST",
-          body: JSON.stringify({ name, due_day: dueDay })
+          body: JSON.stringify({ name })
         });
 
         document.getElementById("card-name").value = "";
-        document.getElementById("card-due-day").value = "";
 
         await loadOverview();
         await loadStatement();
@@ -628,10 +592,9 @@
 
       const cardId = document.getElementById("purchase-card").value;
       const description = document.getElementById("purchase-description").value.trim();
-      const category = document.getElementById("purchase-category").value || "Outros";
       const amount = Number(document.getElementById("purchase-amount").value);
       const installments = Math.max(1, parseInt(String(document.getElementById("purchase-installments").value || 1), 10) || 1);
-      const purchaseDate = document.getElementById("purchase-date").value || new Date().toISOString().slice(0, 10);
+      const purchaseDate = new Date().toISOString().slice(0, 10);
 
       if (!cardId) {
         showAlert("Selecione um cartao.");
@@ -652,7 +615,7 @@
           body: JSON.stringify({
             card_id: cardId,
             description,
-            category,
+            category: "Outros",
             amount,
             installments,
             purchase_date: purchaseDate,
@@ -663,7 +626,6 @@
         document.getElementById("purchase-description").value = "";
         document.getElementById("purchase-amount").value = "";
         document.getElementById("purchase-installments").value = "1";
-        document.getElementById("purchase-date").value = new Date().toISOString().slice(0, 10);
         updateInstallmentHint();
 
         await loadOverview();
@@ -804,9 +766,6 @@
         if (!ok) return;
 
         await renderSidebarUser();
-        await loadExpenseCategories();
-
-        document.getElementById("purchase-date").value = new Date().toISOString().slice(0, 10);
 
         await loadOverview();
         await loadStatement();
