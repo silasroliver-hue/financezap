@@ -12,20 +12,20 @@
     card:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
   };
 
-  // Itens principais (aparecem na tab bar mobile)
+  // Itens principais (aparecem na tab bar mobile — max 4)
   const mainLinks = [
-    { href: "index.html",        id: "dash",   label: "Dashboard",     shortLabel: "Início",  icon: SVG.home  },
-    { href: "lancamentos.html",  id: "lanc",   label: "Lancamentos",   shortLabel: "Lançar",  icon: SVG.plus  },
-    { href: "gastos.html",       id: "gastos", label: "Gastos",        shortLabel: "Gastos",  icon: SVG.chart },
+    { href: "index.html",       id: "dash",   label: "Dashboard",    shortLabel: "Início",  icon: SVG.home     },
+    { href: "lancamentos.html", id: "lanc",   label: "Lancamentos",  shortLabel: "Lançar",  icon: SVG.plus     },
+    { href: "gastos.html",      id: "gastos", label: "Gastos",       shortLabel: "Gastos",  icon: SVG.chart    },
+    { href: "pagamentos.html",  id: "pay",    label: "Contas do Mes",shortLabel: "Contas",  icon: SVG.calendar },
   ];
 
-  // Itens que ficam dentro de "Configuracoes"
+  // Itens que ficam dentro do painel "Menu"
   const configLinks = [
-    { href: "investimentos.html",id: "inv",    label: "Investimentos",     icon: SVG.trend    },
-    { href: "pagamentos.html",   id: "pay",    label: "Contas do mes",     icon: SVG.calendar },
-    { href: "contas.html",       id: "contas", label: "Contas bancarias",  icon: SVG.bank     },
-    { href: "categorias.html",   id: "cat",    label: "Categorias",        icon: SVG.tag      },
-    { href: "cartoes.html",      id: "cartoes",label: "Cartoes de credito", icon: SVG.card    },
+    { href: "investimentos.html",id: "inv",    label: "Investimentos",     icon: SVG.trend  },
+    { href: "contas.html",       id: "contas", label: "Contas bancarias",  icon: SVG.bank   },
+    { href: "categorias.html",   id: "cat",    label: "Categorias",        icon: SVG.tag    },
+    { href: "cartoes.html",      id: "cartoes",label: "Cartoes de credito",icon: SVG.card   },
   ];
 
   const allLinks = [...mainLinks, ...configLinks];

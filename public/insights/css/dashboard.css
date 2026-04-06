@@ -743,26 +743,29 @@ body.dash-body {
     flex: 1;
   }
 
-  /* Hide config links on mobile tab bar — only first 3 show */
-  .dash-sidebar nav a:nth-child(n+4) { display: none; }
+  /* Hide config links on mobile tab bar — only first 4 show */
+  .dash-sidebar nav a:nth-child(n+5) { display: none; }
 
-  /* Tab items */
+  /* Tab items — 5 equal slots (4 links + Menu btn) */
   .dash-sidebar nav a,
   .nav-config-btn {
-    flex: 1 1 25%;
+    flex: 1 1 0;
+    min-width: 0;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .2rem;
-    padding: .6rem .5rem .55rem;
+    gap: .18rem;
+    padding: .55rem .25rem .5rem;
     border-radius: 0;
-    font-size: .68rem;
+    font-size: .62rem;
     font-weight: 600;
-    min-width: 0;
     text-align: center;
     color: #94a3b8;
     text-decoration: none;
     transition: color .15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* SVG icons in tab bar */
