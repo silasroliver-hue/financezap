@@ -632,6 +632,42 @@ body.dash-body {
   flex-wrap: wrap;
 }
 
+/* ── Contas do Mês — layout específico ────────── */
+.bills-toolbar { flex-wrap: nowrap; align-items: flex-end; gap: .75rem; }
+.bills-toolbar-fields { display: flex; gap: .75rem; flex: 1; }
+.bills-toolbar-field { display: flex; flex-direction: column; gap: .3rem; flex: 1; }
+.bills-toolbar-field label {
+  font-size: .7rem; font-weight: 700;
+  color: var(--dash-muted); text-transform: uppercase; letter-spacing: .05em;
+}
+.bills-toolbar-field input,
+.bills-toolbar-field select {
+  width: 100%;
+  padding: .5rem .75rem;
+  border: 1.5px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  font-size: .875rem;
+  font-family: var(--dash-font);
+  background: var(--dash-card);
+  color: var(--dash-ink);
+}
+.bills-toolbar-field input:focus,
+.bills-toolbar-field select:focus {
+  border-color: var(--dash-accent);
+  outline: none;
+}
+.bills-refresh-btn { white-space: nowrap; flex-shrink: 0; }
+
+.bills-new-form { display: flex; flex-direction: column; gap: .75rem; }
+.bills-new-form .dash-form-row input { max-width: 100%; width: 100%; }
+.bills-val-row {
+  display: flex;
+  gap: .75rem;
+  align-items: flex-end;
+}
+.bills-val-row .dash-form-row input { max-width: 100%; width: 100%; }
+.bills-submit-btn { white-space: nowrap; flex-shrink: 0; align-self: flex-end; }
+
 /* ── Forms ───────────────────────────────────── */
 .dash-page-head { margin-bottom: 1.5rem; }
 .dash-page-head h1 { margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; }
@@ -964,6 +1000,14 @@ body.dash-body {
     gap: .5rem;
     padding: .75rem 1rem;
   }
+
+  /* Contas toolbar: campos lado a lado + botão full width abaixo */
+  .bills-toolbar {
+    flex-direction: column;
+    gap: .6rem;
+  }
+  .bills-toolbar-fields { flex: 1 1 100%; }
+  .bills-refresh-btn { width: 100%; justify-content: center; }
 
   .dash-grid-2 { grid-template-columns: 1fr !important; }
   .dash-card { padding: 1rem; }

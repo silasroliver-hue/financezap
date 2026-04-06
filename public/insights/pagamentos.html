@@ -32,30 +32,34 @@
       </div>
       <div id="alert"></div>
 
-      <div class="dash-toolbar">
-        <div>
-          <label for="year">Ano</label>
-          <input type="number" id="year" min="2020" max="2100" style="width:5.5rem" />
+      <div class="dash-toolbar bills-toolbar">
+        <div class="bills-toolbar-fields">
+          <div class="bills-toolbar-field">
+            <label for="year">Ano</label>
+            <input type="number" id="year" min="2020" max="2100" />
+          </div>
+          <div class="bills-toolbar-field">
+            <label for="month">Mês</label>
+            <select id="month"></select>
+          </div>
         </div>
-        <div>
-          <label for="month">Mês</label>
-          <select id="month"></select>
-        </div>
-        <button type="button" class="dash-btn dash-btn-ghost" id="btn-refresh">↺ Carregar</button>
+        <button type="button" class="dash-btn dash-btn-ghost bills-refresh-btn" id="btn-refresh">↺ Carregar</button>
       </div>
 
       <div class="dash-card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Nova conta fixa</h2>
-        <form id="new-bill" class="dash-form-inline">
+        <form id="new-bill" class="bills-new-form">
           <div class="dash-form-row" style="margin:0">
             <label for="bname">Nome</label>
-            <input id="bname" type="text" placeholder="Ex.: ENEL, Aluguel, Internet" style="min-width:12rem" />
+            <input id="bname" type="text" placeholder="Ex.: ENEL, Aluguel, Internet" />
           </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="bval">Valor referência (R$)</label>
-            <input id="bval" type="number" step="0.01" min="0" placeholder="0,00" style="width:8rem" />
+          <div class="bills-val-row">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="bval">Valor referência (R$)</label>
+              <input id="bval" type="number" step="0.01" min="0" placeholder="0,00" />
+            </div>
+            <button type="submit" class="dash-btn dash-btn-primary bills-submit-btn">+ Cadastrar</button>
           </div>
-          <button type="submit" class="dash-btn dash-btn-primary">✚ Cadastrar</button>
         </form>
       </div>
 
