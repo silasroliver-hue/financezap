@@ -123,13 +123,10 @@
 
     let name = "Usuario";
     try {
-      if (typeof window.getAuthHeader === "function") {
+      if (typeof window.getAuthHeader === "function" && typeof window.insightApiJson === "function") {
         const headers = await window.getAuthHeader();
-        const res = await fetch("/api/profile", { headers });
-        if (res.ok) {
-          const p = await res.json();
-          if (p.full_name) name = p.full_name;
-        }
+        const r = await window.insightApiJson("/profile", { headers });
+        if (r && r.res.ok && r.data && r.data.full_name) name = r.data.full_name;
       }
     } catch (e) {}
 

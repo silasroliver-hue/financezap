@@ -14,6 +14,13 @@ const {
   PLANILHA_EXPENSE_CATEGORIES,
   mergeCategoryLists,
 } = require("./lib/planilha-category-defaults");
+const {
+  buildCreditCardInstallmentRows,
+  groupInstallmentRows,
+  monthKeyFromDate,
+  monthKeyFromParts,
+  shiftMonthKey,
+} = require("./lib/credit-card-installments");
 
 const app = express();
 app.set("strict routing", true);
@@ -21,6 +28,17 @@ const PORT = Number(process.env.PORT) || (process.env.NODE_ENV === "production" 
 const BASE = "/insights";
 
 app.use(express.json({ limit: "256kb" }));
+
+const CORS_ORIGIN = (process.env.FINANCEZAP_CORS_ORIGIN || "").trim();
+if (CORS_ORIGIN) {
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN);
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    if (req.method === "OPTIONS") return res.status(204).end();
+    next();
+  });
+}
 
 function requireWebhookSecret(req, res, next) {
   const secret = process.env.N8N_WEBHOOK_SECRET;
@@ -343,7 +361,7 @@ api.post(
   "/transactions",
   authRequired,
   asyncHandler(async (req, res) => {
-    const { kind, category, amount, description, occurred_on, source } = req.body || {};
+    const { kind, category, amount, description, occurred_on, source, payment_method } = req.body || {};
     if (kind !== "income" && kind !== "expense") {
       return res.status(400).json({ error: "kind deve ser income ou expense" });
     }
@@ -351,6 +369,7 @@ api.post(
     if (!Number.isFinite(amt) || amt <= 0) {
       return res.status(400).json({ error: "amount inválido" });
     }
+    const VALID_PAYMENT_METHODS = ["pix","debito","boleto","dinheiro","transferencia","credito"];
     const row = {
       user_id: req.userId,
       kind,
@@ -359,6 +378,7 @@ api.post(
       description: description != null ? String(description).slice(0, 500) : null,
       occurred_on: occurred_on || new Date().toISOString().slice(0, 10),
       source: source === "whatsapp" || source === "import" || source === "api" ? source : "manual",
+      payment_method: VALID_PAYMENT_METHODS.includes(payment_method) ? payment_method : null,
     };
     const sb = getSupabase();
     const { data, error } = await sb.from("transactions").insert(row).select().single();
@@ -1226,9 +1246,10 @@ const WHATSAPP_MENU = (name) =>
   `1️⃣ Extrato por período\n` +
   `2️⃣ Lançar receita\n` +
   `3️⃣ Lançar despesa\n` +
-  `4️⃣ Lançar investimento\n` +
-  `5️⃣ Ver saldo das contas\n` +
-  `6️⃣ Tirar uma dúvida\n\n` +
+  `4️⃣ Lançar no cartão de crédito\n` +
+  `5️⃣ Lançar investimento\n` +
+  `6️⃣ Ver saldo das contas\n` +
+  `7️⃣ Tirar uma dúvida\n\n` +
   `_Digite o número da opção ou descreva o que quer fazer._`;
 
 api.post(
@@ -1407,13 +1428,83 @@ api.post(
       if (!amount || amount <= 0) {
         return res.json({ type: "user", reply: "Valor inválido. Informe o valor da despesa (ex: *250* ou *89,90*):" });
       }
+      await saveSession("waiting_despesa_payment", { ...ctx, amount });
+      return res.json({ type: "user", reply: `💸 Valor: *${brl(amount)}*\n\nComo foi pago?\n\n1️⃣ PIX\n2️⃣ Débito\n3️⃣ Boleto\n4️⃣ Dinheiro\n5️⃣ Transferência\n\n_Digite o número ou nome._` });
+    }
+
+    // ── Estado: aguardando forma de pagamento de despesa
+    if (state === "waiting_despesa_payment") {
+      const PM_MAP = { "1":"pix","pix":"pix","2":"debito","débito":"debito","debito":"debito","3":"boleto","boleto":"boleto","4":"dinheiro","dinheiro":"dinheiro","5":"transferencia","transferência":"transferencia","transferencia":"transferencia" };
+      const PM_LABEL = { pix:"PIX", debito:"Débito", boleto:"Boleto", dinheiro:"Dinheiro", transferencia:"Transferência" };
+      const payment_method = PM_MAP[lower] || null;
       await sb.from("transactions").insert({
         user_id: profile.id, kind: "expense",
-        category: ctx.category || "Despesa", amount,
+        category: ctx.category || "Despesa", amount: ctx.amount,
         occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+        payment_method,
       });
       await clearSession();
-      return res.json({ type: "user", reply: `❤️ *Despesa registrada!*\n\n💸 ${brl(amount)} — ${ctx.category}\n✅ Salvo no FinanceZap!` });
+      const pmLabel = payment_method ? ` · ${PM_LABEL[payment_method]}` : "";
+      return res.json({ type: "user", reply: `❤️ *Despesa registrada!*\n\n💸 ${brl(ctx.amount)} — ${ctx.category}${pmLabel}\n✅ Salvo no FinanceZap!` });
+    }
+
+    // ── Estado: aguardando seleção de cartão
+    if (state === "waiting_cartao_card") {
+      const { data: userCards } = await sb.from("credit_cards").select("id,name").eq("user_id", profile.id).order("created_at");
+      const cardList = userCards || [];
+      const num = parseInt(lower, 10);
+      let card = num > 0 ? cardList[num - 1] : cardList.find(c => c.name.toLowerCase().includes(lower));
+      if (!card) {
+        const list = cardList.map((c, i) => `${i + 1}. ${c.name}`).join("\n");
+        return res.json({ type: "user", reply: `Cartão não encontrado. Escolha:\n\n${list}` });
+      }
+      await saveSession("waiting_cartao_category", { card_id: card.id, card_name: card.name });
+      const { data: cats } = await sb.from("user_categories").select("name").eq("user_id", profile.id).in("kind", ["expense","both"]).order("sort_order").limit(10);
+      const catList = (cats || []).map((c, i) => `${i + 1}. ${c.name}`).join("\n") || "1. Alimentação\n2. Lazer\n3. Outros";
+      return res.json({ type: "user", reply: `💳 Cartão: *${card.name}*\n\nCategoria da compra:\n\n${catList}\n\n_Ou digite o nome da categoria._` });
+    }
+
+    // ── Estado: aguardando categoria do cartão
+    if (state === "waiting_cartao_category") {
+      const { data: cats } = await sb.from("user_categories").select("name").eq("user_id", profile.id).in("kind", ["expense","both"]).order("sort_order");
+      const catList = (cats || []).map(c => c.name);
+      const num = parseInt(lower, 10);
+      let category = lower.charAt(0).toUpperCase() + lower.slice(1);
+      if (num > 0 && catList[num - 1]) category = catList[num - 1];
+      else if (catList.find(c => c.toLowerCase() === lower)) category = catList.find(c => c.toLowerCase() === lower);
+      await saveSession("waiting_cartao_amount", { ...ctx, category });
+      return res.json({ type: "user", reply: `💳 Categoria: *${category}*\n\nInforme o valor total da compra (ex: *150* ou *1200,90*):` });
+    }
+
+    // ── Estado: aguardando valor do cartão
+    if (state === "waiting_cartao_amount") {
+      const amount = parseFloat(lower.replace(",", ".").replace(/[^0-9.]/g, ""));
+      if (!amount || amount <= 0) {
+        return res.json({ type: "user", reply: "Valor inválido. Informe o valor (ex: *150* ou *1200,90*):" });
+      }
+      await saveSession("waiting_cartao_installments", { ...ctx, amount });
+      return res.json({ type: "user", reply: `💳 Valor: *${brl(amount)}*\n\nEm quantas parcelas? (ex: *1* para à vista, *3* para 3x)\n\n_Digite apenas o número._` });
+    }
+
+    // ── Estado: aguardando parcelas do cartão
+    if (state === "waiting_cartao_installments") {
+      const installments = Math.max(1, Math.min(60, parseInt(lower.replace(/\D/g, ""), 10) || 1));
+      const ccRows = buildCreditCardInstallmentRows({
+        userId: profile.id,
+        cardId: ctx.card_id,
+        description: ctx.category,
+        category: ctx.category,
+        totalAmount: ctx.amount,
+        installments,
+        purchaseDateStr: new Date().toISOString().slice(0, 10),
+      });
+      await sb.from("credit_card_transactions").insert(ccRows);
+      await clearSession();
+      const instLabel =
+        installments > 1
+          ? ` (${installments}x · total ${brl(ctx.amount)} · 1ª parc. ${brl(ccRows[0].amount)})`
+          : " (à vista)";
+      return res.json({ type: "user", reply: `💳 *Lançado no cartão!*\n\n🃏 ${ctx.card_name}\n💸 ${brl(ctx.amount)}${instLabel} — ${ctx.category}\n✅ Salvo no FinanceZap!` });
     }
 
     // ── Estado: aguardando banco do investimento
@@ -1473,9 +1564,10 @@ api.post(
     const isOption1 = /^(1|extrato|relatorio|relatório|histórico|historico)/.test(lower);
     const isOption2 = /^(2|receita|entrada|recebi|ganhei|salario|salário)/.test(lower);
     const isOption3 = /^(3|despesa|gasto|saida|saída|paguei|gastei|comprei)/.test(lower);
-    const isOption4 = /^(4|investimento|investimento|poupança|poupanca|aplicacao|aplicação)/.test(lower);
-    const isOption5 = /^(5|saldo|contas|conta|balance)/.test(lower);
-    const isOption6 = /^(6|duvida|dúvida|ajuda|pergunta|como|o que|como funciona|\?)/.test(lower);
+    const isOption4 = /^(4|cartao|cartão|credito|crédito|fatura|visa|master)/.test(lower);
+    const isOption5 = /^(5|investimento|poupança|poupanca|aplicacao|aplicação)/.test(lower);
+    const isOption6 = /^(6|saldo|contas|conta|balance)/.test(lower);
+    const isOption7 = /^(7|duvida|dúvida|ajuda|pergunta|como|o que|como funciona|\?)/.test(lower);
 
     if (isGreeting) {
       return res.json({ type: "user", reply: WHATSAPP_MENU(profile.full_name) });
@@ -1501,11 +1593,22 @@ api.post(
     }
 
     if (isOption4) {
+      const { data: userCards } = await sb.from("credit_cards").select("id,name").eq("user_id", profile.id).order("created_at");
+      const cardList = userCards || [];
+      if (!cardList.length) {
+        return res.json({ type: "user", reply: "Você ainda não tem cartões cadastrados. Acesse o dashboard em *Cartões* para adicionar! 💡" });
+      }
+      const list = cardList.map((c, i) => `${i + 1}. ${c.name}`).join("\n");
+      await saveSession("waiting_cartao_card", {});
+      return res.json({ type: "user", reply: `💳 *Lançar no cartão de crédito*\n\nEscolha o cartão:\n\n${list}\n\n_Digite o número ou nome do cartão._` });
+    }
+
+    if (isOption5) {
       await saveSession("waiting_invest_broker", {});
       return res.json({ type: "user", reply: "📈 *Lançar investimento*\n\nQual banco ou corretora? (ex: Nubank, XP, Itaú)" });
     }
 
-    if (isOption5) {
+    if (isOption6) {
       const { data: accounts } = await sb.from("bank_accounts").select("name, balance").eq("user_id", profile.id).order("sort_order");
       const { data: investments } = await sb.from("investments").select("broker_name, balance").eq("user_id", profile.id).order("sort_order");
 
@@ -1521,7 +1624,7 @@ api.post(
       return res.json({ type: "user", reply: `💰 *Saldo das suas contas:*\n\n${lines.join("\n")}\n\n💳 Total contas: *${brl(totalAcc)}*\n📈 Total invest.: *${brl(totalInv)}*\n\n🏆 Patrimônio total: *${brl(totalAcc + totalInv)}*` });
     }
 
-    if (isOption6) {
+    if (isOption7) {
       await saveSession("waiting_question", {});
       return res.json({ type: "user", reply: "🤔 Qual é a sua dúvida? Pode perguntar!" });
     }
@@ -1556,9 +1659,10 @@ api.post(
         `1️⃣ Extrato por período\n` +
         `2️⃣ Lançar receita\n` +
         `3️⃣ Lançar despesa\n` +
-        `4️⃣ Lançar investimento\n` +
-        `5️⃣ Ver saldo das contas\n` +
-        `6️⃣ Tirar uma dúvida\n\n` +
+        `4️⃣ Lançar no cartão de crédito\n` +
+        `5️⃣ Lançar investimento\n` +
+        `6️⃣ Ver saldo das contas\n` +
+        `7️⃣ Tirar uma dúvida\n\n` +
         `_Digite apenas o número da opção (ex: *1* para extrato)._`,
     });
   })
@@ -1755,22 +1859,136 @@ api.get(
   })
 );
 
+function normalizeDay(v) {
+  if (v == null || v === "") return null;
+  const n = parseInt(String(v), 10);
+  if (!Number.isInteger(n) || n < 1 || n > 31) return null;
+  return n;
+}
+
+async function loadUserCreditCardsWithRows(sb, userId, startMonthKey, monthsAhead) {
+  const { data: cards, error: cardErr } = await sb
+    .from("credit_cards")
+    .select("*")
+    .eq("user_id", userId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (cardErr) throw cardErr;
+
+  const list = cards || [];
+  if (!list.length) return { cards: [], rows: [] };
+
+  const startMonth = monthKeyFromDate(`${startMonthKey}-01`);
+  const endMonth = shiftMonthKey(startMonth, Math.max(1, Number(monthsAhead || 1)));
+  const startDate = `${startMonth}-01`;
+  const endDate = `${endMonth}-01`;
+
+  const { data: rows, error: txErr } = await sb
+    .from("credit_card_transactions")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("purchase_date", startDate)
+    .lt("purchase_date", endDate)
+    .order("purchase_date", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (txErr) throw txErr;
+
+  return { cards: list, rows: rows || [] };
+}
+
+function buildCreditCardOverview(cards, rows, startMonthKey, monthsAhead) {
+  const monthCount = Math.max(1, Math.min(12, parseInt(String(monthsAhead || 6), 10) || 6));
+  const monthKeys = Array.from({ length: monthCount }, (_, i) => shiftMonthKey(startMonthKey, i));
+  const monthMap = new Map(
+    monthKeys.map((key) => [
+      key,
+      {
+        monthKey: key,
+        total: 0,
+        cards: {},
+      },
+    ])
+  );
+
+  for (const row of rows || []) {
+    const key = monthKeyFromDate(row.purchase_date);
+    const bucket = monthMap.get(key);
+    if (!bucket) continue;
+    const amount = Number(row.amount) || 0;
+    bucket.total += amount;
+    bucket.cards[row.card_id] = (bucket.cards[row.card_id] || 0) + amount;
+  }
+
+  const months = monthKeys.map((key) => {
+    const bucket = monthMap.get(key);
+    return {
+      monthKey: key,
+      total: bucket.total,
+      cards: cards.map((card) => ({
+        card_id: card.id,
+        name: card.name,
+        total: bucket.cards[card.id] || 0,
+      })),
+    };
+  });
+
+  const grouped = groupInstallmentRows(rows || []);
+  const cardsSummary = cards.map((card) => {
+    const cardRows = (rows || []).filter((row) => row.card_id === card.id);
+    const currentMonthTotal = cardRows
+      .filter((row) => monthKeyFromDate(row.purchase_date) === startMonthKey)
+      .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    const nextMonthTotal = cardRows
+      .filter((row) => monthKeyFromDate(row.purchase_date) === shiftMonthKey(startMonthKey, 1))
+      .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    const openPurchases = grouped.filter(
+      (group) => group.card_id === card.id && group.rows.some((row) => monthKeyFromDate(row.purchase_date) >= startMonthKey)
+    ).length;
+    const plannedTotal = cardRows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+
+    return {
+      ...card,
+      currentMonthTotal,
+      nextMonthTotal,
+      openPurchases,
+      plannedTotal,
+    };
+  });
+
+  return { cards: cardsSummary, months };
+}
+
+api.get(
+  "/credit-cards/overview",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    const months = Math.max(1, Math.min(12, parseInt(String(req.query.months || 6), 10) || 6));
+    const startMonthKey = monthKeyFromParts(
+      req.query.year || new Date().getFullYear(),
+      req.query.month || new Date().getMonth() + 1
+    ) || monthKeyFromDate(new Date().toISOString().slice(0, 10));
+    const sb = getSupabase();
+    const loaded = await loadUserCreditCardsWithRows(sb, req.userId, startMonthKey, months);
+    res.json(buildCreditCardOverview(loaded.cards, loaded.rows, startMonthKey, months));
+  })
+);
+
 api.post(
   "/credit-cards",
   authRequired,
   asyncHandler(async (req, res) => {
-    const { name, bank_name, last_four, credit_limit, closing_day, due_day, color } = req.body || {};
+    const { name, due_day, color } = req.body || {};
     if (!name || !String(name).trim()) return res.status(400).json({ error: "name obrigatório" });
     const sb = getSupabase();
     const { data, error } = await sb.from("credit_cards").insert({
       user_id: req.userId,
       name: String(name).trim().slice(0, 120),
-      bank_name: bank_name ? String(bank_name).trim().slice(0, 120) : null,
-      last_four: last_four ? String(last_four).replace(/\D/g, "").slice(-4) : null,
-      credit_limit: Number.isFinite(Number(credit_limit)) ? Number(credit_limit) : 0,
-      closing_day: Number.isInteger(Number(closing_day)) ? Number(closing_day) : null,
-      due_day: Number.isInteger(Number(due_day)) ? Number(due_day) : null,
-      color: color ? String(color).slice(0, 20) : "#8B5CF6",
+      bank_name: null,
+      last_four: null,
+      credit_limit: 0,
+      closing_day: null,
+      due_day: normalizeDay(due_day),
+      color: color ? String(color).slice(0, 20) : "#10B981",
       sort_order: 0,
     }).select().single();
     if (error) throw error;
@@ -1782,15 +2000,14 @@ api.patch(
   "/credit-cards/:id",
   authRequired,
   asyncHandler(async (req, res) => {
-    const { name, bank_name, last_four, credit_limit, closing_day, due_day, color } = req.body || {};
+    const { name, due_day, color } = req.body || {};
     const patch = {};
     if (name != null) patch.name = String(name).trim().slice(0, 120);
-    if (bank_name !== undefined) patch.bank_name = bank_name ? String(bank_name).trim().slice(0, 120) : null;
-    if (last_four != null) patch.last_four = String(last_four).replace(/\D/g, "").slice(-4);
-    if (credit_limit != null && Number.isFinite(Number(credit_limit))) patch.credit_limit = Number(credit_limit);
-    if (closing_day != null) patch.closing_day = Number(closing_day);
-    if (due_day != null) patch.due_day = Number(due_day);
+    if (due_day !== undefined) patch.due_day = normalizeDay(due_day);
     if (color != null) patch.color = String(color).slice(0, 20);
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ error: "Nenhum campo válido enviado" });
+    }
     const sb = getSupabase();
     const { data, error } = await sb.from("credit_cards").update(patch).eq("id", req.params.id).eq("user_id", req.userId).select().single();
     if (error) throw error;
@@ -1851,21 +2068,15 @@ api.post(
     if (!card) return res.status(404).json({ error: "Cartão não encontrado" });
 
     const dateStr = purchase_date || new Date().toISOString().slice(0, 10);
-    const rows = [];
-    for (let i = 1; i <= installs; i++) {
-      const d = new Date(dateStr + "T12:00:00Z");
-      d.setMonth(d.getMonth() + (i - 1));
-      rows.push({
-        user_id: req.userId,
-        card_id,
-        description: description ? String(description).slice(0, 300) : null,
-        category: category ? String(category).slice(0, 120) : "Geral",
-        amount: amt,
-        installments: installs,
-        current_installment: i,
-        purchase_date: d.toISOString().slice(0, 10),
-      });
-    }
+    const rows = buildCreditCardInstallmentRows({
+      userId: req.userId,
+      cardId: card_id,
+      description,
+      category,
+      totalAmount: amt,
+      installments: installs,
+      purchaseDateStr: dateStr,
+    });
     const { data, error } = await sb.from("credit_card_transactions").insert(rows).select();
     if (error) throw error;
     res.status(201).json(data);
@@ -1877,7 +2088,26 @@ api.delete(
   authRequired,
   asyncHandler(async (req, res) => {
     const sb = getSupabase();
-    const { error } = await sb.from("credit_card_transactions").delete().eq("id", req.params.id).eq("user_id", req.userId);
+    const { data: row, error: fetchErr } = await sb
+      .from("credit_card_transactions")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("user_id", req.userId)
+      .single();
+    if (fetchErr) throw fetchErr;
+    if (!row) return res.status(404).json({ error: "Lançamento não encontrado" });
+
+    let del = sb
+      .from("credit_card_transactions")
+      .delete()
+      .eq("user_id", req.userId)
+      .eq("card_id", row.card_id)
+      .eq("created_at", row.created_at)
+      .eq("category", row.category)
+      .eq("installments", row.installments);
+    if (row.description == null) del = del.is("description", null);
+    else del = del.eq("description", row.description);
+    const { error } = await del;
     if (error) throw error;
     res.status(204).end();
   })
@@ -1893,19 +2123,34 @@ api.get(
     const { data: card } = await sb.from("credit_cards").select("*").eq("id", req.params.id).eq("user_id", req.userId).single();
     if (!card) return res.status(404).json({ error: "Cartão não encontrado" });
 
-    const start = `${y}-${String(m).padStart(2, "0")}-01`;
-    const nextM = m === 12 ? 1 : m + 1;
-    const nextY = m === 12 ? y + 1 : y;
-    const end   = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
-
     const { data: txs, error } = await sb.from("credit_card_transactions")
       .select("*").eq("card_id", card.id).eq("user_id", req.userId)
-      .gte("purchase_date", start).lt("purchase_date", end)
       .order("purchase_date", { ascending: false });
     if (error) throw error;
+    const monthKey = monthKeyFromParts(y, m);
+    const groups = groupInstallmentRows(txs || []);
+    const entries = groups
+      .map((group) => {
+        const currentRow = group.rows.find((row) => monthKeyFromDate(row.purchase_date) === monthKey);
+        if (!currentRow) return null;
+        return {
+          id: currentRow.id,
+          description: group.description || group.category,
+          category: group.category,
+          installmentAmount: Number(currentRow.amount) || 0,
+          currentInstallment: Number(currentRow.current_installment) || 1,
+          installments: group.installments,
+          totalAmount: group.total_amount,
+          purchaseDate: group.first_purchase_date,
+          referenceDate: currentRow.purchase_date,
+          remainingInstallments: Math.max(0, group.installments - (Number(currentRow.current_installment) || 1)),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => String(b.referenceDate || "").localeCompare(String(a.referenceDate || "")));
 
-    const total = (txs || []).reduce((s, t) => s + Number(t.amount), 0);
-    res.json({ card, year: y, month: m, transactions: txs || [], total });
+    const total = entries.reduce((sum, entry) => sum + entry.installmentAmount, 0);
+    res.json({ card, year: y, month: m, entries, total });
   })
 );
 
@@ -2189,6 +2434,17 @@ app.get("/api/dashboard", authRequired, asyncHandler(dashboardRoute));
 app.use(`${BASE}/api`, api);
 app.use("/api", api);
 
+// Health na raiz (útil quando o proxy só repassa /health ou para teste rápido)
+app.get(
+  "/health",
+  asyncHandler(async (_req, res) => {
+    const sb = getSupabase();
+    const { error } = await sb.from("transactions").select("id").limit(1);
+    if (error) throw error;
+    res.json({ ok: true });
+  })
+);
+
 // Landing page na raiz
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -2242,5 +2498,7 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`Gestão Contas em http://localhost:${PORT}/`);
   console.log(`Dashboard: http://localhost:${PORT}${BASE}/`);
-  console.log(`API: /api/dashboard`);
+  console.log(
+    `API JSON: http://localhost:${PORT}/api/health · http://localhost:${PORT}${BASE}/api/health · http://localhost:${PORT}/health`
+  );
 });

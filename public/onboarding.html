@@ -88,13 +88,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-  (async () => {
-    const cfg = await fetch('/api/config').then(r => r.json());
-    window.__SUPABASE_URL__ = cfg.supabaseUrl;
-    window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
-  })();
-</script>
 <script src="/js/auth.js"></script>
 <script>
   let currentStep = 1;
@@ -122,15 +115,18 @@
     }
     document.getElementById('fullname-error').classList.remove('visible');
 
-    let tries = 0;
-    while (!window.__SUPABASE_URL__ && tries++ < 20) await new Promise(r => setTimeout(r, 100));
-
+    await ensureSupabaseConfig();
     const headers = await getAuthHeader();
-    await fetch('/api/profile', {
+    const r = await insightApiFetch('/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({ full_name: name }),
     });
+    if (!r || !r.res.ok) {
+      document.getElementById('fullname-error').textContent = 'Não foi possível salvar. Tente de novo.';
+      document.getElementById('fullname-error').classList.add('visible');
+      return;
+    }
 
     setStep(2);
   });
@@ -145,13 +141,18 @@
     document.getElementById('phone-error').classList.remove('visible');
 
     const headers = await getAuthHeader();
-    const res = await fetch('/api/profile', {
+    const r = await insightApiFetch('/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({ whatsapp_phone: '55' + raw }),
     });
+    if (!r || !r.res.ok) {
+      document.getElementById('phone-error').textContent = 'Não foi possível salvar o telefone.';
+      document.getElementById('phone-error').classList.add('visible');
+      return;
+    }
 
-    await finishOnboarding(res);
+    await finishOnboarding(r);
   });
 
   document.getElementById('btn-skip').addEventListener('click', async () => {
@@ -161,8 +162,8 @@
   async function finishOnboarding() {
     setStep(3);
     const headers = await getAuthHeader();
-    const res = await fetch('/api/profile', { headers });
-    const profile = await res.json();
+    const r = await insightApiFetch('/profile', { headers });
+    const profile = r && r.data ? r.data : {};
     if (profile.has_access) {
       document.getElementById('pending-access').style.display = 'none';
       document.getElementById('has-access').style.display = 'block';
@@ -171,8 +172,8 @@
 
   document.getElementById('btn-finish').addEventListener('click', async () => {
     const headers = await getAuthHeader();
-    const res = await fetch('/api/profile', { headers });
-    const profile = await res.json();
+    const r = await insightApiFetch('/profile', { headers });
+    const profile = r && r.data ? r.data : {};
     if (profile.has_access) {
       window.location.href = '/insights/';
     } else {
@@ -182,8 +183,7 @@
 
   // Verifica auth ao carregar
   window.addEventListener('DOMContentLoaded', async () => {
-    let tries = 0;
-    while (!window.__SUPABASE_URL__ && tries++ < 20) await new Promise(r => setTimeout(r, 100));
+    await ensureSupabaseConfig();
     const session = await getSession();
     if (!session) window.location.href = '/login';
   });

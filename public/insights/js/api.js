@@ -1,21 +1,9 @@
 (function () {
   function computeApiBases() {
-    const list = [];
-    if (window.__INSIGHTS_API_BASE__) {
-      list.push(String(window.__INSIGHTS_API_BASE__).replace(/\/$/, "") + "/api");
+    if (typeof window.financezapGetApiBases === "function") {
+      return window.financezapGetApiBases();
     }
-    try {
-      const p = window.location.pathname || "";
-      if (
-        (window.location.protocol === "http:" || window.location.protocol === "https:") &&
-        /^\/insights(\/|$)/.test(p)
-      ) {
-        list.push("/insights/api");
-      }
-    } catch (e) { /* ignore */ }
-    list.push("/insights/api");
-    list.push("/api");
-    return [...new Set(list)];
+    return ["/insights/api", "/api"];
   }
 
   const bases = computeApiBases();
@@ -36,9 +24,28 @@
     return {};
   }
 
+  async function tryRefreshAuthSession() {
+    try {
+      if (typeof window.getSupabaseClient !== "function") return false;
+      const sb = window.getSupabaseClient();
+      if (!sb || !sb.auth || typeof sb.auth.refreshSession !== "function") return false;
+      const out = await sb.auth.refreshSession();
+      return Boolean(out && out.data && out.data.session && out.data.session.access_token);
+    } catch (e) {
+      return false;
+    }
+  }
+
   window.apiFetch = async function (path, options) {
     const pathPart = path.startsWith("/") ? path : "/" + path;
-    const tryBases = window.__API_RESOLVED__ ? [window.__API_RESOLVED__] : computeApiBases();
+    const allBases = computeApiBases();
+    const locked = window.__API_RESOLVED__;
+    const norm = (b) => String(b).replace(/\/$/, "");
+    let tryBases = allBases;
+    if (locked) {
+      const rest = allBases.filter((b) => norm(b) !== norm(locked));
+      tryBases = [locked, ...rest];
+    }
     const aHeaders = await authHeader();
 
     let lastError = null;
@@ -60,8 +67,56 @@
         continue;
       }
 
-      // Token expirado → redireciona para login
+      // Token expirado: tenta renovar a sessão uma vez antes de redirecionar.
       if (res.status === 401) {
+        const refreshed = await tryRefreshAuthSession();
+        if (refreshed) {
+          const retryHeaders = await authHeader();
+          const retry = await fetch(url, {
+            ...options,
+            headers: {
+              "Content-Type": "application/json",
+              ...retryHeaders,
+              ...(options && options.headers),
+            },
+          });
+
+          if (retry.status === 401) {
+            window.location.href = "/login";
+            return;
+          }
+
+          if (retry.status === 402) {
+            if (typeof window.showPaywall === "function") window.showPaywall({});
+            return;
+          }
+
+          const retryText = await retry.text();
+          if (looksLikeHtml(retryText)) {
+            lastError = new Error("HTML em " + url);
+            continue;
+          }
+
+          let retryData;
+          try {
+            retryData = retryText ? JSON.parse(retryText) : null;
+          } catch {
+            lastError = new Error(retryText ? retryText.slice(0, 120) : "Resposta inválida");
+            continue;
+          }
+
+          if (!retry.ok) {
+            const err = new Error(retryData?.error || retry.statusText);
+            err.status = retry.status;
+            err.body = retryData;
+            throw err;
+          }
+
+          window.__API_RESOLVED__ = base;
+          window.__API__ = base;
+          return retryData;
+        }
+
         window.location.href = "/login";
         return;
       }
@@ -98,11 +153,16 @@
       return data;
     }
 
-    const hint = tryBases.map((b) => b + "/health").join(" ou ");
+    const rootHealth =
+      typeof window.location !== "undefined" && window.location.origin
+        ? window.location.origin + "/health"
+        : "/health";
+    const hint = tryBases.map((b) => b + "/health").concat(rootHealth).join(" · ");
     throw new Error(
-      "API inacessível (só HTML ou rede). Teste no navegador: " +
+      "API inacessível (a resposta foi HTML ou a rede falhou). Abra no navegador: " +
         hint +
-        ". Se usar proxy, exponha /api ou /insights/api para o Node."
+        ". Em Nginx/Caddy, encaminhe /api e /insights/api para o Node ANTES do fallback do SPA (try_files / index.html), senão o site devolve HTML em vez da API. " +
+        "Se o painel está em outro domínio que o Node, defina window.__FINANCEZAP_API_ORIGIN__ = 'https://seu-servidor' antes dos scripts, ou <meta name=\"financezap-api-origin\" content=\"https://seu-servidor\">."
     );
   };
 

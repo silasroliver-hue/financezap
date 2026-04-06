@@ -67,13 +67,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    (async () => {
-      const cfg = await fetch('/api/config').then(r => r.json());
-      window.__SUPABASE_URL__ = cfg.supabaseUrl;
-      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
-    })();
-  </script>
   <script src="/js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/nav.js"></script>
@@ -159,11 +152,9 @@
     });
 
     window.addEventListener("DOMContentLoaded", async () => {
-      let tries = 0;
-      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
       const ok = await checkAccess();
       if (!ok) return;
-      renderSidebarUser();
+      await renderSidebarUser();
       load();
     });
   </script>

@@ -82,13 +82,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    (async () => {
-      const cfg = await fetch('/api/config').then(r => r.json());
-      window.__SUPABASE_URL__ = cfg.supabaseUrl;
-      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
-    })();
-  </script>
   <script src="/js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/nav.js"></script>
@@ -104,14 +97,35 @@
       const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
     }
 
+    /** Aceita 1500,50 · 1.500,50 · 1500.50 (evita parseFloat que quebra com milhar BR) */
+    function parseMoneyBR(raw) {
+      let s = String(raw ?? "").trim().replace(/\s/g, "");
+      if (!s) return NaN;
+      if (s.includes(",") && s.includes(".")) {
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else if (s.includes(",")) {
+        s = s.replace(",", ".");
+      }
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
     async function load() {
       const alertEl = document.getElementById("alert");
       alertEl.innerHTML = "";
+      const listEl = document.getElementById("accounts-list");
+      listEl.innerHTML = '<p class="dash-note">Carregando contas…</p>';
       try {
-        const accounts = await apiFetch("/bank-accounts") || [];
+        const raw = await apiFetch("/bank-accounts");
+        if (raw == null) {
+          listEl.innerHTML = '<p class="dash-empty">Não foi possível carregar (sessão ou API).</p>';
+          return;
+        }
+        const accounts = Array.isArray(raw) ? raw : [];
         renderSummary(accounts);
         renderAccounts(accounts);
-      } catch(e) {
+      } catch (e) {
+        listEl.innerHTML = '<p class="dash-empty">Erro ao carregar.</p>';
         alertEl.innerHTML = `<div class="dash-alert">${esc(e.message)}</div>`;
       }
     }
@@ -160,11 +174,11 @@
               ${fmtBRL(a.balance)}
             </div>
             <div style="display:flex;gap:.4rem">
-              <button class="dash-btn dash-btn-ghost dash-btn-tiny upd-btn" data-id="${a.id}" data-bal="${a.balance}">Atualizar saldo</button>
-              <button class="dash-btn dash-btn-ghost dash-btn-tiny edit-btn"
-                data-id="${a.id}" data-name="${esc(a.name)}" data-bank="${esc(a.bank_name||'')}"
+              <button type="button" class="dash-btn dash-btn-ghost dash-btn-tiny upd-btn" data-id="${esc(a.id)}" data-bal="${esc(String(a.balance ?? ""))}">Atualizar saldo</button>
+              <button type="button" class="dash-btn dash-btn-ghost dash-btn-tiny edit-btn"
+                data-id="${esc(a.id)}" data-name="${esc(a.name)}" data-bank="${esc(a.bank_name||'')}"
                 data-type="${a.account_type}" data-color="${esc(a.color||'#10B981')}">Editar</button>
-              <button class="dash-btn dash-btn-danger dash-btn-tiny del-btn" data-id="${a.id}">Excluir</button>
+              <button type="button" class="dash-btn dash-btn-danger dash-btn-tiny del-btn" data-id="${esc(a.id)}">Excluir</button>
             </div>
           </div>
         </div>
@@ -174,14 +188,28 @@
         btn.addEventListener("click", async () => {
           const id = btn.dataset.id;
           const cur = btn.dataset.bal;
-          const v = prompt("Novo saldo (R$)?", cur);
+          const v = prompt("Novo saldo em R$? (ex.: 1500,50 ou 1.500,50)", cur);
           if (v == null) return;
-          const n = Number(String(v).replace(",", "."));
-          if (!Number.isFinite(n)) return;
+          const n = parseMoneyBR(v);
+          if (!Number.isFinite(n)) {
+            document.getElementById("alert").innerHTML =
+              '<div class="dash-alert">Valor inválido. Use números como 1500,50 ou 1.500,50.</div>';
+            return;
+          }
+          btn.disabled = true;
           try {
-            await apiFetch(`/bank-accounts/${id}`, { method: "PATCH", body: JSON.stringify({ balance: n }) });
+            await apiFetch(`/bank-accounts/${encodeURIComponent(id)}`, {
+              method: "PATCH",
+              body: JSON.stringify({ balance: n }),
+            });
+            document.getElementById("alert").innerHTML =
+              '<div class="dash-alert dash-alert-ok">Saldo atualizado.</div>';
             await load();
-          } catch(e) { alert(e.message); }
+          } catch (e) {
+            document.getElementById("alert").innerHTML = `<div class="dash-alert">${esc(e.message)}</div>`;
+          } finally {
+            btn.disabled = false;
+          }
         });
       });
 
@@ -217,11 +245,18 @@
       ev.preventDefault();
       const name = document.getElementById("aname").value.trim();
       if (!name) return;
+      const abalRaw = document.getElementById("abal").value.trim();
+      const balParsed = abalRaw ? parseMoneyBR(abalRaw) : 0;
+      if (abalRaw && !Number.isFinite(balParsed)) {
+        document.getElementById("alert").innerHTML =
+          '<div class="dash-alert">Saldo inicial inválido. Use ex.: 1000 ou 1.500,50.</div>';
+        return;
+      }
       const body = {
         name,
         bank_name: document.getElementById("abank").value.trim() || null,
         account_type: document.getElementById("atype").value,
-        balance: parseFloat(document.getElementById("abal").value) || 0,
+        balance: Number.isFinite(balParsed) ? balParsed : 0,
         color: document.getElementById("acolor").value,
       };
       try {
@@ -236,12 +271,14 @@
     });
 
     window.addEventListener("DOMContentLoaded", async () => {
-      let tries = 0;
-      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
-      const ok = await checkAccess();
-      if (!ok) return;
-      renderSidebarUser();
-      load();
+      try {
+        const ok = await checkAccess();
+        if (!ok) return;
+        await renderSidebarUser();
+        await load();
+      } catch (e) {
+        document.getElementById("alert").innerHTML = `<div class="dash-alert">${esc(e.message)}</div>`;
+      }
     });
   </script>
 </body>
