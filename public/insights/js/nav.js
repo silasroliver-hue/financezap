@@ -52,7 +52,7 @@
     const configBtn = document.createElement("button");
     configBtn.className = "nav-config-btn" + (isActiveInConfig ? " active" : "");
     configBtn.id = "nav-config-toggle";
-    configBtn.innerHTML = `<span class="nav-icon">⚙️</span><span class="nav-short">Config</span>`;
+    configBtn.innerHTML = `<span class="nav-icon nav-hamburger">&#9776;</span><span class="nav-short">Menu</span>`;
     configBtn.addEventListener("click", function (e) {
       e.stopPropagation();
       openConfigPanel();

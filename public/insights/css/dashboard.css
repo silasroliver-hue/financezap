@@ -760,6 +760,7 @@ body.dash-body {
 
   .dash-sidebar nav a .nav-icon,
   .nav-config-btn .nav-icon { font-size: 1.4rem; }
+  .nav-config-btn .nav-hamburger { font-size: 1.6rem; line-height: 1; }
   .dash-sidebar nav a .nav-text { display: none; }
   .dash-sidebar nav a .nav-short { display: block; }
 
