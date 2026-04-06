@@ -1,18 +1,31 @@
 (function () {
+  // SVG icon helpers
+  const SVG = {
+    home:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    plus:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+    chart:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    menu:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`,
+    trend:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+    calendar:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    bank:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>`,
+    tag:     `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`,
+    card:    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+  };
+
   // Itens principais (aparecem na tab bar mobile)
   const mainLinks = [
-    { href: "index.html",        id: "dash",   label: "Dashboard",     shortLabel: "Home",    icon: "📊" },
-    { href: "lancamentos.html",  id: "lanc",   label: "Lancamentos",   shortLabel: "Lancar",  icon: "✏️" },
-    { href: "gastos.html",       id: "gastos", label: "Gastos",        shortLabel: "Gastos",  icon: "💸" },
+    { href: "index.html",        id: "dash",   label: "Dashboard",     shortLabel: "Início",  icon: SVG.home  },
+    { href: "lancamentos.html",  id: "lanc",   label: "Lancamentos",   shortLabel: "Lançar",  icon: SVG.plus  },
+    { href: "gastos.html",       id: "gastos", label: "Gastos",        shortLabel: "Gastos",  icon: SVG.chart },
   ];
 
   // Itens que ficam dentro de "Configuracoes"
   const configLinks = [
-    { href: "investimentos.html",id: "inv",    label: "Investimentos", icon: "📈" },
-    { href: "pagamentos.html",   id: "pay",    label: "Contas do mes", icon: "🗓️" },
-    { href: "contas.html",       id: "contas", label: "Contas bancarias", icon: "🏦" },
-    { href: "categorias.html",   id: "cat",    label: "Categorias",    icon: "🏷️" },
-    { href: "cartoes.html",      id: "cartoes",label: "Cartoes de credito", icon: "💳" },
+    { href: "investimentos.html",id: "inv",    label: "Investimentos",     icon: SVG.trend    },
+    { href: "pagamentos.html",   id: "pay",    label: "Contas do mes",     icon: SVG.calendar },
+    { href: "contas.html",       id: "contas", label: "Contas bancarias",  icon: SVG.bank     },
+    { href: "categorias.html",   id: "cat",    label: "Categorias",        icon: SVG.tag      },
+    { href: "cartoes.html",      id: "cartoes",label: "Cartoes de credito", icon: SVG.card    },
   ];
 
   const allLinks = [...mainLinks, ...configLinks];
@@ -52,7 +65,7 @@
     const configBtn = document.createElement("button");
     configBtn.className = "nav-config-btn" + (isActiveInConfig ? " active" : "");
     configBtn.id = "nav-config-toggle";
-    configBtn.innerHTML = `<span class="nav-icon nav-hamburger">&#9776;</span><span class="nav-short">Menu</span>`;
+    configBtn.innerHTML = `<span class="nav-icon">${SVG.menu}</span><span class="nav-short">Menu</span>`;
     configBtn.addEventListener("click", function (e) {
       e.stopPropagation();
       openConfigPanel();

@@ -708,11 +708,14 @@ body.dash-body {
 .nav-config-btn { display: none; }
 .nav-config-overlay { display: none; }
 
+/* ── SVG icon sizing (desktop sidebar) ───────── */
+.nav-icon svg { display: block; }
+
 /* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
   .dash-shell { flex-direction: column; }
 
-  /* Bottom tab bar */
+  /* ── Bottom tab bar — estilo clean (branco) ── */
   .dash-sidebar {
     position: fixed;
     bottom: 0;
@@ -721,15 +724,16 @@ body.dash-body {
     right: 0;
     height: auto;
     padding: 0;
-    border-top: 1px solid rgba(255,255,255,.1);
-    box-shadow: 0 -4px 24px rgba(0,0,0,.3);
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.07);
     z-index: 200;
   }
 
   .dash-sidebar-brand { display: none; }
   .dash-sidebar-footer { display: none; }
 
-  /* Tab bar: sidebar + config btn distribuídos igualmente */
+  /* Tab bar: nav + config btn distribuídos igualmente */
   .dash-sidebar nav {
     display: flex;
     flex-wrap: nowrap;
@@ -742,68 +746,80 @@ body.dash-body {
   /* Hide config links on mobile tab bar — only first 3 show */
   .dash-sidebar nav a:nth-child(n+4) { display: none; }
 
-  /* Main items + config btn: mesma largura, distribuídos */
+  /* Tab items */
   .dash-sidebar nav a,
   .nav-config-btn {
-    flex: 1 1 25%;          /* 4 itens = 25% cada */
+    flex: 1 1 25%;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .25rem;
-    padding: .75rem .5rem .6rem;
+    gap: .2rem;
+    padding: .6rem .5rem .55rem;
     border-radius: 0;
-    font-size: .7rem;
+    font-size: .68rem;
     font-weight: 600;
     min-width: 0;
     text-align: center;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color .15s;
   }
 
+  /* SVG icons in tab bar */
+  .dash-sidebar nav a .nav-icon svg,
+  .nav-config-btn .nav-icon svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
   .dash-sidebar nav a .nav-icon,
-  .nav-config-btn .nav-icon { font-size: 1.4rem; }
-  .nav-config-btn .nav-hamburger { font-size: 1.6rem; line-height: 1; }
+  .nav-config-btn .nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0; /* hide any text fallback */
+  }
+
   .dash-sidebar nav a .nav-text { display: none; }
   .dash-sidebar nav a .nav-short { display: block; }
 
   /* Active state */
-  .dash-sidebar nav a.active { background: transparent; color: var(--dash-accent); }
-  .dash-sidebar nav a.active::after {
-    bottom: auto; top: 0;
-    left: 25%; right: 25%;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    background: var(--dash-accent);
+  .dash-sidebar nav a.active {
+    background: transparent;
+    color: var(--dash-accent);
   }
+  .dash-sidebar nav a.active::after { display: none; }
 
   /* Config button */
   .nav-config-btn {
     display: flex;
     border: none;
     background: none;
-    color: var(--dash-sidebar-text);
+    color: #94a3b8;
     font-family: var(--dash-font);
     cursor: pointer;
   }
   .nav-config-btn .nav-short { display: block; }
   .nav-config-btn.active { color: var(--dash-accent); }
 
-  /* ── Config overlay (full screen) ── */
+  /* ── Config overlay (slide-up panel) ── */
   .nav-config-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,.5);
+    background: rgba(15,23,42,.45);
     z-index: 300;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
   }
   .nav-config-overlay.open { display: flex; align-items: flex-end; justify-content: center; }
 
   .nav-config-panel {
-    background: var(--dash-sidebar);
+    background: #fff;
     width: 100%;
     max-height: 85vh;
     border-radius: 20px 20px 0 0;
-    padding: 1.25rem 1.25rem 2rem;
+    padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0));
     overflow-y: auto;
     animation: slideUp .25s ease;
   }
@@ -813,26 +829,37 @@ body.dash-body {
     to { transform: translateY(0); }
   }
 
+  /* drag handle */
+  .nav-config-panel::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 0 auto 1.25rem;
+  }
+
   .nav-config-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1.25rem;
     padding-bottom: .75rem;
-    border-bottom: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid #f1f5f9;
   }
   .nav-config-header h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    color: #fff;
+    color: var(--dash-ink);
   }
   .nav-config-close {
     width: 32px; height: 32px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,.08);
-    color: var(--dash-sidebar-text);
+    background: #f1f5f9;
+    color: var(--dash-muted);
     font-size: 1rem;
     cursor: pointer;
     display: flex;
@@ -843,7 +870,7 @@ body.dash-body {
   .nav-config-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: .75rem;
+    gap: .65rem;
     margin-bottom: 1.5rem;
   }
 
@@ -852,28 +879,42 @@ body.dash-body {
     flex-direction: column;
     align-items: center;
     gap: .5rem;
-    padding: 1.25rem .75rem;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.06);
+    padding: 1.1rem .75rem;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
     border-radius: 14px;
     text-decoration: none;
-    color: var(--dash-sidebar-text);
+    color: var(--dash-muted);
     transition: all .15s;
   }
-  .nav-config-item:hover,
   .nav-config-item:active {
-    background: rgba(255,255,255,.08);
-    border-color: rgba(255,255,255,.12);
-    color: #fff;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
   }
   .nav-config-item.active {
-    background: rgba(16,185,129,.12);
-    border-color: rgba(16,185,129,.3);
+    background: var(--dash-accent-soft);
+    border-color: rgba(16,185,129,.35);
     color: var(--dash-accent);
   }
 
-  .nav-config-icon { font-size: 1.75rem; }
-  .nav-config-label { font-size: .78rem; font-weight: 600; text-align: center; }
+  /* SVG icons in config grid */
+  .nav-config-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+  }
+  .nav-config-item.active .nav-config-icon {
+    background: var(--dash-accent-soft);
+    border-color: rgba(16,185,129,.2);
+  }
+  .nav-config-icon svg { width: 20px; height: 20px; display: block; }
+  .nav-config-label { font-size: .75rem; font-weight: 700; text-align: center; color: var(--dash-ink); }
+  .nav-config-item.active .nav-config-label { color: var(--dash-accent); }
 
   /* User section in config panel */
   .nav-config-user {
@@ -881,9 +922,10 @@ body.dash-body {
     align-items: center;
     gap: .75rem;
     padding: .85rem 1rem;
-    background: rgba(255,255,255,.04);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    color: #fff;
+    color: var(--dash-ink);
   }
   .nav-config-logout-btn {
     padding: .4rem .85rem;
@@ -896,7 +938,7 @@ body.dash-body {
     font-weight: 700;
     cursor: pointer;
   }
-  .nav-config-logout-btn:hover { background: rgba(239,68,68,.1); }
+  .nav-config-logout-btn:hover { background: rgba(239,68,68,.08); }
 
   .dash-main { padding: 1.25rem 1rem 5.5rem; }
   .dash-kpis { grid-template-columns: repeat(2, 1fr); }
