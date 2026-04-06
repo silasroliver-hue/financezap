@@ -703,11 +703,16 @@ body.dash-body {
 }
 .btn-outline:hover { border-color: var(--dash-expense); color: var(--dash-expense); }
 
+/* ── Desktop: hide mobile-only elements ────── */
+.nav-short { display: none; }
+.nav-more-btn { display: none; }
+.nav-more-dropdown { display: none; }
+
 /* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
   .dash-shell { flex-direction: column; }
 
-  /* Top bar hidden, bottom nav appears */
+  /* Bottom tab bar */
   .dash-sidebar {
     position: fixed;
     bottom: 0;
@@ -716,8 +721,8 @@ body.dash-body {
     right: 0;
     height: auto;
     padding: 0;
-    border-top: 1px solid rgba(255,255,255,.08);
-    box-shadow: 0 -4px 20px rgba(0,0,0,.25);
+    border-top: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 -4px 24px rgba(0,0,0,.3);
     z-index: 200;
   }
 
@@ -726,43 +731,101 @@ body.dash-body {
 
   .dash-sidebar nav {
     width: 100%;
-    justify-content: space-around;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: stretch;
     gap: 0;
-    padding: .25rem 0 env(safe-area-inset-bottom, 0);
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    position: relative;
   }
 
-  .dash-sidebar nav a {
+  /* Hide items beyond 4 on mobile */
+  .dash-sidebar nav a.nav-more-item { display: none; }
+
+  /* Show main items */
+  .dash-sidebar nav a.nav-main-item {
     flex: 1 1 0;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: .2rem;
-    padding: .55rem .25rem .45rem;
+    padding: .65rem .25rem .5rem;
     border-radius: 0;
-    font-size: .62rem;
+    font-size: .65rem;
+    font-weight: 600;
     min-width: 0;
     text-align: center;
   }
 
-  .dash-sidebar nav a .nav-icon { font-size: 1.25rem; }
+  .dash-sidebar nav a .nav-icon { font-size: 1.3rem; }
 
-  .dash-sidebar nav a.active { background: transparent; }
+  /* Hide full label, show short label on mobile */
+  .dash-sidebar nav a .nav-text { display: none; }
+  .dash-sidebar nav a .nav-short { display: block; }
+
+  /* Active state */
+  .dash-sidebar nav a.active { background: transparent; color: var(--dash-accent); }
   .dash-sidebar nav a.active::after {
-    bottom: auto;
-    top: 0;
-    left: 25%;
-    right: 25%;
-    height: 2.5px;
-    border-radius: 0 0 2px 2px;
+    bottom: auto; top: 0;
+    left: 20%; right: 20%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--dash-accent);
   }
 
-  .dash-sidebar nav a.active .nav-icon { filter: none; }
-  .dash-sidebar nav a.active {
-    color: var(--dash-accent);
+  /* "More" button */
+  .nav-more-btn {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .2rem;
+    padding: .65rem .25rem .5rem;
+    border: none;
+    background: none;
+    color: var(--dash-sidebar-text);
+    font-family: var(--dash-font);
+    font-size: .65rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 0;
   }
+  .nav-more-btn .nav-icon { font-size: 1.3rem; }
+  .nav-more-btn.active { color: var(--dash-accent); }
+  .nav-more-btn.expanded { color: var(--dash-accent); }
 
-  /* Hide text labels on mobile for items beyond 5 */
-  .dash-sidebar nav a:nth-child(n+6) .nav-text { display: none; }
+  /* "More" dropdown */
+  .nav-more-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    left: 0;
+    background: var(--dash-sidebar);
+    border-top: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 -8px 32px rgba(0,0,0,.4);
+    padding: .5rem;
+    z-index: 210;
+  }
+  .nav-more-dropdown.open { display: block; }
+
+  .nav-more-link {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    color: var(--dash-sidebar-text);
+    text-decoration: none;
+    font-size: .88rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all .15s;
+  }
+  .nav-more-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .nav-more-link.active { color: var(--dash-accent); background: rgba(16,185,129,.1); }
+  .nav-more-link .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
 
   .dash-main { padding: 1.25rem 1rem 5.5rem; }
   .dash-kpis { grid-template-columns: repeat(2, 1fr); }
