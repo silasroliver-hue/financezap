@@ -91,7 +91,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.text }}\",\n  \"pushName\": \"{{ $json.pushName }}\"\n}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, text: $json.text, pushName: $json.pushName }) }}",
         "options": {
           "response": { "response": { "responseFormat": "json" } },
           "timeout": 25000
@@ -168,7 +168,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": \"{{ $json.text }}\",\n  \"pushName\": \"{{ $json.pushName }}\"\n}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, message: $json.text, pushName: $json.pushName }) }}",
         "options": {
           "response": { "response": { "responseFormat": "json" } },
           "timeout": 30000
@@ -183,7 +183,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Formata resposta do agente de vendas ──────────────────────────────────\nconst aiResp = $input.first()?.json || {};\nconst parsed = $('Processar Resposta').first()?.json || {};\n\nlet reply = aiResp.reply ||\n  'Olá! 👋 Conheça o FinanceZap — controle financeiro pelo WhatsApp.\\n\\nDigite *quero saber mais* para ver como funciona! ⚡';\n\nreply = String(reply)\n  .replace(/\\r/g, '')\n  .replace(/\\n/g, '\\\\n')\n  .replace(/\"/g, '\\\\\"')\n  .trim();\n\nconst phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (!phone) throw new Error('Telefone inválido.');\n\nreturn [{ json: { phone, msg: reply } }];\n"
+        "jsCode": "// ── Formata resposta do agente de vendas ──────────────────────────────────\nconst aiResp = $input.first()?.json || {};\nconst parsed = $('Processar Resposta').first()?.json || {};\n\nlet reply = aiResp.reply ||\n  'Olá! 👋 Conheça o FinanceZap — controle financeiro pelo WhatsApp.\\n\\nDigite *quero saber mais* para ver como funciona! ⚡';\n\nreply = String(reply).replace(/\\r/g, '').trim();\n\nconst phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (!phone) throw new Error('Telefone inválido.');\n\nreturn [{ json: { phone, msg: reply } }];\n"
       },
       "id": "e5f6a7b8-5555-6666-7777-888899990000",
       "name": "Formatar Resposta IA",
@@ -204,7 +204,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.msg }}\"\n}",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.msg }) }}",
         "options": { "timeout": 15000 }
       },
       "id": "2ba1bc39-acd3-49ee-a81b-e7476af7a46f",

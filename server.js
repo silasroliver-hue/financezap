@@ -1180,11 +1180,19 @@ api.post(
     if (!rawPhone) return res.status(400).json({ error: "phone obrigatório" });
 
     const sb = getSupabase();
-    const { data: profile } = await sb
+
+    // Normaliza telefone: tenta com e sem código do país (55)
+    const phoneVars = [rawPhone];
+    if (rawPhone.startsWith("55") && rawPhone.length > 10) phoneVars.push(rawPhone.slice(2));
+    else phoneVars.push("55" + rawPhone);
+
+    const { data: profiles } = await sb
       .from("user_profiles")
       .select("id, full_name, has_access")
-      .eq("whatsapp_phone", rawPhone)
-      .single();
+      .in("whatsapp_phone", phoneVars)
+      .limit(1);
+
+    const profile = profiles?.[0] || null;
 
     if (!profile) {
       return res.json({ exists: false, has_access: false });
@@ -1237,12 +1245,22 @@ api.post(
 
     const sb = getSupabase();
 
-    // Busca usuário
-    const { data: profile } = await sb
+    // Normaliza telefone: tenta com e sem código do país (55)
+    const phoneVariants = [rawPhone];
+    if (rawPhone.startsWith("55") && rawPhone.length > 10) {
+      phoneVariants.push(rawPhone.slice(2)); // sem 55
+    } else {
+      phoneVariants.push("55" + rawPhone); // com 55
+    }
+
+    // Busca usuário por qualquer variante do telefone
+    const { data: profiles } = await sb
       .from("user_profiles")
-      .select("id, full_name, has_access")
-      .eq("whatsapp_phone", rawPhone)
-      .single();
+      .select("id, full_name, has_access, whatsapp_phone")
+      .in("whatsapp_phone", phoneVariants)
+      .limit(1);
+
+    const profile = profiles?.[0] || null;
 
     // Usuário não cadastrado → resposta de vendas
     if (!profile) {
