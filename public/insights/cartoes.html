@@ -3,120 +3,307 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cartões de Crédito — FinanceZap</title>
+  <title>Cartoes de Credito - FinanceZap</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <style>
-    /* ── Lista de cartões ── */
-    .cc-list { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; }
-
-    .cc-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .simple-grid {
+      display: grid;
       gap: 1rem;
-      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .simple-box {
       background: #fff;
       border: 1px solid var(--dash-border);
-      border-left: 4px solid var(--dash-accent);
-      border-radius: var(--dash-radius);
+      border-radius: 16px;
       box-shadow: var(--dash-shadow);
+      padding: 1rem;
+    }
+
+    .simple-box h2 {
+      margin: 0 0 .35rem;
+      font-size: 1rem;
+    }
+
+    .simple-box p {
+      margin: 0;
+      color: var(--dash-muted);
+      font-size: .84rem;
+    }
+
+    .simple-steps {
+      display: grid;
+      gap: .65rem;
+      margin-top: .8rem;
+    }
+
+    .simple-step {
+      border: 1px solid var(--dash-border-soft);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: .7rem .8rem;
+      font-size: .83rem;
+      color: var(--dash-ink);
+    }
+
+    .simple-step strong {
+      display: block;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--dash-muted);
+      margin-bottom: .22rem;
+    }
+
+    .simple-form {
+      display: grid;
+      gap: .8rem;
+      margin-top: .9rem;
+    }
+
+    .simple-row {
+      display: grid;
+      gap: .8rem;
+    }
+
+    .simple-form .dash-form-row {
+      margin: 0;
+    }
+
+    .simple-hint {
+      margin-top: .3rem;
+      color: var(--dash-muted);
+      font-size: .78rem;
+      line-height: 1.45;
+    }
+
+    .cards-grid,
+    .forecast-grid,
+    .summary-grid {
+      display: grid;
+      gap: .8rem;
+    }
+
+    .cards-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .forecast-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-top: .85rem;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      margin-top: .8rem;
+    }
+
+    .card-item {
+      border: 1px solid var(--dash-border);
+      border-radius: 14px;
+      background: #fff;
+      padding: .95rem;
+      box-shadow: var(--dash-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+    }
+
+    .card-item.active {
+      border-color: var(--dash-accent);
+      box-shadow: 0 0 0 1px var(--dash-accent-glow), var(--dash-shadow-md);
+    }
+
+    .card-name {
+      margin: 0;
+      font-size: .96rem;
+      font-weight: 800;
+      color: var(--dash-ink);
+    }
+
+    .card-meta {
+      margin-top: .28rem;
+      color: var(--dash-muted);
+      font-size: .8rem;
+    }
+
+    .card-values {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .6rem;
+    }
+
+    .card-value {
+      border: 1px solid var(--dash-border-soft);
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: .6rem;
+    }
+
+    .card-value label {
+      display: block;
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--dash-muted);
+      margin-bottom: .25rem;
+    }
+
+    .card-value span {
+      font-size: .95rem;
+      font-weight: 800;
+      color: var(--dash-ink);
+    }
+
+    .card-actions {
+      display: flex;
+      gap: .45rem;
       flex-wrap: wrap;
     }
 
-    .cc-item-left { display: flex; align-items: center; gap: .85rem; min-width: 0; }
-    .cc-item-icon {
-      width: 42px; height: 42px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.25rem; flex-shrink: 0;
-      background: var(--dash-accent-soft);
+    .forecast-item {
+      border: 1px solid var(--dash-border);
+      border-radius: 12px;
+      padding: .8rem;
+      background: linear-gradient(180deg, #fff, #f8fafc);
     }
-    .cc-item-name { font-size: .95rem; font-weight: 800; color: var(--dash-ink); }
-    .cc-item-meta { font-size: .75rem; color: var(--dash-muted); margin-top: .15rem; }
 
-    .cc-item-right {
-      display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    .forecast-month {
+      font-size: .8rem;
+      color: var(--dash-ink);
+      font-weight: 700;
     }
-    .cc-item-limit {
-      font-size: .85rem; font-weight: 700; color: var(--dash-ink);
-      white-space: nowrap;
+
+    .forecast-total {
+      margin-top: .34rem;
+      font-size: 1.05rem;
+      color: var(--dash-expense);
+      font-weight: 800;
     }
-    .cc-item-actions { display: flex; gap: .35rem; flex-wrap: wrap; }
 
-    /* Botão "Ver fatura" ativo */
-    .cc-item.active-card { border-left-width: 4px; background: var(--dash-accent-soft); }
-    .cc-item.active-card .cc-item-name { color: var(--dash-accent-dark); }
-
-    /* ── Adicionar cartão ── */
-    .cc-add-btn {
-      display: flex; align-items: center; gap: .75rem;
-      padding: 1rem 1.25rem;
-      background: #fff; border: 2px dashed var(--dash-border);
-      border-radius: var(--dash-radius);
-      cursor: pointer; font-family: var(--dash-font); font-size: .9rem;
-      font-weight: 700; color: var(--dash-muted);
-      transition: all .15s; width: 100%;
+    .forecast-lines {
+      margin-top: .6rem;
+      display: grid;
+      gap: .35rem;
     }
-    .cc-add-btn:hover { border-color: var(--dash-accent); color: var(--dash-accent); background: var(--dash-accent-soft); }
-    .cc-add-icon { width: 42px; height: 42px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
 
-    /* ── Fatura ── */
-    .month-nav { display: flex; align-items: center; gap: .75rem; }
+    .forecast-line {
+      display: flex;
+      justify-content: space-between;
+      gap: .6rem;
+      color: var(--dash-muted);
+      font-size: .78rem;
+    }
+
+    .month-nav {
+      display: flex;
+      gap: .55rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: .7rem;
+    }
+
     .month-nav button {
-      background: #f1f5f9; border: 1px solid var(--dash-border);
-      color: var(--dash-ink); padding: .35rem .75rem; border-radius: 8px;
-      cursor: pointer; font-size: .85rem; font-family: var(--dash-font); font-weight: 600;
+      border: 1px solid var(--dash-border);
+      background: #f8fafc;
+      color: var(--dash-ink);
+      border-radius: 10px;
+      font-size: .8rem;
+      padding: .4rem .65rem;
+      cursor: pointer;
+      font-family: var(--dash-font);
+      font-weight: 700;
     }
-    .month-nav button:hover { background: var(--dash-accent-soft); border-color: var(--dash-accent); color: var(--dash-accent); }
-    .month-nav span { font-weight: 700; font-size: .95rem; color: var(--dash-ink); min-width: 120px; text-align: center; }
 
-    .tx-row { display: flex; justify-content: space-between; align-items: center; padding: .7rem 0; border-bottom: 1px solid var(--dash-border-soft); }
-    .tx-row:last-child { border-bottom: none; }
-    .tx-desc { font-size: .88rem; font-weight: 700; color: var(--dash-ink); }
-    .tx-meta { font-size: .72rem; color: var(--dash-muted); margin-top: .15rem; }
-    .tx-amount { font-size: .9rem; font-weight: 700; color: var(--dash-expense); }
-
-    .summary-bar {
-      display: flex; gap: 1.5rem; padding: 1rem 0;
-      border-top: 1px solid var(--dash-border); margin-top: .5rem; flex-wrap: wrap;
+    .month-nav strong {
+      min-width: 125px;
+      text-align: center;
+      font-size: .87rem;
     }
-    .summary-item label { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--dash-muted); display: block; margin-bottom: .2rem; }
-    .summary-item span { font-size: 1.05rem; font-weight: 800; color: var(--dash-ink); }
-    .summary-item span.total { color: var(--dash-expense); }
 
-    .statement-section { display: none; }
-    .statement-section.visible { display: block; }
-
-    /* ── Modal ── */
-    .cc-modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(15,23,42,.45); z-index: 400;
-      align-items: center; justify-content: center;
-      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-      padding: 1rem;
+    .purchase-list {
+      margin-top: .85rem;
+      display: grid;
+      gap: .65rem;
     }
-    .cc-modal-overlay.open { display: flex; }
-    .cc-modal {
-      background: #fff; border: 1px solid var(--dash-border);
-      border-radius: 18px; padding: 1.75rem; width: 100%;
-      max-width: 420px; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,.15);
-    }
-    .cc-modal h3 { font-size: 1.05rem; font-weight: 800; margin: 0 0 1.25rem; color: var(--dash-ink); }
-    .cc-modal-footer { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.5rem; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-    .installments-label { font-size: .72rem; color: var(--dash-muted); margin-top: .3rem; }
 
-    @media (max-width: 768px) {
-      .cc-item { flex-direction: column; align-items: flex-start; }
-      .cc-item-right { width: 100%; justify-content: space-between; }
-      .cc-add-btn { font-size: .85rem; }
-      .two-col { grid-template-columns: 1fr; }
-      .summary-bar { gap: 1rem; }
-      .month-nav { flex-wrap: wrap; }
-      .cc-modal { padding: 1.25rem; border-radius: 14px; }
+    .purchase-item {
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: .8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: .75rem;
+    }
+
+    .purchase-title {
+      margin: 0;
+      font-size: .88rem;
+      font-weight: 800;
+      color: var(--dash-ink);
+    }
+
+    .purchase-meta {
+      margin-top: .3rem;
+      color: var(--dash-muted);
+      font-size: .77rem;
+      line-height: 1.45;
+    }
+
+    .purchase-right {
+      text-align: right;
+      min-width: 122px;
+    }
+
+    .purchase-amount {
+      font-size: .98rem;
+      font-weight: 800;
+      color: var(--dash-expense);
+    }
+
+    .summary-box {
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: .75rem;
+    }
+
+    .summary-box label {
+      display: block;
+      font-size: .66rem;
+      color: var(--dash-muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: .22rem;
+    }
+
+    .summary-box strong {
+      font-size: 1rem;
+      color: var(--dash-ink);
+    }
+
+    @media (min-width: 980px) {
+      .simple-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .simple-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .purchase-item {
+        flex-direction: column;
+      }
+      .purchase-right {
+        text-align: left;
+        min-width: 0;
+      }
     }
   </style>
 </head>
@@ -134,414 +321,499 @@
     </aside>
 
     <main class="dash-main">
-      <div class="dash-page-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-        <div>
-          <h1>Cartões de Crédito</h1>
-          <p>Controle seus gastos e parcelamentos por cartão</p>
-        </div>
-        <button class="dash-btn dash-btn-primary" onclick="openNewCard()">+ Novo cartão</button>
+      <div class="dash-page-head">
+        <h1>Cartoes de credito</h1>
+        <p>Tela simples para quem so quer: cadastrar o cartao, lancar compras e saber quanto vai pagar nos proximos meses.</p>
       </div>
+
       <div id="alert"></div>
 
-      <!-- Lista de cartões -->
-      <div class="cc-list" id="cards-list">
-        <p class="dash-note">Carregando...</p>
-      </div>
+      <section class="simple-grid">
+        <article class="simple-box">
+          <h2>Como usar</h2>
+          <p>Nao pedimos numero do cartao, codigo de seguranca, banco ou senha.</p>
+          <div class="simple-steps">
+            <div class="simple-step"><strong>Passo 1</strong>Cadastre so o nome do cartao (ex.: Nubank da Maria).</div>
+            <div class="simple-step"><strong>Passo 2</strong>Lance uma compra e informe em quantas parcelas foi.</div>
+            <div class="simple-step"><strong>Passo 3</strong>Veja aqui quanto vai cair em cada mes.</div>
+          </div>
+        </article>
 
-      <!-- Fatura do cartão selecionado -->
-      <div class="statement-section" id="statement-section">
-        <div class="dash-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
-            <h2 style="margin:0;font-size:.95rem" id="statement-title">Fatura</h2>
-            <div class="month-nav">
-              <button onclick="prevMonth()">‹</button>
-              <span id="month-label">—</span>
-              <button onclick="nextMonth()">›</button>
+        <article class="simple-box">
+          <h2>Novo cartao</h2>
+          <p>Somente dados basicos. Rapido e sem complicacao.</p>
+          <form class="simple-form" id="form-card">
+            <div class="simple-row">
+              <div class="dash-form-row">
+                <label for="card-name">Nome do cartao *</label>
+                <input id="card-name" type="text" placeholder="Ex.: Nubank, Inter, Itau" required />
+                <div class="simple-hint">Use um nome que voce reconheca na hora.</div>
+              </div>
+              <div class="dash-form-row">
+                <label for="card-due-day">Dia para pagar (opcional)</label>
+                <input id="card-due-day" type="number" min="1" max="31" placeholder="Ex.: 10" />
+                <div class="simple-hint">Serve apenas para lembrar quando costuma vencer.</div>
+              </div>
+            </div>
+            <div>
+              <button class="dash-btn dash-btn-primary" type="submit">Salvar cartao</button>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <section class="simple-box">
+        <h2>Nova compra parcelada</h2>
+        <p>Lance sua compra de forma simples. O sistema divide e organiza os proximos meses.</p>
+        <form class="simple-form" id="form-purchase">
+          <div class="simple-row">
+            <div class="dash-form-row">
+              <label for="purchase-card">Qual cartao? *</label>
+              <select id="purchase-card" required></select>
+            </div>
+            <div class="dash-form-row">
+              <label for="purchase-description">Descricao da compra *</label>
+              <input id="purchase-description" type="text" placeholder="Ex.: Mercado, Celular, Farmacia" required />
             </div>
           </div>
-          <div id="statement-list"></div>
-          <div class="summary-bar" id="statement-summary"></div>
+
+          <div class="simple-row">
+            <div class="dash-form-row">
+              <label for="purchase-category">Categoria</label>
+              <select id="purchase-category"></select>
+            </div>
+            <div class="dash-form-row">
+              <label for="purchase-amount">Valor total (R$) *</label>
+              <input id="purchase-amount" type="number" min="0.01" step="0.01" required placeholder="0,00" />
+            </div>
+          </div>
+
+          <div class="simple-row">
+            <div class="dash-form-row">
+              <label for="purchase-installments">Parcelas *</label>
+              <input id="purchase-installments" type="number" min="1" max="60" value="1" required />
+              <div class="simple-hint" id="installment-hint">Vai entrar tudo em um mes.</div>
+            </div>
+            <div class="dash-form-row">
+              <label for="purchase-date">Data da compra</label>
+              <input id="purchase-date" type="date" />
+            </div>
+          </div>
+
+          <div>
+            <button class="dash-btn dash-btn-primary" type="submit">Salvar compra</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="simple-box">
+        <h2>Meus cartoes</h2>
+        <p>Escolha um cartao para ver o detalhe do mes e excluir compras se precisar.</p>
+        <div class="cards-grid" id="cards-grid"></div>
+      </section>
+
+      <section class="simple-box">
+        <h2>Proximos meses</h2>
+        <p>Previsao do que deve entrar na fatura em cada mes.</p>
+        <div class="forecast-grid" id="forecast-grid"></div>
+      </section>
+
+      <section class="simple-box">
+        <h2 id="statement-title">Detalhe do mes</h2>
+        <p id="statement-sub">Selecione um cartao para visualizar.</p>
+        <div class="month-nav">
+          <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
+          <strong id="month-label">-</strong>
+          <button type="button" onclick="changeMonth(1)">Proximo mes</button>
         </div>
-      </div>
+        <div class="purchase-list" id="statement-list"></div>
+        <div class="summary-grid" id="statement-summary"></div>
+      </section>
     </main>
   </div>
 
-  <!-- Modal: Novo cartão / Editar cartão -->
-  <div class="cc-modal-overlay" id="modal-card">
-    <div class="cc-modal">
-      <h3 id="modal-card-title">Novo cartão</h3>
-      <div class="dash-form-row">
-        <label for="cc-name">Nome do cartão *</label>
-        <input id="cc-name" type="text" placeholder="Ex.: Nubank, Inter, Itaú..." />
-      </div>
-      <div class="two-col">
-        <div class="dash-form-row">
-          <label for="cc-bank">Banco / Bandeira</label>
-          <input id="cc-bank" type="text" placeholder="Ex.: Visa, Mastercard" />
-        </div>
-        <div class="dash-form-row">
-          <label for="cc-last4">Últimos 4 dígitos</label>
-          <input id="cc-last4" type="text" maxlength="4" placeholder="1234" />
-        </div>
-      </div>
-      <div class="dash-form-row">
-        <label for="cc-limit">Limite (R$)</label>
-        <input id="cc-limit" type="number" min="0" step="0.01" placeholder="5000,00" />
-      </div>
-      <div class="two-col">
-        <div class="dash-form-row">
-          <label for="cc-closing">Dia de fechamento</label>
-          <input id="cc-closing" type="number" min="1" max="31" placeholder="Ex.: 1" />
-        </div>
-        <div class="dash-form-row">
-          <label for="cc-due">Dia de vencimento</label>
-          <input id="cc-due" type="number" min="1" max="31" placeholder="Ex.: 10" />
-        </div>
-      </div>
-      <div class="dash-form-row">
-        <label for="cc-color">Cor</label>
-        <input id="cc-color" type="color" value="#10B981" class="accounts-color-input" />
-      </div>
-      <div class="cc-modal-footer">
-        <button class="dash-btn dash-btn-ghost" onclick="closeCardModal()">Cancelar</button>
-        <button class="dash-btn dash-btn-primary" onclick="saveCard()">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Novo lançamento -->
-  <div class="cc-modal-overlay" id="modal-tx">
-    <div class="cc-modal">
-      <h3 id="modal-tx-title">Novo lançamento</h3>
-      <div class="dash-form-row">
-        <label for="tx-desc">Descrição *</label>
-        <input id="tx-desc" type="text" placeholder="Ex.: Mercado, Netflix, Farmácia" />
-      </div>
-      <div class="dash-form-row">
-        <label for="tx-category">Categoria</label>
-        <select id="tx-category"></select>
-      </div>
-      <div class="two-col">
-        <div class="dash-form-row">
-          <label for="tx-amount">Valor total (R$) *</label>
-          <input id="tx-amount" type="number" min="0.01" step="0.01" placeholder="0,00" />
-        </div>
-        <div class="dash-form-row">
-          <label for="tx-installments">Parcelas</label>
-          <input id="tx-installments" type="number" min="1" max="60" value="1" />
-          <div class="installments-label" id="installments-hint">À vista</div>
-        </div>
-      </div>
-      <div class="dash-form-row">
-        <label for="tx-date">Data da compra</label>
-        <input id="tx-date" type="date" />
-      </div>
-      <div class="cc-modal-footer">
-        <button class="dash-btn dash-btn-ghost" onclick="closeTxModal()">Cancelar</button>
-        <button class="dash-btn dash-btn-primary" onclick="saveTx()">Lançar</button>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    (async () => {
-      const cfg = await fetch('/api/config').then(r => r.json());
-      window.__SUPABASE_URL__ = cfg.supabaseUrl;
-      window.__SUPABASE_ANON_KEY__ = cfg.supabaseAnonKey;
-    })();
-  </script>
   <script src="/js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/nav.js"></script>
   <script>
+    renderSidebarNav("cartoes");
+
+    const MONTHS_PT = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
     let cards = [];
+    let forecast = [];
     let selectedCardId = null;
-    let editingCardId = null;
-    let curYear  = new Date().getFullYear();
+    let curYear = new Date().getFullYear();
     let curMonth = new Date().getMonth() + 1;
 
-    const MONTHS_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-
-    function esc(s) {
-      const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
+    function esc(value) {
+      const div = document.createElement("div");
+      div.textContent = value == null ? "" : String(value);
+      return div.innerHTML;
     }
 
-    function showAlert(msg, type = "error") {
+    function monthLabel(year, month) {
+      return `${MONTHS_PT[month - 1]} ${year}`;
+    }
+
+    function showAlert(message, kind) {
       const el = document.getElementById("alert");
-      el.innerHTML = `<div class="dash-alert">${msg}</div>`;
-      setTimeout(() => el.innerHTML = "", 4000);
+      const cls = kind === "ok" ? "dash-alert dash-alert-ok" : "dash-alert";
+      el.innerHTML = `<div class="${cls}">${esc(message)}</div>`;
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
     }
 
-    async function loadCards() {
-      const data = await apiFetch("/credit-cards");
-      cards = data || [];
-      renderCards();
+    function refreshCardSelect() {
+      const select = document.getElementById("purchase-card");
+      if (!cards.length) {
+        select.innerHTML = '<option value="">Nenhum cartao cadastrado</option>';
+        return;
+      }
+      select.innerHTML = cards
+        .map((card) => `<option value="${card.id}">${esc(card.name)}</option>`)
+        .join("");
+
+      if (selectedCardId && cards.some((card) => card.id === selectedCardId)) {
+        select.value = selectedCardId;
+      }
     }
 
     function renderCards() {
-      const list = document.getElementById("cards-list");
-
+      const grid = document.getElementById("cards-grid");
       if (!cards.length) {
-        list.innerHTML = `<p class="dash-empty">Nenhum cartão cadastrado. Clique em "+ Novo cartão" para começar.</p>`;
+        grid.innerHTML = '<p class="dash-empty">Voce ainda nao tem cartoes cadastrados.</p>';
         return;
       }
 
-      list.innerHTML = cards.map(c => {
-        const isActive = c.id === selectedCardId;
-        const limit = c.credit_limit > 0
-          ? `Limite: ${fmtBRL(c.credit_limit)}`
-          : "Sem limite cadastrado";
-        const meta = [
-          c.bank_name || "",
-          c.last_four ? `•••• ${c.last_four}` : "",
-          c.closing_day ? `Fecha dia ${c.closing_day}` : "",
-          c.due_day ? `Vence dia ${c.due_day}` : "",
-        ].filter(Boolean).join(" · ");
-
-        return `<div class="cc-item${isActive ? " active-card" : ""}" style="border-left-color:${esc(c.color || "#10B981")}">
-          <div class="cc-item-left">
-            <div class="cc-item-icon" style="background:${esc(c.color || "#10B981")}22">💳</div>
+      grid.innerHTML = cards.map((card) => {
+        const active = card.id === selectedCardId;
+        const dueText = card.due_day ? `Pagar por volta do dia ${card.due_day}` : "Sem dia de pagamento";
+        return `
+          <article class="card-item${active ? " active" : ""}">
             <div>
-              <div class="cc-item-name">${esc(c.name)}</div>
-              <div class="cc-item-meta">${esc(meta) || "Sem detalhes"}</div>
+              <h3 class="card-name">${esc(card.name)}</h3>
+              <div class="card-meta">${esc(dueText)}</div>
             </div>
-          </div>
-          <div class="cc-item-right">
-            <div class="cc-item-limit">${limit}</div>
-            <div class="cc-item-actions">
-              <button class="dash-btn dash-btn-primary dash-btn-tiny" onclick="openNewTx('${c.id}')">+ Lançar</button>
-              <button class="dash-btn dash-btn-ghost dash-btn-tiny" onclick="selectCard('${c.id}')">Ver fatura</button>
-              <button class="dash-btn dash-btn-ghost dash-btn-tiny" onclick="editCard('${c.id}')">Editar</button>
-              <button class="dash-btn dash-btn-danger dash-btn-tiny" onclick="deleteCard('${c.id}')">Excluir</button>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
 
-      if (selectedCardId) loadStatement();
+            <div class="card-values">
+              <div class="card-value">
+                <label>Este mes</label>
+                <span>${fmtBRL(card.currentMonthTotal || 0)}</span>
+              </div>
+              <div class="card-value">
+                <label>Proximo mes</label>
+                <span>${fmtBRL(card.nextMonthTotal || 0)}</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="dash-btn dash-btn-ghost dash-btn-tiny" onclick="selectCard('${card.id}')">Ver detalhe</button>
+              <button class="dash-btn dash-btn-danger dash-btn-tiny" onclick="deleteCard('${card.id}')">Excluir cartao</button>
+            </div>
+          </article>
+        `;
+      }).join("");
     }
 
-    function selectCard(id) {
-      selectedCardId = id;
+    function renderForecast() {
+      const el = document.getElementById("forecast-grid");
+      if (!forecast.length) {
+        el.innerHTML = '<p class="dash-empty">Sem valores futuros para mostrar.</p>';
+        return;
+      }
+
+      el.innerHTML = forecast.map((item) => {
+        const [year, month] = String(item.monthKey || "").split("-").map(Number);
+        const lines = (item.cards || [])
+          .filter((card) => Number(card.total) > 0)
+          .map((card) => `<div class="forecast-line"><span>${esc(card.name)}</span><strong>${fmtBRL(card.total)}</strong></div>`)
+          .join("");
+
+        return `
+          <article class="forecast-item">
+            <div class="forecast-month">${esc(monthLabel(year, month))}</div>
+            <div class="forecast-total">${fmtBRL(item.total || 0)}</div>
+            <div class="forecast-lines">${lines || '<div class="forecast-line"><span>Sem compras</span><strong>-</strong></div>'}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function loadOverview() {
+      const data = await apiFetch("/credit-cards/overview?months=6");
+      cards = Array.isArray(data?.cards) ? data.cards : [];
+      forecast = Array.isArray(data?.months) ? data.months : [];
+
+      if (!selectedCardId && cards.length) {
+        selectedCardId = cards[0].id;
+      }
+      if (selectedCardId && !cards.some((card) => card.id === selectedCardId)) {
+        selectedCardId = cards[0] ? cards[0].id : null;
+      }
+
+      refreshCardSelect();
       renderCards();
-      document.getElementById("statement-section").classList.add("visible");
-      document.getElementById("statement-section").scrollIntoView({ behavior: "smooth", block: "start" });
-      loadStatement();
+      renderForecast();
+    }
+
+    function selectCard(cardId) {
+      selectedCardId = cardId;
+      refreshCardSelect();
+      renderCards();
+      loadStatement().catch((err) => showAlert(err.message || "Nao foi possivel carregar o detalhe do mes."));
+    }
+
+    function updateInstallmentHint() {
+      const amount = Number(document.getElementById("purchase-amount").value) || 0;
+      const installments = Math.max(1, parseInt(String(document.getElementById("purchase-installments").value || 1), 10) || 1);
+      const hint = document.getElementById("installment-hint");
+      if (installments === 1) {
+        hint.textContent = "Vai entrar tudo em um mes.";
+        return;
+      }
+      if (amount <= 0) {
+        hint.textContent = `Vai ficar em ${installments} vezes.`;
+        return;
+      }
+      hint.textContent = `Vai ficar em ${installments} vezes de aproximadamente ${fmtBRL(amount / installments)}.`;
+    }
+
+    async function loadExpenseCategories() {
+      const sel = document.getElementById("purchase-category");
+      sel.innerHTML = '<option value="">Carregando...</option>';
+      try {
+        const categories = await apiFetch("/categories/expense");
+        const list = Array.isArray(categories) ? categories : [];
+        sel.innerHTML = list.length
+          ? list.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join("")
+          : '<option value="Outros">Outros</option>';
+      } catch (_) {
+        sel.innerHTML = '<option value="Outros">Outros</option>';
+      }
+    }
+
+    async function submitCard(event) {
+      event.preventDefault();
+      const name = document.getElementById("card-name").value.trim();
+      const dueDayRaw = document.getElementById("card-due-day").value;
+      const dueDay = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
+
+      if (!name) {
+        showAlert("Informe o nome do cartao.");
+        return;
+      }
+
+      try {
+        await apiFetch("/credit-cards", {
+          method: "POST",
+          body: JSON.stringify({ name, due_day: dueDay })
+        });
+
+        document.getElementById("card-name").value = "";
+        document.getElementById("card-due-day").value = "";
+
+        await loadOverview();
+        await loadStatement();
+        showAlert("Cartao salvo com sucesso.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel salvar o cartao.");
+      }
+    }
+
+    async function submitPurchase(event) {
+      event.preventDefault();
+
+      const cardId = document.getElementById("purchase-card").value;
+      const description = document.getElementById("purchase-description").value.trim();
+      const category = document.getElementById("purchase-category").value || "Outros";
+      const amount = Number(document.getElementById("purchase-amount").value);
+      const installments = Math.max(1, parseInt(String(document.getElementById("purchase-installments").value || 1), 10) || 1);
+      const purchaseDate = document.getElementById("purchase-date").value || new Date().toISOString().slice(0, 10);
+
+      if (!cardId) {
+        showAlert("Selecione um cartao.");
+        return;
+      }
+      if (!description) {
+        showAlert("Informe a descricao da compra.");
+        return;
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showAlert("Informe um valor valido.");
+        return;
+      }
+
+      try {
+        await apiFetch("/credit-card-transactions", {
+          method: "POST",
+          body: JSON.stringify({
+            card_id: cardId,
+            description,
+            category,
+            amount,
+            installments,
+            purchase_date: purchaseDate,
+          })
+        });
+
+        selectedCardId = cardId;
+        document.getElementById("purchase-description").value = "";
+        document.getElementById("purchase-amount").value = "";
+        document.getElementById("purchase-installments").value = "1";
+        document.getElementById("purchase-date").value = new Date().toISOString().slice(0, 10);
+        updateInstallmentHint();
+
+        await loadOverview();
+        await loadStatement();
+        showAlert("Compra salva com sucesso.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel salvar a compra.");
+      }
+    }
+
+    async function deleteCard(cardId) {
+      const card = cards.find((item) => item.id === cardId);
+      const ok = confirm(`Excluir o cartao "${card ? card.name : ""}"? Isso apaga as compras dele tambem.`);
+      if (!ok) return;
+
+      try {
+        await apiFetch(`/credit-cards/${cardId}`, { method: "DELETE" });
+        if (selectedCardId === cardId) selectedCardId = null;
+        await loadOverview();
+        await loadStatement();
+        showAlert("Cartao excluido.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel excluir o cartao.");
+      }
+    }
+
+    async function deletePurchase(id) {
+      const ok = confirm("Excluir esta compra? Isso remove todas as parcelas dela.");
+      if (!ok) return;
+      try {
+        await apiFetch(`/credit-card-transactions/${id}`, { method: "DELETE" });
+        await loadOverview();
+        await loadStatement();
+        showAlert("Compra removida.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel excluir a compra.");
+      }
+    }
+
+    function changeMonth(delta) {
+      curMonth += delta;
+      if (curMonth < 1) {
+        curMonth = 12;
+        curYear -= 1;
+      } else if (curMonth > 12) {
+        curMonth = 1;
+        curYear += 1;
+      }
+
+      loadStatement().catch((err) => {
+        showAlert(err.message || "Nao foi possivel carregar este mes.");
+      });
     }
 
     async function loadStatement() {
-      if (!selectedCardId) return;
-      const card = cards.find(c => c.id === selectedCardId);
-      if (!card) return;
-      document.getElementById("statement-title").textContent = `Fatura — ${card.name}`;
-      document.getElementById("month-label").textContent = `${MONTHS_PT[curMonth - 1]} ${curYear}`;
-      const data = await apiFetch(`/credit-cards/${selectedCardId}/statement?year=${curYear}&month=${curMonth}`);
-      renderStatement(data);
-    }
+      const monthLabelEl = document.getElementById("month-label");
+      const titleEl = document.getElementById("statement-title");
+      const subEl = document.getElementById("statement-sub");
+      const listEl = document.getElementById("statement-list");
+      const summaryEl = document.getElementById("statement-summary");
 
-    function renderStatement(data) {
-      const list = data?.transactions || [];
-      const el = document.getElementById("statement-list");
+      monthLabelEl.textContent = monthLabel(curYear, curMonth);
 
-      if (!list.length) {
-        el.innerHTML = '<p class="dash-empty">Nenhum lançamento neste período.</p>';
-        document.getElementById("statement-summary").innerHTML = "";
+      if (!selectedCardId) {
+        titleEl.textContent = "Detalhe do mes";
+        subEl.textContent = "Selecione um cartao para visualizar.";
+        listEl.innerHTML = '<p class="dash-empty">Nenhum cartao selecionado.</p>';
+        summaryEl.innerHTML = "";
         return;
       }
 
-      el.innerHTML = list.map(t => {
-        const inst = t.installments > 1 ? ` (${t.current_installment}/${t.installments}x)` : "";
-        const dateStr = t.purchase_date?.slice(5).replace("-", "/") || "";
-        return `<div class="tx-row">
-          <div>
-            <div class="tx-desc">${esc(t.description || t.category)}</div>
-            <div class="tx-meta">${esc(t.category)}${esc(inst)} · ${esc(dateStr)}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.5rem">
-            <div class="tx-amount">${fmtBRL(t.amount)}</div>
-            <button onclick="deleteTx('${t.id}')" style="background:none;border:none;color:var(--dash-muted);cursor:pointer;font-size:.85rem;padding:.2rem .4rem;border-radius:6px" title="Excluir">✕</button>
-          </div>
-        </div>`;
+      const card = cards.find((item) => item.id === selectedCardId);
+      titleEl.textContent = `Detalhe de ${card ? card.name : "cartao"}`;
+      subEl.textContent = "Aqui aparecem as parcelas que entram no mes escolhido.";
+
+      const data = await apiFetch(`/credit-cards/${selectedCardId}/statement?year=${curYear}&month=${curMonth}`);
+      const entries = Array.isArray(data?.entries) ? data.entries : [];
+
+      if (!entries.length) {
+        listEl.innerHTML = `<p class="dash-empty">Nenhuma parcela entra em ${monthLabel(curYear, curMonth).toLowerCase()}.</p>`;
+        summaryEl.innerHTML = "";
+        return;
+      }
+
+      listEl.innerHTML = entries.map((entry) => {
+        const remaining = Number(entry.remainingInstallments) || 0;
+        const installmentLabel = Number(entry.installments) > 1
+          ? `${entry.currentInstallment} de ${entry.installments}`
+          : "A vista";
+
+        return `
+          <article class="purchase-item">
+            <div style="flex:1;min-width:0">
+              <h3 class="purchase-title">${esc(entry.description || entry.category || "Compra")}</h3>
+              <div class="purchase-meta">
+                Parcela: ${esc(installmentLabel)}<br />
+                Categoria: ${esc(entry.category || "Outros")}<br />
+                Compra feita em: ${esc(fmtDate(entry.purchaseDate))}<br />
+                Valor total: ${esc(fmtBRL(entry.totalAmount || 0))}
+                ${remaining > 0 ? `<br />Ainda faltam ${remaining} parcela(s) depois deste mes.` : ""}
+              </div>
+            </div>
+            <div class="purchase-right">
+              <div class="purchase-amount">${fmtBRL(entry.installmentAmount || 0)}</div>
+              <button class="dash-btn dash-btn-danger dash-btn-tiny" style="margin-top:.55rem" onclick="deletePurchase('${entry.id}')">Excluir</button>
+            </div>
+          </article>
+        `;
       }).join("");
 
-      const total = list.reduce((s, t) => s + Number(t.amount), 0);
-      const card = cards.find(c => c.id === selectedCardId);
-      const pct = card?.credit_limit > 0 ? ((total / card.credit_limit) * 100).toFixed(1) : null;
+      const total = entries.reduce((sum, entry) => sum + (Number(entry.installmentAmount) || 0), 0);
+      const remainingInstallments = entries.reduce((sum, entry) => sum + Math.max(0, Number(entry.remainingInstallments) || 0), 0);
 
-      document.getElementById("statement-summary").innerHTML = `
-        <div class="summary-item">
-          <label>Lançamentos</label>
-          <span>${list.length}</span>
+      summaryEl.innerHTML = `
+        <div class="summary-box">
+          <label>Compras no mes</label>
+          <strong>${entries.length}</strong>
         </div>
-        <div class="summary-item">
-          <label>Total da fatura</label>
-          <span class="total">${fmtBRL(total)}</span>
+        <div class="summary-box">
+          <label>Total do mes</label>
+          <strong>${fmtBRL(total)}</strong>
         </div>
-        ${pct !== null ? `<div class="summary-item"><label>% do limite</label><span>${pct}%</span></div>` : ""}`;
+        <div class="summary-box">
+          <label>Parcelas restantes</label>
+          <strong>${remainingInstallments}</strong>
+        </div>
+      `;
     }
 
-    function prevMonth() {
-      curMonth--;
-      if (curMonth < 1) { curMonth = 12; curYear--; }
-      loadStatement();
-    }
-    function nextMonth() {
-      curMonth++;
-      if (curMonth > 12) { curMonth = 1; curYear++; }
-      loadStatement();
-    }
-
-    // ── Modal cartão ──────────────────────────────────────────────────────────
-    function openNewCard() {
-      editingCardId = null;
-      document.getElementById("modal-card-title").textContent = "Novo cartão";
-      ["cc-name","cc-bank","cc-last4","cc-limit","cc-closing","cc-due"].forEach(id => {
-        document.getElementById(id).value = "";
-      });
-      document.getElementById("cc-color").value = "#10B981";
-      document.getElementById("modal-card").classList.add("open");
-    }
-
-    function editCard(id) {
-      const c = cards.find(x => x.id === id);
-      if (!c) return;
-      editingCardId = id;
-      document.getElementById("modal-card-title").textContent = "Editar cartão";
-      document.getElementById("cc-name").value    = c.name || "";
-      document.getElementById("cc-bank").value    = c.bank_name || "";
-      document.getElementById("cc-last4").value   = c.last_four || "";
-      document.getElementById("cc-limit").value   = c.credit_limit || "";
-      document.getElementById("cc-closing").value = c.closing_day || "";
-      document.getElementById("cc-due").value     = c.due_day || "";
-      document.getElementById("cc-color").value   = c.color || "#10B981";
-      document.getElementById("modal-card").classList.add("open");
-    }
-
-    function closeCardModal() {
-      document.getElementById("modal-card").classList.remove("open");
-    }
-
-    async function saveCard() {
-      const body = {
-        name:         document.getElementById("cc-name").value.trim(),
-        bank_name:    document.getElementById("cc-bank").value.trim() || null,
-        last_four:    document.getElementById("cc-last4").value.trim() || null,
-        credit_limit: parseFloat(document.getElementById("cc-limit").value) || 0,
-        closing_day:  parseInt(document.getElementById("cc-closing").value) || null,
-        due_day:      parseInt(document.getElementById("cc-due").value) || null,
-        color:        document.getElementById("cc-color").value,
-      };
-      if (!body.name) { showAlert("Informe o nome do cartão."); return; }
-      try {
-        if (editingCardId) {
-          await apiFetch(`/credit-cards/${editingCardId}`, { method: "PATCH", body: JSON.stringify(body) });
-        } else {
-          await apiFetch("/credit-cards", { method: "POST", body: JSON.stringify(body) });
-        }
-        closeCardModal();
-        await loadCards();
-      } catch (e) { showAlert(e.message); }
-    }
-
-    async function deleteCard(id) {
-      const c = cards.find(x => x.id === id);
-      if (!confirm(`Excluir cartão "${c?.name}"? Todos os lançamentos serão removidos.`)) return;
-      try {
-        await apiFetch(`/credit-cards/${id}`, { method: "DELETE" });
-        if (selectedCardId === id) {
-          selectedCardId = null;
-          document.getElementById("statement-section").classList.remove("visible");
-        }
-        await loadCards();
-      } catch (e) { showAlert(e.message); }
-    }
-
-    // ── Modal lançamento ──────────────────────────────────────────────────────
-    let txCardId = null;
-
-    function openNewTx(cardId) {
-      txCardId = cardId;
-      const card = cards.find(c => c.id === cardId);
-      document.getElementById("modal-tx-title").textContent = `Lançar em: ${card?.name || "Cartão"}`;
-      document.getElementById("tx-desc").value = "";
-      document.getElementById("tx-amount").value = "";
-      document.getElementById("tx-installments").value = "1";
-      document.getElementById("installments-hint").textContent = "À vista";
-      document.getElementById("tx-date").value = new Date().toISOString().slice(0, 10);
-      loadCategoriesForSelect();
-      document.getElementById("modal-tx").classList.add("open");
-    }
-
-    async function loadCategoriesForSelect() {
-      try {
-        const cats = await apiFetch("/categories/user?kind=expense");
-        const sel = document.getElementById("tx-category");
-        const names = (cats || []).map(c => c.name || c);
-        sel.innerHTML = names.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-        if (!sel.options.length) setDefaultCategories();
-      } catch (_) { setDefaultCategories(); }
-    }
-
-    function setDefaultCategories() {
-      document.getElementById("tx-category").innerHTML =
-        ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
-          .map(c => `<option value="${c}">${c}</option>`).join("");
-    }
-
-    document.getElementById("tx-installments").addEventListener("input", function() {
-      const n = parseInt(this.value) || 1;
-      const amount = parseFloat(document.getElementById("tx-amount").value) || 0;
-      if (n <= 1) {
-        document.getElementById("installments-hint").textContent = "À vista";
-      } else {
-        const parcel = amount > 0 ? ` = ${fmtBRL(amount / n)} por parcela` : "";
-        document.getElementById("installments-hint").textContent = `${n}x${parcel}`;
-      }
-    });
-
-    function closeTxModal() {
-      document.getElementById("modal-tx").classList.remove("open");
-    }
-
-    async function saveTx() {
-      const body = {
-        card_id:       txCardId,
-        description:   document.getElementById("tx-desc").value.trim(),
-        category:      document.getElementById("tx-category").value,
-        amount:        parseFloat(document.getElementById("tx-amount").value),
-        installments:  parseInt(document.getElementById("tx-installments").value) || 1,
-        purchase_date: document.getElementById("tx-date").value,
-      };
-      if (!body.description) { showAlert("Informe a descrição."); return; }
-      if (!body.amount || body.amount <= 0) { showAlert("Informe um valor válido."); return; }
-      try {
-        await apiFetch("/credit-card-transactions", { method: "POST", body: JSON.stringify(body) });
-        closeTxModal();
-        selectedCardId = txCardId;
-        renderCards();
-        document.getElementById("statement-section").classList.add("visible");
-        loadStatement();
-      } catch (e) { showAlert(e.message); }
-    }
-
-    async function deleteTx(id) {
-      if (!confirm("Excluir este lançamento?")) return;
-      try {
-        await apiFetch(`/credit-card-transactions/${id}`, { method: "DELETE" });
-        loadStatement();
-      } catch (e) { showAlert(e.message); }
-    }
-
-    renderSidebarNav("cartoes");
+    document.getElementById("form-card").addEventListener("submit", submitCard);
+    document.getElementById("form-purchase").addEventListener("submit", submitPurchase);
+    document.getElementById("purchase-installments").addEventListener("input", updateInstallmentHint);
+    document.getElementById("purchase-amount").addEventListener("input", updateInstallmentHint);
 
     window.addEventListener("DOMContentLoaded", async () => {
-      let tries = 0;
-      while (!window.__SUPABASE_URL__ && tries++ < 30) await new Promise(r => setTimeout(r, 100));
-      const ok = await checkAccess();
-      if (!ok) return;
-      renderSidebarUser();
-      loadCards();
+      try {
+        const ok = await checkAccess();
+        if (!ok) return;
+
+        await renderSidebarUser();
+        await loadExpenseCategories();
+
+        document.getElementById("purchase-date").value = new Date().toISOString().slice(0, 10);
+
+        await loadOverview();
+        await loadStatement();
+        updateInstallmentHint();
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel carregar a tela de cartoes.");
+      }
     });
   </script>
 </body>
