@@ -30,40 +30,46 @@
       <div id="alert"></div>
 
       <!-- Resumo de saldo total -->
-      <div id="summary-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem"></div>
+      <div id="summary-cards" class="accounts-summary"></div>
 
       <!-- Formulário nova conta -->
       <div class="dash-card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Nova conta</h2>
-        <form id="new-account" class="dash-form-inline" style="flex-wrap:wrap">
-          <div class="dash-form-row" style="margin:0;flex:1;min-width:9rem">
-            <label for="aname">Nome da conta</label>
-            <input id="aname" type="text" placeholder="Ex.: Nubank, Itaú" style="max-width:none" required />
+        <form id="new-account" class="accounts-form">
+          <div class="accounts-form-row2">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="aname">Nome da conta</label>
+              <input id="aname" type="text" placeholder="Ex.: Nubank, Itaú" required />
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="abank">Banco / Instituição</label>
+              <input id="abank" type="text" placeholder="Opcional" />
+            </div>
           </div>
-          <div class="dash-form-row" style="margin:0;flex:1;min-width:9rem">
-            <label for="abank">Banco / Instituição</label>
-            <input id="abank" type="text" placeholder="Opcional" style="max-width:none" />
+          <div class="accounts-form-row2">
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="atype">Tipo</label>
+              <select id="atype">
+                <option value="corrente">Corrente</option>
+                <option value="poupança">Poupança</option>
+                <option value="digital">Digital</option>
+                <option value="cartão">Cartão</option>
+                <option value="investimento">Investimento</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="abal">Saldo inicial (R$)</label>
+              <input id="abal" type="number" step="0.01" placeholder="0,00" />
+            </div>
           </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="atype">Tipo</label>
-            <select id="atype">
-              <option value="corrente">Corrente</option>
-              <option value="poupança">Poupança</option>
-              <option value="digital">Digital</option>
-              <option value="cartão">Cartão</option>
-              <option value="investimento">Investimento</option>
-              <option value="outro">Outro</option>
-            </select>
+          <div class="accounts-form-actions">
+            <div class="dash-form-row" style="margin:0">
+              <label for="acolor">Cor</label>
+              <input id="acolor" type="color" value="#10B981" class="accounts-color-input" />
+            </div>
+            <button type="submit" class="dash-btn dash-btn-primary accounts-submit-btn">+ Adicionar</button>
           </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="abal">Saldo inicial (R$)</label>
-            <input id="abal" type="number" step="0.01" placeholder="0,00" style="width:8rem" />
-          </div>
-          <div class="dash-form-row" style="margin:0">
-            <label for="acolor">Cor</label>
-            <input id="acolor" type="color" value="#10B981" style="width:3rem;height:2.2rem;padding:.1rem;border-radius:6px;cursor:pointer" />
-          </div>
-          <button type="submit" class="dash-btn dash-btn-primary">✚ Adicionar</button>
         </form>
       </div>
 
@@ -122,10 +128,9 @@
       ];
 
       el.innerHTML = cards.map(c => `
-        <div class="dash-kpi-card" style="border-top-color:${c.color}">
-          <div class="dash-kpi-icon">${c.icon}</div>
-          <div class="dash-kpi-label">${c.label}</div>
-          <div class="dash-kpi-value">${typeof c.value === "number" ? c.value : c.value}</div>
+        <div class="dash-kpi" style="--kpi-color:${c.color}">
+          <span>${c.icon} ${c.label}</span>
+          <strong>${c.value}</strong>
         </div>
       `).join("");
     }

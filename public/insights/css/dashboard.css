@@ -358,8 +358,8 @@ body.dash-body {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--dash-accent), var(--dash-accent-dark));
-  opacity: .5;
+  background: var(--kpi-color, var(--dash-accent));
+  opacity: .7;
 }
 
 .dash-kpi span {
@@ -631,6 +631,31 @@ body.dash-body {
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+/* ── Contas Bancárias — layout ────────────────── */
+.accounts-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.accounts-form { display: flex; flex-direction: column; gap: .75rem; }
+.accounts-form-row2 { display: flex; gap: .75rem; }
+.accounts-form-row2 .dash-form-row input,
+.accounts-form-row2 .dash-form-row select { max-width: 100%; width: 100%; }
+.accounts-form-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: .75rem;
+}
+.accounts-color-input {
+  width: 3rem; height: 2.4rem;
+  padding: .15rem; border-radius: 8px;
+  border: 1.5px solid var(--dash-border);
+  cursor: pointer; display: block;
+}
+.accounts-submit-btn { flex: 1; white-space: nowrap; justify-content: center; }
 
 /* ── Contas do Mês — layout específico ────────── */
 .bills-toolbar { flex-wrap: nowrap; align-items: flex-end; gap: .75rem; }
@@ -1008,6 +1033,10 @@ body.dash-body {
   }
   .bills-toolbar-fields { flex: 1 1 100%; }
   .bills-refresh-btn { width: 100%; justify-content: center; }
+
+  /* Contas Bancárias mobile */
+  .accounts-form-row2 { flex-direction: column; gap: .6rem; }
+  .accounts-submit-btn { flex: 1; }
 
   .dash-grid-2 { grid-template-columns: 1fr !important; }
   .dash-card { padding: 1rem; }
