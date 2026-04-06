@@ -9,78 +9,114 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <style>
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .credit-card-visual {
-      border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden;
-      min-height: 160px; display: flex; flex-direction: column; justify-content: space-between;
-      cursor: pointer; transition: transform .15s, box-shadow .15s;
-      border: 2px solid transparent;
+    /* ── Lista de cartões ── */
+    .cc-list { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; }
+
+    .cc-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      background: #fff;
+      border: 1px solid var(--dash-border);
+      border-left: 4px solid var(--dash-accent);
+      border-radius: var(--dash-radius);
+      box-shadow: var(--dash-shadow);
+      flex-wrap: wrap;
     }
-    .credit-card-visual:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
-    .credit-card-visual.selected { border-color: rgba(255,255,255,.5); }
-    .cc-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .cc-name { font-size: 1rem; font-weight: 800; color: #fff; }
-    .cc-bank { font-size: .75rem; color: rgba(255,255,255,.7); margin-top: .1rem; }
-    .cc-actions { display: flex; gap: .35rem; }
-    .cc-btn { background: rgba(0,0,0,.25); border: none; color: rgba(255,255,255,.8); border-radius: 8px; padding: .3rem .6rem; font-size: .72rem; cursor: pointer; font-family: inherit; font-weight: 600; }
-    .cc-btn:hover { background: rgba(0,0,0,.4); color: #fff; }
-    .cc-mid { margin-top: .75rem; }
-    .cc-number { font-size: .85rem; color: rgba(255,255,255,.6); letter-spacing: .1em; }
-    .cc-bottom { display: flex; justify-content: space-between; align-items: flex-end; margin-top: .75rem; }
-    .cc-limit-label { font-size: .65rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .06em; }
-    .cc-limit-value { font-size: 1.1rem; font-weight: 800; color: #fff; }
-    .cc-days { font-size: .75rem; color: rgba(255,255,255,.65); }
-    .add-card-btn {
-      border-radius: 16px; padding: 1.5rem; min-height: 160px;
-      border: 2px dashed rgba(255,255,255,.1); background: rgba(255,255,255,.03);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; gap: .5rem; transition: all .15s; color: var(--slate);
+
+    .cc-item-left { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+    .cc-item-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; flex-shrink: 0;
+      background: var(--dash-accent-soft);
     }
-    .add-card-btn:hover { border-color: rgba(16,185,129,.4); color: var(--emerald); background: rgba(16,185,129,.04); }
-    .add-card-btn span:first-child { font-size: 2rem; }
-    .add-card-btn span:last-child { font-size: .85rem; font-weight: 600; }
+    .cc-item-name { font-size: .95rem; font-weight: 800; color: var(--dash-ink); }
+    .cc-item-meta { font-size: .75rem; color: var(--dash-muted); margin-top: .15rem; }
+
+    .cc-item-right {
+      display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    }
+    .cc-item-limit {
+      font-size: .85rem; font-weight: 700; color: var(--dash-ink);
+      white-space: nowrap;
+    }
+    .cc-item-actions { display: flex; gap: .35rem; flex-wrap: wrap; }
+
+    /* Botão "Ver fatura" ativo */
+    .cc-item.active-card { border-left-width: 4px; background: var(--dash-accent-soft); }
+    .cc-item.active-card .cc-item-name { color: var(--dash-accent-dark); }
+
+    /* ── Adicionar cartão ── */
+    .cc-add-btn {
+      display: flex; align-items: center; gap: .75rem;
+      padding: 1rem 1.25rem;
+      background: #fff; border: 2px dashed var(--dash-border);
+      border-radius: var(--dash-radius);
+      cursor: pointer; font-family: var(--dash-font); font-size: .9rem;
+      font-weight: 700; color: var(--dash-muted);
+      transition: all .15s; width: 100%;
+    }
+    .cc-add-btn:hover { border-color: var(--dash-accent); color: var(--dash-accent); background: var(--dash-accent-soft); }
+    .cc-add-icon { width: 42px; height: 42px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+
+    /* ── Fatura ── */
+    .month-nav { display: flex; align-items: center; gap: .75rem; }
+    .month-nav button {
+      background: #f1f5f9; border: 1px solid var(--dash-border);
+      color: var(--dash-ink); padding: .35rem .75rem; border-radius: 8px;
+      cursor: pointer; font-size: .85rem; font-family: var(--dash-font); font-weight: 600;
+    }
+    .month-nav button:hover { background: var(--dash-accent-soft); border-color: var(--dash-accent); color: var(--dash-accent); }
+    .month-nav span { font-weight: 700; font-size: .95rem; color: var(--dash-ink); min-width: 120px; text-align: center; }
+
+    .tx-row { display: flex; justify-content: space-between; align-items: center; padding: .7rem 0; border-bottom: 1px solid var(--dash-border-soft); }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-desc { font-size: .88rem; font-weight: 700; color: var(--dash-ink); }
+    .tx-meta { font-size: .72rem; color: var(--dash-muted); margin-top: .15rem; }
+    .tx-amount { font-size: .9rem; font-weight: 700; color: var(--dash-expense); }
+
+    .summary-bar {
+      display: flex; gap: 1.5rem; padding: 1rem 0;
+      border-top: 1px solid var(--dash-border); margin-top: .5rem; flex-wrap: wrap;
+    }
+    .summary-item label { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--dash-muted); display: block; margin-bottom: .2rem; }
+    .summary-item span { font-size: 1.05rem; font-weight: 800; color: var(--dash-ink); }
+    .summary-item span.total { color: var(--dash-expense); }
+
     .statement-section { display: none; }
     .statement-section.visible { display: block; }
-    .month-nav { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-    .month-nav button { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); color: #fff; padding: .4rem .8rem; border-radius: 8px; cursor: pointer; font-size: .85rem; }
-    .month-nav span { font-weight: 700; font-size: .95rem; }
-    .tx-row { display: flex; justify-content: space-between; align-items: center; padding: .7rem 0; border-bottom: 1px solid rgba(255,255,255,.04); }
-    .tx-row:last-child { border-bottom: none; }
-    .tx-desc { font-size: .88rem; font-weight: 600; }
-    .tx-meta { font-size: .72rem; color: var(--slate-light); margin-top: .15rem; }
-    .tx-amount { font-size: .9rem; font-weight: 700; color: #FCA5A5; }
-    .tx-installment { font-size: .7rem; color: var(--slate); }
-    .summary-bar { display: flex; gap: 1.5rem; padding: 1rem 0; border-top: 1px solid rgba(255,255,255,.06); margin-top: .5rem; }
-    .summary-item { }
-    .summary-item label { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); display: block; margin-bottom: .2rem; }
-    .summary-item span { font-size: 1.1rem; font-weight: 800; color: #fff; }
-    .summary-item span.total { color: #FCA5A5; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--navy-light, #1E293B); border: 1px solid #2D3B55; border-radius: 16px; padding: 2rem; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
-    .modal h3 { font-size: 1rem; font-weight: 800; margin: 0 0 1.25rem; }
-    .modal-footer { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.5rem; }
-    .dash-form-row { margin-bottom: .85rem; }
-    .dash-form-row label { display: block; font-size: .75rem; font-weight: 600; color: var(--slate-light, #94A3B8); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .05em; }
-    .dash-form-row input, .dash-form-row select { width: 100%; padding: .65rem .9rem; background: rgba(255,255,255,.05); border: 1px solid #2D3B55; border-radius: 10px; color: #F8FAFC; font-family: inherit; font-size: .9rem; outline: none; }
-    .dash-form-row input:focus, .dash-form-row select:focus { border-color: #10B981; }
-    .dash-form-row select option { background: #1E293B; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-    .installments-label { font-size: .72rem; color: var(--slate-light); margin-top: .25rem; }
 
-    /* Override dashboard.css for dark theme pages */
-    body.dash-body { background: #0F172A; color: #F8FAFC; }
-    .dash-main { background: #0F172A; }
-    .dash-card { background: #1E293B; border-color: #2D3B55; color: #F8FAFC; }
-    .dash-page-head h1 { color: #F8FAFC; }
-    .dash-page-head p { color: #94A3B8; }
+    /* ── Modal ── */
+    .cc-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,.45); z-index: 400;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      padding: 1rem;
+    }
+    .cc-modal-overlay.open { display: flex; }
+    .cc-modal {
+      background: #fff; border: 1px solid var(--dash-border);
+      border-radius: 18px; padding: 1.75rem; width: 100%;
+      max-width: 420px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+    }
+    .cc-modal h3 { font-size: 1.05rem; font-weight: 800; margin: 0 0 1.25rem; color: var(--dash-ink); }
+    .cc-modal-footer { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.5rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .installments-label { font-size: .72rem; color: var(--dash-muted); margin-top: .3rem; }
 
     @media (max-width: 768px) {
-      .cards-grid { grid-template-columns: 1fr; }
-      .modal { max-width: 95vw; padding: 1.5rem; }
+      .cc-item { flex-direction: column; align-items: flex-start; }
+      .cc-item-right { width: 100%; justify-content: space-between; }
+      .cc-add-btn { font-size: .85rem; }
       .two-col { grid-template-columns: 1fr; }
-      .summary-bar { flex-wrap: wrap; gap: 1rem; }
+      .summary-bar { gap: 1rem; }
       .month-nav { flex-wrap: wrap; }
+      .cc-modal { padding: 1.25rem; border-radius: 14px; }
     }
   </style>
 </head>
@@ -98,29 +134,32 @@
     </aside>
 
     <main class="dash-main">
-      <div class="dash-page-head">
-        <h1>Cartões de Crédito</h1>
-        <p>Controle seus gastos e parcelamentos por cartão</p>
+      <div class="dash-page-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+        <div>
+          <h1>Cartões de Crédito</h1>
+          <p>Controle seus gastos e parcelamentos por cartão</p>
+        </div>
+        <button class="dash-btn dash-btn-primary" onclick="openNewCard()">+ Novo cartão</button>
       </div>
       <div id="alert"></div>
 
-      <!-- Cards grid -->
-      <div class="cards-grid" id="cards-grid">
-        <div style="color:var(--slate);text-align:center;padding:2rem">Carregando...</div>
+      <!-- Lista de cartões -->
+      <div class="cc-list" id="cards-list">
+        <p class="dash-note">Carregando...</p>
       </div>
 
       <!-- Fatura do cartão selecionado -->
       <div class="statement-section" id="statement-section">
         <div class="dash-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
             <h2 style="margin:0;font-size:.95rem" id="statement-title">Fatura</h2>
             <div class="month-nav">
-              <button onclick="prevMonth()">‹ Ant.</button>
+              <button onclick="prevMonth()">‹</button>
               <span id="month-label">—</span>
-              <button onclick="nextMonth()">Próx. ›</button>
+              <button onclick="nextMonth()">›</button>
             </div>
           </div>
-          <div id="statement-list"><div style="color:var(--slate);padding:1rem 0">Nenhum lançamento.</div></div>
+          <div id="statement-list"></div>
           <div class="summary-bar" id="statement-summary"></div>
         </div>
       </div>
@@ -128,89 +167,76 @@
   </div>
 
   <!-- Modal: Novo cartão / Editar cartão -->
-  <div class="modal-overlay" id="modal-card">
-    <div class="modal">
+  <div class="cc-modal-overlay" id="modal-card">
+    <div class="cc-modal">
       <h3 id="modal-card-title">Novo cartão</h3>
       <div class="dash-form-row">
-        <label>Nome do cartão *</label>
-        <input id="cc-name" type="text" placeholder="Ex.: Nubank, Inter Visa..." />
+        <label for="cc-name">Nome do cartão *</label>
+        <input id="cc-name" type="text" placeholder="Ex.: Nubank, Inter, Itaú..." />
       </div>
       <div class="two-col">
         <div class="dash-form-row">
-          <label>Banco / Bandeira</label>
-          <input id="cc-bank" type="text" placeholder="Nubank, Itaú, Visa..." />
+          <label for="cc-bank">Banco / Bandeira</label>
+          <input id="cc-bank" type="text" placeholder="Ex.: Visa, Mastercard" />
         </div>
         <div class="dash-form-row">
-          <label>Últimos 4 dígitos</label>
+          <label for="cc-last4">Últimos 4 dígitos</label>
           <input id="cc-last4" type="text" maxlength="4" placeholder="1234" />
         </div>
       </div>
       <div class="dash-form-row">
-        <label>Limite (R$)</label>
-        <input id="cc-limit" type="number" min="0" step="0.01" placeholder="5000.00" />
+        <label for="cc-limit">Limite (R$)</label>
+        <input id="cc-limit" type="number" min="0" step="0.01" placeholder="5000,00" />
       </div>
       <div class="two-col">
         <div class="dash-form-row">
-          <label>Dia de fechamento</label>
-          <input id="cc-closing" type="number" min="1" max="31" placeholder="1-31" />
+          <label for="cc-closing">Dia de fechamento</label>
+          <input id="cc-closing" type="number" min="1" max="31" placeholder="Ex.: 1" />
         </div>
         <div class="dash-form-row">
-          <label>Dia de vencimento</label>
-          <input id="cc-due" type="number" min="1" max="31" placeholder="1-31" />
+          <label for="cc-due">Dia de vencimento</label>
+          <input id="cc-due" type="number" min="1" max="31" placeholder="Ex.: 10" />
         </div>
       </div>
       <div class="dash-form-row">
-        <label>Cor</label>
-        <input id="cc-color" type="color" value="#8B5CF6" style="height:40px;padding:.2rem .4rem;cursor:pointer" />
+        <label for="cc-color">Cor</label>
+        <input id="cc-color" type="color" value="#10B981" class="accounts-color-input" />
       </div>
-      <div class="modal-footer">
+      <div class="cc-modal-footer">
         <button class="dash-btn dash-btn-ghost" onclick="closeCardModal()">Cancelar</button>
-        <button class="dash-btn dash-btn-primary" onclick="saveCard()">Salvar cartão</button>
+        <button class="dash-btn dash-btn-primary" onclick="saveCard()">Salvar</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Novo lançamento -->
-  <div class="modal-overlay" id="modal-tx">
-    <div class="modal">
-      <h3>Novo lançamento</h3>
+  <div class="cc-modal-overlay" id="modal-tx">
+    <div class="cc-modal">
+      <h3 id="modal-tx-title">Novo lançamento</h3>
       <div class="dash-form-row">
-        <label>Descrição *</label>
-        <input id="tx-desc" type="text" placeholder="Ex.: Compra na Amazon" />
+        <label for="tx-desc">Descrição *</label>
+        <input id="tx-desc" type="text" placeholder="Ex.: Mercado, Netflix, Farmácia" />
+      </div>
+      <div class="dash-form-row">
+        <label for="tx-category">Categoria</label>
+        <select id="tx-category"></select>
       </div>
       <div class="two-col">
         <div class="dash-form-row">
-          <label>Categoria</label>
-          <select id="tx-category">
-            <option value="Alimentação">Alimentação</option>
-            <option value="Vestuário">Vestuário</option>
-            <option value="Eletrônicos">Eletrônicos</option>
-            <option value="Transporte">Transporte</option>
-            <option value="Saúde">Saúde</option>
-            <option value="Lazer">Lazer</option>
-            <option value="Viagem">Viagem</option>
-            <option value="Assinaturas">Assinaturas</option>
-            <option value="Casa">Casa</option>
-            <option value="Outros">Outros</option>
-          </select>
+          <label for="tx-amount">Valor total (R$) *</label>
+          <input id="tx-amount" type="number" min="0.01" step="0.01" placeholder="0,00" />
         </div>
         <div class="dash-form-row">
-          <label>Valor total (R$) *</label>
-          <input id="tx-amount" type="number" min="0.01" step="0.01" placeholder="150.00" />
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="dash-form-row">
-          <label>Parcelas</label>
+          <label for="tx-installments">Parcelas</label>
           <input id="tx-installments" type="number" min="1" max="60" value="1" />
           <div class="installments-label" id="installments-hint">À vista</div>
         </div>
-        <div class="dash-form-row">
-          <label>Data da compra</label>
-          <input id="tx-date" type="date" />
-        </div>
       </div>
-      <div class="modal-footer">
+      <div class="dash-form-row">
+        <label for="tx-date">Data da compra</label>
+        <input id="tx-date" type="date" />
+      </div>
+      <div class="cc-modal-footer">
         <button class="dash-btn dash-btn-ghost" onclick="closeTxModal()">Cancelar</button>
         <button class="dash-btn dash-btn-primary" onclick="saveTx()">Lançar</button>
       </div>
@@ -237,9 +263,13 @@
 
     const MONTHS_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
+    function esc(s) {
+      const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
+    }
+
     function showAlert(msg, type = "error") {
       const el = document.getElementById("alert");
-      el.innerHTML = `<div class="dash-alert ${type === "error" ? "dash-alert-error" : "dash-alert-success"}">${msg}</div>`;
+      el.innerHTML = `<div class="dash-alert">${msg}</div>`;
       setTimeout(() => el.innerHTML = "", 4000);
     }
 
@@ -250,57 +280,53 @@
     }
 
     function renderCards() {
-      const grid = document.getElementById("cards-grid");
-      const cardEls = cards.map(c => {
-        const gradient = hexToGradient(c.color || "#8B5CF6");
-        const isSelected = c.id === selectedCardId;
-        const limit = c.credit_limit > 0 ? `R$ ${Number(c.credit_limit).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—";
-        const closing = c.closing_day ? `Fecha dia ${c.closing_day}` : "";
-        const due     = c.due_day ? ` · Vence dia ${c.due_day}` : "";
-        const last4   = c.last_four ? `•••• •••• •••• ${c.last_four}` : "";
-        return `<div class="credit-card-visual${isSelected ? " selected" : ""}"
-            style="background:${gradient}" onclick="selectCard('${c.id}')">
-          <div class="cc-top">
+      const list = document.getElementById("cards-list");
+
+      if (!cards.length) {
+        list.innerHTML = `<p class="dash-empty">Nenhum cartão cadastrado. Clique em "+ Novo cartão" para começar.</p>`;
+        return;
+      }
+
+      list.innerHTML = cards.map(c => {
+        const isActive = c.id === selectedCardId;
+        const limit = c.credit_limit > 0
+          ? `Limite: ${fmtBRL(c.credit_limit)}`
+          : "Sem limite cadastrado";
+        const meta = [
+          c.bank_name || "",
+          c.last_four ? `•••• ${c.last_four}` : "",
+          c.closing_day ? `Fecha dia ${c.closing_day}` : "",
+          c.due_day ? `Vence dia ${c.due_day}` : "",
+        ].filter(Boolean).join(" · ");
+
+        return `<div class="cc-item${isActive ? " active-card" : ""}" style="border-left-color:${esc(c.color || "#10B981")}">
+          <div class="cc-item-left">
+            <div class="cc-item-icon" style="background:${esc(c.color || "#10B981")}22">💳</div>
             <div>
-              <div class="cc-name">${esc(c.name)}</div>
-              <div class="cc-bank">${esc(c.bank_name || "")}</div>
-            </div>
-            <div class="cc-actions" onclick="event.stopPropagation()">
-              <button class="cc-btn" onclick="openNewTx('${c.id}')">+ Lançar</button>
-              <button class="cc-btn" onclick="editCard('${c.id}')">✏️</button>
-              <button class="cc-btn" onclick="deleteCard('${c.id}')">🗑️</button>
+              <div class="cc-item-name">${esc(c.name)}</div>
+              <div class="cc-item-meta">${esc(meta) || "Sem detalhes"}</div>
             </div>
           </div>
-          <div class="cc-mid"><div class="cc-number">${esc(last4)}</div></div>
-          <div class="cc-bottom">
-            <div>
-              <div class="cc-limit-label">Limite</div>
-              <div class="cc-limit-value">${limit}</div>
+          <div class="cc-item-right">
+            <div class="cc-item-limit">${limit}</div>
+            <div class="cc-item-actions">
+              <button class="dash-btn dash-btn-primary dash-btn-tiny" onclick="openNewTx('${c.id}')">+ Lançar</button>
+              <button class="dash-btn dash-btn-ghost dash-btn-tiny" onclick="selectCard('${c.id}')">Ver fatura</button>
+              <button class="dash-btn dash-btn-ghost dash-btn-tiny" onclick="editCard('${c.id}')">Editar</button>
+              <button class="dash-btn dash-btn-danger dash-btn-tiny" onclick="deleteCard('${c.id}')">Excluir</button>
             </div>
-            <div class="cc-days" style="text-align:right">${closing}${due}</div>
           </div>
         </div>`;
       }).join("");
 
-      grid.innerHTML = cardEls + `<div class="add-card-btn" onclick="openNewCard()">
-        <span>➕</span><span>Adicionar cartão</span>
-      </div>`;
-
       if (selectedCardId) loadStatement();
-    }
-
-    function hexToGradient(hex) {
-      return `linear-gradient(135deg, ${hex}dd, ${hex}88)`;
-    }
-
-    function esc(s) {
-      const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML;
     }
 
     function selectCard(id) {
       selectedCardId = id;
       renderCards();
       document.getElementById("statement-section").classList.add("visible");
+      document.getElementById("statement-section").scrollIntoView({ behavior: "smooth", block: "start" });
       loadStatement();
     }
 
@@ -308,10 +334,8 @@
       if (!selectedCardId) return;
       const card = cards.find(c => c.id === selectedCardId);
       if (!card) return;
-
       document.getElementById("statement-title").textContent = `Fatura — ${card.name}`;
       document.getElementById("month-label").textContent = `${MONTHS_PT[curMonth - 1]} ${curYear}`;
-
       const data = await apiFetch(`/credit-cards/${selectedCardId}/statement?year=${curYear}&month=${curMonth}`);
       renderStatement(data);
     }
@@ -321,22 +345,22 @@
       const el = document.getElementById("statement-list");
 
       if (!list.length) {
-        el.innerHTML = '<div style="color:var(--slate);padding:1rem 0;text-align:center">Nenhum lançamento neste período.</div>';
+        el.innerHTML = '<p class="dash-empty">Nenhum lançamento neste período.</p>';
         document.getElementById("statement-summary").innerHTML = "";
         return;
       }
 
       el.innerHTML = list.map(t => {
         const inst = t.installments > 1 ? ` (${t.current_installment}/${t.installments}x)` : "";
-        const dateStr = t.purchase_date?.slice(5).replace("-", "/");
+        const dateStr = t.purchase_date?.slice(5).replace("-", "/") || "";
         return `<div class="tx-row">
           <div>
             <div class="tx-desc">${esc(t.description || t.category)}</div>
-            <div class="tx-meta">${esc(t.category)}${inst} · ${dateStr}</div>
+            <div class="tx-meta">${esc(t.category)}${esc(inst)} · ${esc(dateStr)}</div>
           </div>
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <div class="tx-amount">R$ ${Number(t.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
-            <button onclick="deleteTx('${t.id}')" style="background:none;border:none;color:var(--slate);cursor:pointer;font-size:1rem">🗑️</button>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <div class="tx-amount">${fmtBRL(t.amount)}</div>
+            <button onclick="deleteTx('${t.id}')" style="background:none;border:none;color:var(--dash-muted);cursor:pointer;font-size:.85rem;padding:.2rem .4rem;border-radius:6px" title="Excluir">✕</button>
           </div>
         </div>`;
       }).join("");
@@ -352,7 +376,7 @@
         </div>
         <div class="summary-item">
           <label>Total da fatura</label>
-          <span class="total">R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          <span class="total">${fmtBRL(total)}</span>
         </div>
         ${pct !== null ? `<div class="summary-item"><label>% do limite</label><span>${pct}%</span></div>` : ""}`;
     }
@@ -375,7 +399,7 @@
       ["cc-name","cc-bank","cc-last4","cc-limit","cc-closing","cc-due"].forEach(id => {
         document.getElementById(id).value = "";
       });
-      document.getElementById("cc-color").value = "#8B5CF6";
+      document.getElementById("cc-color").value = "#10B981";
       document.getElementById("modal-card").classList.add("open");
     }
 
@@ -390,7 +414,7 @@
       document.getElementById("cc-limit").value   = c.credit_limit || "";
       document.getElementById("cc-closing").value = c.closing_day || "";
       document.getElementById("cc-due").value     = c.due_day || "";
-      document.getElementById("cc-color").value   = c.color || "#8B5CF6";
+      document.getElementById("cc-color").value   = c.color || "#10B981";
       document.getElementById("modal-card").classList.add("open");
     }
 
@@ -438,6 +462,8 @@
 
     function openNewTx(cardId) {
       txCardId = cardId;
+      const card = cards.find(c => c.id === cardId);
+      document.getElementById("modal-tx-title").textContent = `Lançar em: ${card?.name || "Cartão"}`;
       document.getElementById("tx-desc").value = "";
       document.getElementById("tx-amount").value = "";
       document.getElementById("tx-installments").value = "1";
@@ -453,15 +479,14 @@
         const sel = document.getElementById("tx-category");
         const names = (cats || []).map(c => c.name || c);
         sel.innerHTML = names.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-        if (!sel.options.length) {
-          sel.innerHTML = ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
-            .map(c => `<option value="${c}">${c}</option>`).join("");
-        }
-      } catch (_) {
-        const sel = document.getElementById("tx-category");
-        sel.innerHTML = ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
+        if (!sel.options.length) setDefaultCategories();
+      } catch (_) { setDefaultCategories(); }
+    }
+
+    function setDefaultCategories() {
+      document.getElementById("tx-category").innerHTML =
+        ["Alimentação","Transporte","Lazer","Saúde","Casa","Vestuário","Eletrônicos","Assinaturas","Outros"]
           .map(c => `<option value="${c}">${c}</option>`).join("");
-      }
     }
 
     document.getElementById("tx-installments").addEventListener("input", function() {
@@ -470,7 +495,7 @@
       if (n <= 1) {
         document.getElementById("installments-hint").textContent = "À vista";
       } else {
-        const parcel = amount > 0 ? ` = R$ ${(amount / n).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} por parcela` : "";
+        const parcel = amount > 0 ? ` = ${fmtBRL(amount / n)} por parcela` : "";
         document.getElementById("installments-hint").textContent = `${n}x${parcel}`;
       }
     });
@@ -481,20 +506,22 @@
 
     async function saveTx() {
       const body = {
-        card_id:      txCardId,
-        description:  document.getElementById("tx-desc").value.trim(),
-        category:     document.getElementById("tx-category").value,
-        amount:       parseFloat(document.getElementById("tx-amount").value),
-        installments: parseInt(document.getElementById("tx-installments").value) || 1,
-        purchase_date:document.getElementById("tx-date").value,
+        card_id:       txCardId,
+        description:   document.getElementById("tx-desc").value.trim(),
+        category:      document.getElementById("tx-category").value,
+        amount:        parseFloat(document.getElementById("tx-amount").value),
+        installments:  parseInt(document.getElementById("tx-installments").value) || 1,
+        purchase_date: document.getElementById("tx-date").value,
       };
       if (!body.description) { showAlert("Informe a descrição."); return; }
       if (!body.amount || body.amount <= 0) { showAlert("Informe um valor válido."); return; }
       try {
         await apiFetch("/credit-card-transactions", { method: "POST", body: JSON.stringify(body) });
         closeTxModal();
-        if (selectedCardId === txCardId) loadStatement();
-        else { selectedCardId = txCardId; renderCards(); document.getElementById("statement-section").classList.add("visible"); loadStatement(); }
+        selectedCardId = txCardId;
+        renderCards();
+        document.getElementById("statement-section").classList.add("visible");
+        loadStatement();
       } catch (e) { showAlert(e.message); }
     }
 
