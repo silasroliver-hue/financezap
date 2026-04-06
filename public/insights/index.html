@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .head-row {
       display: flex;
@@ -83,6 +84,11 @@
       .dash-grid {
         grid-template-columns: 1.2fr .8fr;
       }
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+      max-height: 240px;
     }
 
     .simple-list {
@@ -228,6 +234,17 @@
         </article>
       </section>
 
+      <section class="dash-grid" style="margin-bottom:1rem">
+        <article class="dash-card chart-card">
+          <h2 style="margin:0 0 .7rem">Evolucao do mes</h2>
+          <canvas id="line-chart"></canvas>
+        </article>
+        <article class="dash-card chart-card">
+          <h2 style="margin:0 0 .7rem">Gastos por categoria</h2>
+          <canvas id="donut-chart"></canvas>
+        </article>
+      </section>
+
       <section class="dash-grid">
         <article class="dash-card">
           <div class="dash-card-head" style="margin-bottom:.65rem">
@@ -270,6 +287,8 @@
     let curYear = new Date().getFullYear();
     let curMonth = new Date().getMonth() + 1;
     let dashboardData = null;
+    let lineChart = null;
+    let donutChart = null;
 
     function esc(value) {
       const div = document.createElement("div");
@@ -370,6 +389,79 @@
       `).join("");
     }
 
+    function renderCharts(d) {
+      const daily = Array.isArray(d.daily) ? d.daily : [];
+      const lineCtx = document.getElementById("line-chart");
+      const donutCtx = document.getElementById("donut-chart");
+      if (!lineCtx || !donutCtx || typeof Chart === "undefined") return;
+
+      const labels = daily.map((row) => String(row.day).padStart(2, "0"));
+      const incomeData = daily.map((row) => Number(row.income || 0));
+      const expenseData = daily.map((row) => Number(row.expense || 0));
+
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(lineCtx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Entradas",
+              data: incomeData,
+              borderColor: "#059669",
+              backgroundColor: "rgba(5,150,105,.15)",
+              tension: .3,
+              fill: false,
+              borderWidth: 2
+            },
+            {
+              label: "Saidas",
+              data: expenseData,
+              borderColor: "#dc2626",
+              backgroundColor: "rgba(220,38,38,.15)",
+              tension: .3,
+              fill: false,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      const catRows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
+      const topRows = catRows.slice(0, 6);
+      const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6"];
+
+      if (donutChart) donutChart.destroy();
+      if (!topRows.length) return;
+      donutChart = new Chart(donutCtx, {
+        type: "doughnut",
+        data: {
+          labels: topRows.map((row) => row.category || "Geral"),
+          datasets: [
+            {
+              data: topRows.map((row) => Number(row.amount || 0)),
+              backgroundColor: colors.slice(0, topRows.length),
+              borderWidth: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+    }
+
     async function loadDashboard() {
       const d = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}`);
       dashboardData = d || {};
@@ -377,6 +469,7 @@
       renderSetupHint(dashboardData);
       renderRecent(dashboardData);
       renderCategories(dashboardData);
+      renderCharts(dashboardData);
     }
 
     function openSetupModal() {
