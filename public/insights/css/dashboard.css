@@ -58,34 +58,37 @@ body.dash-body {
 }
 
 /* ── Shell Layout ───────────────────────────── */
-.dash-shell { display: flex; min-height: 100vh; }
+.dash-shell { display: flex; flex-direction: column; min-height: 100vh; }
 
-/* ── Sidebar ────────────────────────────────── */
+/* ── Top Navbar (desktop) ──────────────────── */
 .dash-sidebar {
-  width: 248px;
-  flex-shrink: 0;
+  width: 100%;
   background: var(--dash-sidebar);
   display: flex;
-  flex-direction: column;
-  padding: 1.5rem 0 1rem;
+  align-items: center;
+  padding: 0 1.5rem;
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow-y: auto;
+  z-index: 100;
+  height: 60px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
 }
 
 .dash-sidebar-brand {
-  padding: 0 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  margin-bottom: .75rem;
+  padding: 0;
+  border-bottom: none;
+  margin-bottom: 0;
+  margin-right: 2rem;
+  flex-shrink: 0;
 }
 
 .dash-sidebar-logo {
   display: flex;
   align-items: center;
   gap: .6rem;
-  margin-bottom: .85rem;
   text-decoration: none;
+  margin: 0;
 }
 
 .dash-sidebar-logo-icon {
@@ -105,81 +108,97 @@ body.dash-body {
 }
 
 .dash-sidebar-brand small {
-  font-size: .72rem;
-  color: var(--dash-sidebar-text);
-  opacity: .8;
+  display: none;
 }
 
 .dash-sidebar nav {
   flex: 1;
-  padding: 0 .75rem;
+  padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: .25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.dash-sidebar nav::-webkit-scrollbar { display: none; }
 
 .dash-sidebar nav a {
   display: flex;
   align-items: center;
-  gap: .65rem;
-  padding: .6rem .75rem;
+  gap: .45rem;
+  padding: .5rem .85rem;
   color: var(--dash-sidebar-text);
   text-decoration: none;
-  font-size: .875rem;
-  font-weight: 500;
-  border-radius: 10px;
+  font-size: .82rem;
+  font-weight: 600;
+  border-radius: 8px;
   transition: all .15s;
+  white-space: nowrap;
+  position: relative;
 }
 
-.dash-sidebar nav a .nav-icon { font-size: .95rem; width: 20px; text-align: center; }
+.dash-sidebar nav a .nav-icon { font-size: .85rem; width: auto; }
 
 .dash-sidebar nav a:hover {
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,.08);
   color: var(--dash-sidebar-active);
 }
 
 .dash-sidebar nav a.active {
-  background: rgba(16,185,129,.12);
+  background: transparent;
   color: #fff;
   font-weight: 700;
 }
 
+.dash-sidebar nav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: .85rem;
+  right: .85rem;
+  height: 2.5px;
+  background: var(--dash-accent);
+  border-radius: 2px;
+}
+
 .dash-sidebar nav a.active .nav-icon { filter: brightness(1.2); }
 
-/* Sidebar footer — usuário + logout */
+/* Navbar footer — usuario (right side) */
 .dash-sidebar-footer {
-  margin-top: auto;
-  padding: .75rem 1rem 0;
-  border-top: 1px solid rgba(255,255,255,.06);
+  margin-left: auto;
+  padding: 0;
+  border-top: none;
+  flex-shrink: 0;
 }
 
 .dash-user-card {
   display: flex;
   align-items: center;
-  gap: .65rem;
-  padding: .65rem .75rem;
+  gap: .55rem;
+  padding: .4rem .6rem;
   border-radius: 10px;
-  background: rgba(255,255,255,.04);
+  background: rgba(255,255,255,.06);
 }
 
 .dash-user-avatar {
-  width: 32px; height: 32px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   display: flex; align-items: center; justify-content: center;
-  font-size: .75rem; font-weight: 800; color: #fff;
+  font-size: .7rem; font-weight: 800; color: #fff;
   flex-shrink: 0;
 }
 
 .dash-user-info { flex: 1; min-width: 0; }
-.dash-user-name { font-size: .8rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dash-user-plan { font-size: .68rem; color: var(--dash-accent); font-weight: 600; }
+.dash-user-name { font-size: .78rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.dash-user-plan { display: none; }
 
 .dash-logout-btn {
   background: none; border: none;
   color: var(--dash-sidebar-text);
   font-size: .8rem; cursor: pointer;
-  padding: .4rem .5rem; border-radius: 6px;
+  padding: .3rem .4rem; border-radius: 6px;
   transition: color .15s;
   font-family: var(--dash-font);
 }
@@ -189,8 +208,10 @@ body.dash-body {
 .dash-main {
   flex: 1;
   min-width: 0;
-  padding: 2rem 2rem 3rem;
+  padding: 2rem 2.5rem 3rem;
   max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ── Header ─────────────────────────────────── */
@@ -686,61 +707,64 @@ body.dash-body {
 @media (max-width: 768px) {
   .dash-shell { flex-direction: column; }
 
+  /* Top bar hidden, bottom nav appears */
   .dash-sidebar {
-    width: 100%;
-    height: auto;
     position: fixed;
     bottom: 0;
+    top: auto;
     left: 0;
     right: 0;
-    top: auto;
-    z-index: 100;
-    flex-direction: row;
-    align-items: center;
+    height: auto;
     padding: 0;
-    border-right: none;
     border-top: 1px solid rgba(255,255,255,.08);
-    box-shadow: 0 -2px 20px rgba(0,0,0,.3);
+    box-shadow: 0 -4px 20px rgba(0,0,0,.25);
+    z-index: 200;
   }
 
   .dash-sidebar-brand { display: none; }
-
-  .dash-sidebar nav {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 0;
-    padding: 0;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .dash-sidebar nav::-webkit-scrollbar { display: none; }
-
-  .dash-sidebar nav a {
-    flex: 0 0 auto;
-    flex-direction: column;
-    align-items: center;
-    gap: .15rem;
-    padding: .5rem .65rem .4rem;
-    border-radius: 0;
-    font-size: .6rem;
-    font-weight: 600;
-    min-width: 60px;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .dash-sidebar nav a .nav-icon { font-size: 1.15rem; width: auto; }
-
-  .dash-sidebar nav a.active {
-    background: rgba(16,185,129,.15);
-    border-radius: 0;
-  }
-
   .dash-sidebar-footer { display: none; }
 
-  .dash-main { padding: 1.25rem 1rem 5rem; } /* extra bottom padding for fixed nav */
+  .dash-sidebar nav {
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+    padding: .25rem 0 env(safe-area-inset-bottom, 0);
+  }
+
+  .dash-sidebar nav a {
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .2rem;
+    padding: .55rem .25rem .45rem;
+    border-radius: 0;
+    font-size: .62rem;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .dash-sidebar nav a .nav-icon { font-size: 1.25rem; }
+
+  .dash-sidebar nav a.active { background: transparent; }
+  .dash-sidebar nav a.active::after {
+    bottom: auto;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 2.5px;
+    border-radius: 0 0 2px 2px;
+  }
+
+  .dash-sidebar nav a.active .nav-icon { filter: none; }
+  .dash-sidebar nav a.active {
+    color: var(--dash-accent);
+  }
+
+  /* Hide text labels on mobile for items beyond 5 */
+  .dash-sidebar nav a:nth-child(n+6) .nav-text { display: none; }
+
+  .dash-main { padding: 1.25rem 1rem 5.5rem; }
   .dash-kpis { grid-template-columns: repeat(2, 1fr); }
 
   .dash-header { flex-direction: column; gap: .5rem; }
@@ -766,6 +790,6 @@ body.dash-body {
 /* Extra small phones */
 @media (max-width: 380px) {
   .dash-kpis { grid-template-columns: 1fr; }
-  .dash-main { padding: 1rem .75rem 5rem; }
+  .dash-main { padding: 1rem .75rem 5.5rem; }
   .dash-kpi strong { font-size: 1.15rem; }
 }
