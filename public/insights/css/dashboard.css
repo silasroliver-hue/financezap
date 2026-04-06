@@ -729,6 +729,7 @@ body.dash-body {
   .dash-sidebar-brand { display: none; }
   .dash-sidebar-footer { display: none; }
 
+  /* Tab bar: sidebar + config btn distribuídos igualmente */
   .dash-sidebar nav {
     display: flex;
     flex-wrap: nowrap;
@@ -741,22 +742,24 @@ body.dash-body {
   /* Hide config links on mobile tab bar — only first 3 show */
   .dash-sidebar nav a:nth-child(n+4) { display: none; }
 
-  /* Main items style */
-  .dash-sidebar nav a {
-    flex: 1 1 0;
+  /* Main items + config btn: mesma largura, distribuídos */
+  .dash-sidebar nav a,
+  .nav-config-btn {
+    flex: 1 1 25%;          /* 4 itens = 25% cada */
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .2rem;
-    padding: .7rem .25rem .55rem;
+    gap: .25rem;
+    padding: .75rem .5rem .6rem;
     border-radius: 0;
-    font-size: .68rem;
+    font-size: .7rem;
     font-weight: 600;
     min-width: 0;
     text-align: center;
   }
 
-  .dash-sidebar nav a .nav-icon { font-size: 1.35rem; }
+  .dash-sidebar nav a .nav-icon,
+  .nav-config-btn .nav-icon { font-size: 1.4rem; }
   .dash-sidebar nav a .nav-text { display: none; }
   .dash-sidebar nav a .nav-short { display: block; }
 
@@ -764,31 +767,21 @@ body.dash-body {
   .dash-sidebar nav a.active { background: transparent; color: var(--dash-accent); }
   .dash-sidebar nav a.active::after {
     bottom: auto; top: 0;
-    left: 20%; right: 20%;
+    left: 25%; right: 25%;
     height: 3px;
     border-radius: 0 0 3px 3px;
     background: var(--dash-accent);
   }
 
-  /* Config button in tab bar */
+  /* Config button */
   .nav-config-btn {
     display: flex;
-    flex: 1 1 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: .2rem;
-    padding: .7rem .25rem .55rem;
     border: none;
     background: none;
     color: var(--dash-sidebar-text);
     font-family: var(--dash-font);
-    font-size: .68rem;
-    font-weight: 600;
     cursor: pointer;
-    min-width: 0;
   }
-  .nav-config-btn .nav-icon { font-size: 1.35rem; }
   .nav-config-btn .nav-short { display: block; }
   .nav-config-btn.active { color: var(--dash-accent); }
 
