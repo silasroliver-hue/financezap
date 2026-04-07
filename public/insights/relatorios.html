@@ -130,12 +130,12 @@
       <div class="dash-card report-toolbar">
         <div class="report-toolbar-fields">
           <div class="dash-form-row">
-            <label for="year">Ano</label>
-            <input type="number" id="year" min="2020" max="2100" />
+            <label for="from">Data inicial</label>
+            <input type="date" id="from" />
           </div>
           <div class="dash-form-row">
-            <label for="month">Mês</label>
-            <select id="month"></select>
+            <label for="to">Data final</label>
+            <input type="date" id="to" />
           </div>
         </div>
         <div class="report-toolbar-actions">
@@ -206,12 +206,15 @@
       setTimeout(() => { el.innerHTML = ""; }, 3500);
     }
 
-    function mountMonths() {
-      const month = document.getElementById("month");
-      month.innerHTML = MONTHS.map((name, idx) => `<option value="${idx + 1}">${name}</option>`).join("");
+    function toYmd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function mountRange() {
       const now = new Date();
-      document.getElementById("year").value = now.getFullYear();
-      month.value = String(now.getMonth() + 1);
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      document.getElementById("from").value = toYmd(first);
+      document.getElementById("to").value = toYmd(now);
     }
 
     function mkTable(headers, rows) {
@@ -279,23 +282,27 @@
     }
 
     async function loadReport() {
-      const y = Number(document.getElementById("year").value);
-      const m = Number(document.getElementById("month").value);
-      const data = await apiFetch(`/reports/monthly?year=${y}&month=${m}`);
+      const from = document.getElementById("from").value;
+      const to = document.getElementById("to").value;
+      if (!from || !to || from > to) {
+        throw new Error("Informe uma data inicial e final válidas.");
+      }
+      const data = await apiFetch(`/reports/monthly?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
       reportData = data;
       renderReport(data || {});
     }
 
     async function downloadExcel() {
-      const y = Number(document.getElementById("year").value);
-      const m = Number(document.getElementById("month").value);
+      const from = document.getElementById("from").value;
+      const to = document.getElementById("to").value;
+      if (!from || !to || from > to) throw new Error("Informe uma data inicial e final válidas.");
       const bases = (window.__API_CANDIDATES__ || [window.__API__ || "/insights/api"]).map((b) => String(b).replace(/\/$/, ""));
       const headers = (typeof window.getAuthHeader === "function") ? await window.getAuthHeader() : {};
 
       let response = null;
       for (const base of bases) {
         try {
-          const r = await fetch(`${base}/reports/monthly.xlsx?year=${y}&month=${m}`, { headers });
+          const r = await fetch(`${base}/reports/monthly.xlsx?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers });
           if (r.ok) { response = r; break; }
         } catch (_) {}
       }
@@ -305,7 +312,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `relatorio-${y}-${String(m).padStart(2, "0")}.xlsx`;
+      a.download = `relatorio-${from}_${to}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -317,8 +324,8 @@
         showAlert("Carregue o relatório antes de gerar PDF.");
         return;
       }
-      const y = Number(document.getElementById("year").value);
-      const m = Number(document.getElementById("month").value);
+      const from = document.getElementById("from").value;
+      const to = document.getElementById("to").value;
       const w = window.open("", "_blank");
       if (!w) {
         showAlert("Libere pop-up para gerar PDF.");
@@ -344,7 +351,7 @@
       </head>
       <body>
         <h1>Relatório Mensal FinanceZap</h1>
-        <p>Período: ${MONTHS[m - 1]} ${y}</p>
+        <p>Período: ${from} até ${to}</p>
         <p>Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
 
         <h2>Resumo</h2>
@@ -396,7 +403,7 @@
         const ok = await checkAccess();
         if (!ok) return;
         await renderSidebarUser();
-        mountMonths();
+        mountRange();
         await loadReport();
       } catch (err) {
         showAlert(err.message || "Erro ao carregar relatórios.");

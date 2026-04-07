@@ -74,6 +74,10 @@ function parseYearMonth(query) {
   return { y, m };
 }
 
+function isYmd(v) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+}
+
 function monthBounds(y, m) {
   const start = `${y}-${String(m).padStart(2, "0")}-01`;
   const nextM = m === 12 ? 1 : m + 1;
@@ -108,11 +112,38 @@ function safeAmount(n) {
   return Number.isFinite(v) ? v : 0;
 }
 
-async function buildMonthlyReport(sb, userId, y, m) {
-  const { start, end, daysInMonth } = monthBounds(y, m);
-  const monthKeyRef = monthKey(y, m);
-  const monthEnd = `${monthKeyRef}-${String(daysInMonth).padStart(2, "0")}`;
-  const monthStartPrevDay = previousDateYmd(start);
+function nextDayYmd(ymd) {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function resolveReportPeriod(query) {
+  const from = typeof query.from === "string" ? query.from.trim() : "";
+  const to = typeof query.to === "string" ? query.to.trim() : "";
+  if (isYmd(from) && isYmd(to) && from <= to) {
+    const ref = new Date(`${to}T12:00:00Z`);
+    return { from, to, refYear: ref.getUTCFullYear(), refMonth: ref.getUTCMonth() + 1 };
+  }
+  const ym = parseYearMonth(query);
+  if (!ym) return null;
+  const mb = monthBounds(ym.y, ym.m);
+  return {
+    from: mb.start,
+    to: `${monthKey(ym.y, ym.m)}-${String(mb.daysInMonth).padStart(2, "0")}`,
+    refYear: ym.y,
+    refMonth: ym.m,
+  };
+}
+
+async function buildMonthlyReport(sb, userId, period) {
+  const from = period.from;
+  const to = period.to;
+  const refYear = period.refYear;
+  const refMonth = period.refMonth;
+  const monthKeyRef = monthKey(refYear, refMonth);
+  const rangeEndExclusive = nextDayYmd(to);
+  const rangeStartPrevDay = previousDateYmd(from);
 
   const [
     txMonthRes,
@@ -127,12 +158,12 @@ async function buildMonthlyReport(sb, userId, y, m) {
       .from("transactions")
       .select("id,kind,amount,category,description,occurred_on,payment_method,source,created_at")
       .eq("user_id", userId)
-      .gte("occurred_on", start)
-      .lt("occurred_on", end)
+      .gte("occurred_on", from)
+      .lt("occurred_on", rangeEndExclusive)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false }),
-    sumAccumulatedThroughDate(sb, monthStartPrevDay, userId),
-    sumAccumulatedThroughDate(sb, monthEnd, userId),
+    sumAccumulatedThroughDate(sb, rangeStartPrevDay, userId),
+    sumAccumulatedThroughDate(sb, to, userId),
     sb
       .from("recurring_bills")
       .select("id,name,default_amount,due_day,notify_one_day_before")
@@ -141,10 +172,8 @@ async function buildMonthlyReport(sb, userId, y, m) {
       .order("name", { ascending: true }),
     sb
       .from("bill_payments")
-      .select("bill_id,paid,amount_paid,paid_at")
-      .eq("user_id", userId)
-      .eq("year", y)
-      .eq("month", m),
+      .select("bill_id,paid,amount_paid,paid_at,year,month")
+      .eq("user_id", userId),
     sb
       .from("credit_cards")
       .select("id,name,color,due_day")
@@ -152,8 +181,8 @@ async function buildMonthlyReport(sb, userId, y, m) {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),
     (async () => {
-      const start12 = shiftYearMonth(y, m, -11);
-      const endNext = shiftYearMonth(y, m, 1);
+      const start12 = shiftYearMonth(refYear, refMonth, -11);
+      const endNext = shiftYearMonth(refYear, refMonth, 1);
       return sb
         .from("transactions")
         .select("kind,amount,occurred_on")
@@ -171,9 +200,15 @@ async function buildMonthlyReport(sb, userId, y, m) {
 
   const txMonth = txMonthRes.data || [];
   const billsTemplates = billsTplRes.data || [];
-  const billsPayments = billsPayRes.data || [];
+  const billsPaymentsAll = billsPayRes.data || [];
   const cards = cardsRes.data || [];
   const tx12 = tx12Res.data || [];
+  const fromMonthKey = String(from).slice(0, 7);
+  const toMonthKey = String(to).slice(0, 7);
+  const billsPayments = billsPaymentsAll.filter((row) => {
+    const key = `${row.year}-${String(row.month).padStart(2, "0")}`;
+    return key >= fromMonthKey && key <= toMonthKey;
+  });
 
   let income = 0;
   let expense = 0;
@@ -192,9 +227,13 @@ async function buildMonthlyReport(sb, userId, y, m) {
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount);
 
-  const payMap = new Map(billsPayments.map((p) => [p.bill_id, p]));
+  const payMap = new Map();
+  for (const p of billsPayments) {
+    const key = String(p.bill_id || "");
+    if (!payMap.has(key)) payMap.set(key, p);
+  }
   const bills = billsTemplates.map((bill) => {
-    const pay = payMap.get(bill.id);
+    const pay = payMap.get(String(bill.id));
     return {
       bill_id: bill.id,
       name: bill.name,
@@ -207,7 +246,7 @@ async function buildMonthlyReport(sb, userId, y, m) {
     };
   });
 
-  const nextKey = shiftYearMonth(y, m, 1);
+  const nextKey = shiftYearMonth(refYear, refMonth, 1);
   const monthProjection = [];
   const txCardsByMonth = new Map();
   if (cards.length) {
@@ -253,7 +292,7 @@ async function buildMonthlyReport(sb, userId, y, m) {
     else bucket.expense += amount;
   }
   for (let i = 11; i >= 0; i--) {
-    const ref = shiftYearMonth(y, m, -i);
+    const ref = shiftYearMonth(refYear, refMonth, -i);
     const key = monthKey(ref.y, ref.m);
     const bucket = monthAgg.get(key) || { income: 0, expense: 0 };
     comparative.push({
@@ -268,12 +307,13 @@ async function buildMonthlyReport(sb, userId, y, m) {
   return {
     generated_at: new Date().toISOString(),
     period: {
-      year: y,
-      month: m,
+      year: refYear,
+      month: refMonth,
       month_key: monthKeyRef,
-      month_label: monthLabelPt(y, m),
-      start_date: start,
-      end_date: monthEnd,
+      month_label: monthLabelPt(refYear, refMonth),
+      start_date: from,
+      end_date: to,
+      label: `${from} até ${to}`,
     },
     summary: {
       opening_balance: safeAmount(totalsBefore.balanceTotalAllTime),
@@ -307,7 +347,7 @@ function workbookFromMonthlyReport(report) {
 
   const summaryRows = [
     ["Relatório", "Resumo Mensal"],
-    ["Período", report.period.month_label],
+    ["Período", report.period.label || report.period.month_label],
     ["Gerado em", report.generated_at],
     ["Saldo inicial", report.summary.opening_balance],
     ["Entradas no mês", report.summary.income_month],
@@ -619,10 +659,10 @@ api.get(
   "/reports/monthly",
   authRequired,
   asyncHandler(async (req, res) => {
-    const ym = parseYearMonth(req.query || {});
-    if (!ym) return res.status(400).json({ error: "year/month inválidos" });
+    const period = resolveReportPeriod(req.query || {});
+    if (!period) return res.status(400).json({ error: "Informe from/to válidos (YYYY-MM-DD) ou year/month." });
     const sb = getSupabase();
-    const report = await buildMonthlyReport(sb, req.userId, ym.y, ym.m);
+    const report = await buildMonthlyReport(sb, req.userId, period);
     res.json(report);
   })
 );
@@ -631,13 +671,13 @@ api.get(
   "/reports/monthly.xlsx",
   authRequired,
   asyncHandler(async (req, res) => {
-    const ym = parseYearMonth(req.query || {});
-    if (!ym) return res.status(400).json({ error: "year/month inválidos" });
+    const period = resolveReportPeriod(req.query || {});
+    if (!period) return res.status(400).json({ error: "Informe from/to válidos (YYYY-MM-DD) ou year/month." });
     const sb = getSupabase();
-    const report = await buildMonthlyReport(sb, req.userId, ym.y, ym.m);
+    const report = await buildMonthlyReport(sb, req.userId, period);
     const wb = workbookFromMonthlyReport(report);
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-    const filename = `relatorio-${monthKey(ym.y, ym.m)}.xlsx`;
+    const filename = `relatorio-${report.period.start_date}_${report.period.end_date}.xlsx`;
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(buf);
