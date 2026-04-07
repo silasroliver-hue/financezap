@@ -8,142 +8,188 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .head-row {
+    .home-wrap {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .dark-card {
+      background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+      border: 1px solid rgba(148, 163, 184, .25);
+      border-radius: 16px;
+      box-shadow: 0 14px 32px rgba(2, 6, 23, .18);
+      color: #e5e7eb;
+      padding: 1rem;
+    }
+
+    .dark-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: .8rem;
       flex-wrap: wrap;
-      margin-bottom: 1rem;
+    }
+
+    .dark-title {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #f9fafb;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+
+    .dark-sub {
+      margin-top: .3rem;
+      color: #9ca3af;
+      font-size: .82rem;
     }
 
     .month-nav {
       display: flex;
       align-items: center;
-      gap: .5rem;
+      gap: .45rem;
       flex-wrap: wrap;
     }
 
     .month-nav button {
-      border: 1px solid var(--dash-border);
-      background: #fff;
+      border: 1px solid rgba(148,163,184,.35);
+      background: #0f172a;
+      color: #e2e8f0;
       border-radius: 10px;
-      padding: .35rem .65rem;
-      font-size: .82rem;
+      padding: .35rem .62rem;
+      font-size: .8rem;
       font-weight: 700;
-      color: var(--dash-ink);
       cursor: pointer;
       font-family: var(--dash-font);
     }
 
     .month-nav strong {
-      min-width: 128px;
+      min-width: 125px;
       text-align: center;
+      font-size: .84rem;
+      color: #f8fafc;
     }
 
-    .cards-grid {
+    .search-like {
+      margin-top: .85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,.25);
+      background: rgba(15,23,42,.55);
+      padding: .62rem .75rem;
+      color: #94a3b8;
+      font-size: .85rem;
+    }
+
+    .kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: .8rem;
-      margin-bottom: 1rem;
     }
 
-    .summary-card {
+    .kpi {
+      border: 1px solid rgba(148,163,184,.22);
+      border-radius: 12px;
+      background: rgba(15,23,42,.6);
+      padding: .75rem;
+    }
+
+    .kpi label {
+      display: block;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-size: .65rem;
+      margin-bottom: .25rem;
+    }
+
+    .kpi strong {
+      color: #f8fafc;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .kpi strong.inc { color: #34d399; }
+    .kpi strong.exp { color: #f87171; }
+
+    .list-card {
+      background: #fff;
       border: 1px solid var(--dash-border);
       border-radius: 14px;
-      background: #fff;
       box-shadow: var(--dash-shadow);
-      padding: .9rem;
+      padding: 1rem;
     }
 
-    .summary-card label {
-      display: block;
-      font-size: .68rem;
-      text-transform: uppercase;
-      color: var(--dash-muted);
-      letter-spacing: .05em;
-      margin-bottom: .3rem;
-    }
-
-    .summary-card strong {
-      font-size: 1.1rem;
-      color: var(--dash-ink);
-    }
-
-    .summary-card strong.inc { color: var(--dash-income); }
-    .summary-card strong.exp { color: var(--dash-expense); }
-
-    .dash-grid {
-      display: grid;
-      gap: .9rem;
-    }
-
-    @media (min-width: 980px) {
-      .dash-grid {
-        grid-template-columns: 1.2fr .8fr;
-      }
-    }
-
-    .chart-card canvas {
-      width: 100% !important;
-      max-height: 240px;
-    }
-
-    .simple-list {
-      display: grid;
-      gap: .65rem;
-      margin-top: .75rem;
-    }
-
-    .simple-item {
-      border: 1px solid var(--dash-border-soft);
-      border-radius: 12px;
-      background: #f8fafc;
-      padding: .75rem;
+    .list-card-head {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
+      gap: .7rem;
+      margin-bottom: .7rem;
+      flex-wrap: wrap;
+    }
+
+    .list-card h2 {
+      margin: 0;
+      font-size: .95rem;
+    }
+
+    .recent-list {
+      display: grid;
       gap: .6rem;
     }
 
-    .simple-item-title {
-      margin: 0;
-      font-size: .88rem;
-      font-weight: 800;
-      color: var(--dash-ink);
+    .recent-item {
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: .7rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: .6rem;
     }
 
-    .simple-item-sub {
-      margin-top: .25rem;
-      font-size: .76rem;
+    .recent-title {
+      margin: 0;
+      font-size: .86rem;
+      color: var(--dash-ink);
+      font-weight: 800;
+    }
+
+    .recent-sub {
+      margin-top: .2rem;
       color: var(--dash-muted);
+      font-size: .75rem;
+    }
+
+    .cat-list {
+      display: grid;
+      gap: .35rem;
     }
 
     .cat-row {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: .5rem;
-      align-items: center;
-      padding: .45rem 0;
+      gap: .4rem;
       border-bottom: 1px solid var(--dash-border-soft);
-      font-size: .83rem;
+      padding: .45rem 0;
+      font-size: .82rem;
     }
 
     .cat-row:last-child {
       border-bottom: none;
     }
 
-    .setup-box {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      color: #78350f;
-      border-radius: 12px;
-      padding: .8rem;
-      margin-bottom: 1rem;
-      font-size: .84rem;
-      line-height: 1.45;
+    .home-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    @media (min-width: 980px) {
+      .home-grid {
+        grid-template-columns: 1.2fr .8fr;
+      }
     }
 
     .modal-overlay {
@@ -151,7 +197,7 @@
       position: fixed;
       inset: 0;
       z-index: 500;
-      background: rgba(2, 6, 23, .45);
+      background: rgba(2, 6, 23, .52);
       align-items: center;
       justify-content: center;
       padding: 1rem;
@@ -165,7 +211,9 @@
 
     .modal-card {
       width: 100%;
-      max-width: 420px;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
       background: #fff;
       border: 1px solid var(--dash-border);
       border-radius: 14px;
@@ -203,76 +251,132 @@
     </aside>
 
     <main class="dash-main">
-      <div class="head-row">
-        <div class="month-nav">
-          <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
-          <strong id="month-label">-</strong>
-          <button type="button" onclick="changeMonth(1)">Proximo mes</button>
-        </div>
-        <a class="dash-btn dash-btn-primary" href="gastos.html?novo=1">+ Novo lancamento</a>
-      </div>
-
       <div id="alert"></div>
-      <div id="setup-box"></div>
 
-      <section class="cards-grid">
-        <article class="summary-card">
-          <label>Saldo da conta unica</label>
-          <strong id="balance-total">R$ 0,00</strong>
-        </article>
-        <article class="summary-card">
-          <label>Entradas no mes</label>
-          <strong id="income-month" class="inc">R$ 0,00</strong>
-        </article>
-        <article class="summary-card">
-          <label>Saidas no mes</label>
-          <strong id="expense-month" class="exp">R$ 0,00</strong>
-        </article>
-        <article class="summary-card">
-          <label>Resultado do mes</label>
-          <strong id="balance-month">R$ 0,00</strong>
-        </article>
-      </section>
-
-      <section class="dash-grid" style="margin-bottom:1rem">
-        <article class="dash-card chart-card">
-          <h2 style="margin:0 0 .7rem">Evolucao do mes</h2>
-          <canvas id="line-chart"></canvas>
-        </article>
-        <article class="dash-card chart-card">
-          <h2 style="margin:0 0 .7rem">Gastos por categoria</h2>
-          <canvas id="donut-chart"></canvas>
-        </article>
-      </section>
-
-      <section class="dash-grid">
-        <article class="dash-card">
-          <div class="dash-card-head" style="margin-bottom:.65rem">
-            <h2 style="margin:0">Lançamentos recentes</h2>
-            <a class="dash-link" href="gastos.html">Ver tudo</a>
+      <section class="home-wrap">
+        <article class="dark-card">
+          <div class="dark-top">
+            <div>
+              <h1 class="dark-title">Painel financeiro</h1>
+              <div class="dark-sub">Visao geral da conta unica com lancamento rapido no mesmo lugar.</div>
+            </div>
+            <div class="month-nav">
+              <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
+              <strong id="month-label">-</strong>
+              <button type="button" onclick="changeMonth(1)">Proximo mes</button>
+            </div>
           </div>
-          <div id="recent-list" class="simple-list"></div>
+
+          <div class="search-like">Clique em <strong>Lancamento</strong> para abrir o modal de receita, despesa ou cartao de credito.</div>
+
+          <div class="kpis" style="margin-top:.8rem">
+            <div class="kpi">
+              <label>Saldo acumulado</label>
+              <strong id="kpi-balance">R$ 0,00</strong>
+            </div>
+            <div class="kpi">
+              <label>Entradas do mes</label>
+              <strong id="kpi-income" class="inc">R$ 0,00</strong>
+            </div>
+            <div class="kpi">
+              <label>Saidas do mes</label>
+              <strong id="kpi-expense" class="exp">R$ 0,00</strong>
+            </div>
+            <div class="kpi">
+              <label>Resultado do mes</label>
+              <strong id="kpi-result">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div style="margin-top:.85rem;display:flex;justify-content:flex-end">
+            <button class="dash-btn dash-btn-primary" type="button" onclick="openModal()">+ Lancamento</button>
+          </div>
         </article>
 
-        <article class="dash-card">
-          <h2 style="margin:0 0 .65rem">Categorias com mais gasto</h2>
-          <div id="cats-list"></div>
-        </article>
+        <section class="home-grid">
+          <article class="list-card">
+            <div class="list-card-head">
+              <h2>Lancamentos recentes</h2>
+              <a class="dash-link" href="gastos.html">Ver movimentacoes</a>
+            </div>
+            <div class="recent-list" id="recent-list"></div>
+          </article>
+
+          <article class="list-card">
+            <div class="list-card-head">
+              <h2>Maiores categorias de gasto</h2>
+            </div>
+            <div class="cat-list" id="cat-list"></div>
+          </article>
+        </section>
       </section>
     </main>
   </div>
 
-  <div class="modal-overlay" id="setup-modal">
+  <div class="modal-overlay" id="modal-lancamento">
     <div class="modal-card">
-      <h3>Definir saldo inicial da conta</h3>
-      <div class="dash-form-row" style="margin:0">
-        <label for="setup-amount">Saldo inicial (R$)</label>
-        <input id="setup-amount" type="number" min="0" step="0.01" placeholder="Ex.: 2500" />
-      </div>
-      <div class="modal-actions">
-        <button class="dash-btn dash-btn-ghost" onclick="closeSetupModal()">Agora nao</button>
-        <button class="dash-btn dash-btn-primary" onclick="saveInitialBalance()">Salvar</button>
-      </div>
+      <h3>Novo lancamento</h3>
+      <form id="form-lancamento">
+        <div class="dash-form-row">
+          <label for="m-kind">Tipo</label>
+          <select id="m-kind" required>
+            <option value="expense">Despesa</option>
+            <option value="income">Receita</option>
+            <option value="credit_card">Cartao de credito</option>
+          </select>
+        </div>
+
+        <div id="normal-fields">
+          <div class="dash-form-row">
+            <label for="m-category">Categoria</label>
+            <select id="m-category"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-payment">Forma de pagamento</label>
+            <select id="m-payment">
+              <option value="">Nao informar</option>
+              <option value="pix">PIX</option>
+              <option value="debito">Debito</option>
+              <option value="boleto">Boleto</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="card-fields" style="display:none">
+          <div class="dash-form-row">
+            <label for="m-card-id">Qual cartao?</label>
+            <select id="m-card-id"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-card-category">Categoria</label>
+            <select id="m-card-category"></select>
+          </div>
+          <div class="dash-form-row">
+            <label for="m-installments">Parcelas</label>
+            <input id="m-installments" type="number" min="1" max="60" value="1" />
+          </div>
+        </div>
+
+        <div class="dash-form-row">
+          <label for="m-amount">Valor (R$)</label>
+          <input id="m-amount" type="number" min="0.01" step="0.01" required />
+        </div>
+        <div class="dash-form-row">
+          <label for="m-date">Data</label>
+          <input id="m-date" type="date" required />
+        </div>
+        <div class="dash-form-row">
+          <label for="m-description">Descricao</label>
+          <input id="m-description" type="text" placeholder="Ex.: Mercado, Aluguel, Salario" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="dash-btn dash-btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="dash-btn dash-btn-primary">Salvar</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -286,14 +390,22 @@
     const MONTHS_PT = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     let curYear = new Date().getFullYear();
     let curMonth = new Date().getMonth() + 1;
-    let dashboardData = null;
-    let lineChart = null;
-    let donutChart = null;
+
+    const kindEl = document.getElementById("m-kind");
+    const normalFields = document.getElementById("normal-fields");
+    const cardFields = document.getElementById("card-fields");
 
     function esc(value) {
-      const div = document.createElement("div");
-      div.textContent = value == null ? "" : String(value);
-      return div.innerHTML;
+      const d = document.createElement("div");
+      d.textContent = value == null ? "" : String(value);
+      return d.innerHTML;
+    }
+
+    function escAttr(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;");
     }
 
     function monthLabel(year, month) {
@@ -304,9 +416,181 @@
       const el = document.getElementById("alert");
       const cls = type === "ok" ? "dash-alert dash-alert-ok" : "dash-alert";
       el.innerHTML = `<div class="${cls}">${esc(message)}</div>`;
-      setTimeout(() => {
-        el.innerHTML = "";
-      }, 4000);
+      setTimeout(() => { el.innerHTML = ""; }, 4000);
+    }
+
+    function openModal() {
+      kindEl.value = "expense";
+      document.getElementById("m-amount").value = "";
+      document.getElementById("m-description").value = "";
+      document.getElementById("m-installments").value = "1";
+      document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+      document.getElementById("m-payment").value = "";
+      onKindChange();
+      document.getElementById("modal-lancamento").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modal-lancamento").classList.remove("open");
+    }
+
+    async function loadCategories(targetId, kind) {
+      const sel = document.getElementById(targetId);
+      sel.innerHTML = '<option value="">Carregando...</option>';
+      try {
+        const list = await apiFetch(`/categories/${encodeURIComponent(kind)}`);
+        const rows = Array.isArray(list) ? list : [];
+        sel.innerHTML = rows.length
+          ? rows.map((item) => `<option value="${escAttr(item)}">${esc(item)}</option>`).join("")
+          : '<option value="Outros">Outros</option>';
+      } catch (_) {
+        sel.innerHTML = '<option value="Outros">Outros</option>';
+      }
+    }
+
+    async function loadCards() {
+      const sel = document.getElementById("m-card-id");
+      sel.innerHTML = '<option value="">Carregando...</option>';
+      try {
+        const cards = await apiFetch("/credit-cards");
+        const rows = Array.isArray(cards) ? cards : [];
+        sel.innerHTML = rows.length
+          ? '<option value="">Selecione o cartao</option>' + rows.map((card) => `<option value="${escAttr(card.id)}">${esc(card.name)}</option>`).join("")
+          : '<option value="">Nenhum cartao cadastrado</option>';
+      } catch (_) {
+        sel.innerHTML = '<option value="">Erro ao carregar cartoes</option>';
+      }
+    }
+
+    async function onKindChange() {
+      const kind = kindEl.value;
+      const isCard = kind === "credit_card";
+      normalFields.style.display = isCard ? "none" : "block";
+      cardFields.style.display = isCard ? "block" : "none";
+
+      if (isCard) {
+        await loadCards();
+        await loadCategories("m-card-category", "expense");
+      } else {
+        await loadCategories("m-category", kind === "income" ? "income" : "expense");
+      }
+    }
+
+    async function submitLaunch(event) {
+      event.preventDefault();
+
+      const kind = kindEl.value;
+      const amount = Number(document.getElementById("m-amount").value);
+      const occurredOn = document.getElementById("m-date").value;
+      const description = document.getElementById("m-description").value.trim();
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showAlert("Informe um valor valido.");
+        return;
+      }
+
+      try {
+        if (kind === "credit_card") {
+          const cardId = document.getElementById("m-card-id").value;
+          if (!cardId) {
+            showAlert("Selecione um cartao.");
+            return;
+          }
+          const category = document.getElementById("m-card-category").value || "Outros";
+          const installments = Math.max(1, parseInt(String(document.getElementById("m-installments").value || 1), 10) || 1);
+
+          await apiFetch("/credit-card-transactions", {
+            method: "POST",
+            body: JSON.stringify({
+              card_id: cardId,
+              description,
+              category,
+              amount,
+              installments,
+              purchase_date: occurredOn,
+            }),
+          });
+        } else {
+          const category = document.getElementById("m-category").value || "Outros";
+          const paymentMethod = document.getElementById("m-payment").value || null;
+
+          await apiFetch("/transactions", {
+            method: "POST",
+            body: JSON.stringify({
+              kind,
+              category,
+              amount,
+              occurred_on: occurredOn,
+              description,
+              source: "manual",
+              payment_method: paymentMethod,
+            }),
+          });
+        }
+
+        closeModal();
+        await loadDashboard();
+        showAlert("Lancamento salvo com sucesso.", "ok");
+      } catch (err) {
+        showAlert(err.message || "Nao foi possivel salvar o lancamento.");
+      }
+    }
+
+    function renderKpis(d) {
+      document.getElementById("month-label").textContent = monthLabel(curYear, curMonth);
+      document.getElementById("kpi-balance").textContent = fmtBRL(d.balanceTotalAllTime || 0);
+      document.getElementById("kpi-income").textContent = fmtBRL(d.income || 0);
+      document.getElementById("kpi-expense").textContent = fmtBRL(d.expense || 0);
+      const resultEl = document.getElementById("kpi-result");
+      const result = Number(d.balance || 0);
+      resultEl.textContent = fmtBRL(result);
+      resultEl.className = result < 0 ? "exp" : "inc";
+    }
+
+    function renderRecent(d) {
+      const list = document.getElementById("recent-list");
+      const rows = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
+      if (!rows.length) {
+        list.innerHTML = '<p class="dash-empty">Nenhum lancamento no mes.</p>';
+        return;
+      }
+
+      list.innerHTML = rows.slice(0, 10).map((row) => {
+        const isIncome = row.kind === "income";
+        return `
+          <article class="recent-item">
+            <div style="min-width:0;flex:1">
+              <h3 class="recent-title">${esc(row.description || row.category || "Lancamento")}</h3>
+              <div class="recent-sub">${esc(row.category || "Geral")} · ${esc(fmtDate(row.occurred_on))}</div>
+            </div>
+            <strong class="${isIncome ? "dash-text-inc" : "dash-text-exp"}">${fmtBRL(row.amount || 0)}</strong>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderCategories(d) {
+      const el = document.getElementById("cat-list");
+      const rows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
+      if (!rows.length) {
+        el.innerHTML = '<p class="dash-empty">Sem categorias de gasto neste mes.</p>';
+        return;
+      }
+
+      el.innerHTML = rows.slice(0, 12).map((row) => `
+        <div class="cat-row">
+          <span>${esc(row.category || "Geral")}</span>
+          <strong>${fmtBRL(row.amount || 0)}</strong>
+        </div>
+      `).join("");
+    }
+
+    async function loadDashboard() {
+      const data = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}`);
+      const d = data || {};
+      renderKpis(d);
+      renderRecent(d);
+      renderCategories(d);
     }
 
     function changeMonth(delta) {
@@ -321,201 +605,18 @@
       loadDashboard().catch((err) => showAlert(err.message || "Nao foi possivel carregar o dashboard."));
     }
 
-    function renderSummary(d) {
-      document.getElementById("month-label").textContent = monthLabel(curYear, curMonth);
-      document.getElementById("balance-total").textContent = fmtBRL(d.balanceTotalAllTime || 0);
-      document.getElementById("income-month").textContent = fmtBRL(d.income || 0);
-      document.getElementById("expense-month").textContent = fmtBRL(d.expense || 0);
-
-      const monthBalance = Number(d.balance || 0);
-      const monthEl = document.getElementById("balance-month");
-      monthEl.textContent = fmtBRL(monthBalance);
-      monthEl.className = monthBalance < 0 ? "exp" : "inc";
-    }
-
-    function renderSetupHint(d) {
-      const box = document.getElementById("setup-box");
-      const hasRecent = Array.isArray(d.recentTransactions) && d.recentTransactions.length > 0;
-      const totalAbs = Math.abs(Number(d.balanceTotalAllTime || 0));
-
-      if (hasRecent || totalAbs > 0.009) {
-        box.innerHTML = "";
-        return;
-      }
-
-      box.innerHTML = `
-        <div class="setup-box">
-          Sua conta ainda está zerada. Para começar, você pode definir um saldo inicial e depois só lançar entradas e saídas normalmente.<br />
-          <button class="dash-btn dash-btn-secondary" style="margin-top:.55rem" onclick="openSetupModal()">Definir saldo inicial</button>
-        </div>
-      `;
-    }
-
-    function renderRecent(d) {
-      const list = document.getElementById("recent-list");
-      const items = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
-      if (!items.length) {
-        list.innerHTML = '<p class="dash-empty">Nenhum lançamento recente.</p>';
-        return;
-      }
-
-      list.innerHTML = items.slice(0, 10).map((row) => {
-        const isIncome = row.kind === "income";
-        return `
-          <article class="simple-item">
-            <div style="min-width:0;flex:1">
-              <h3 class="simple-item-title">${esc(row.description || row.category || "Lancamento")}</h3>
-              <div class="simple-item-sub">${esc(row.category || "Geral")} · ${esc(fmtDate(row.occurred_on))}</div>
-            </div>
-            <strong class="${isIncome ? "dash-text-inc" : "dash-text-exp"}">${fmtBRL(row.amount || 0)}</strong>
-          </article>
-        `;
-      }).join("");
-    }
-
-    function renderCategories(d) {
-      const el = document.getElementById("cats-list");
-      const rows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
-      if (!rows.length) {
-        el.innerHTML = '<p class="dash-empty">Sem gastos categorizados neste mes.</p>';
-        return;
-      }
-
-      el.innerHTML = rows.slice(0, 10).map((row) => `
-        <div class="cat-row">
-          <span>${esc(row.category || "Geral")}</span>
-          <strong>${fmtBRL(row.amount || 0)}</strong>
-        </div>
-      `).join("");
-    }
-
-    function renderCharts(d) {
-      const daily = Array.isArray(d.daily) ? d.daily : [];
-      const lineCtx = document.getElementById("line-chart");
-      const donutCtx = document.getElementById("donut-chart");
-      if (!lineCtx || !donutCtx || typeof Chart === "undefined") return;
-
-      const labels = daily.map((row) => String(row.day).padStart(2, "0"));
-      const incomeData = daily.map((row) => Number(row.income || 0));
-      const expenseData = daily.map((row) => Number(row.expense || 0));
-
-      if (lineChart) lineChart.destroy();
-      lineChart = new Chart(lineCtx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Entradas",
-              data: incomeData,
-              borderColor: "#059669",
-              backgroundColor: "rgba(5,150,105,.15)",
-              tension: .3,
-              fill: false,
-              borderWidth: 2
-            },
-            {
-              label: "Saidas",
-              data: expenseData,
-              borderColor: "#dc2626",
-              backgroundColor: "rgba(220,38,38,.15)",
-              tension: .3,
-              fill: false,
-              borderWidth: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "bottom" } },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      });
-
-      const catRows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
-      const topRows = catRows.slice(0, 6);
-      const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6"];
-
-      if (donutChart) donutChart.destroy();
-      if (!topRows.length) return;
-      donutChart = new Chart(donutCtx, {
-        type: "doughnut",
-        data: {
-          labels: topRows.map((row) => row.category || "Geral"),
-          datasets: [
-            {
-              data: topRows.map((row) => Number(row.amount || 0)),
-              backgroundColor: colors.slice(0, topRows.length),
-              borderWidth: 0
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: "62%",
-          plugins: { legend: { position: "bottom" } }
-        }
-      });
-    }
-
-    async function loadDashboard() {
-      const d = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}`);
-      dashboardData = d || {};
-      renderSummary(dashboardData);
-      renderSetupHint(dashboardData);
-      renderRecent(dashboardData);
-      renderCategories(dashboardData);
-      renderCharts(dashboardData);
-    }
-
-    function openSetupModal() {
-      document.getElementById("setup-amount").value = "";
-      document.getElementById("setup-modal").classList.add("open");
-    }
-
-    function closeSetupModal() {
-      document.getElementById("setup-modal").classList.remove("open");
-    }
-
-    async function saveInitialBalance() {
-      const amount = Number(document.getElementById("setup-amount").value);
-      if (!Number.isFinite(amount) || amount < 0) {
-        showAlert("Informe um saldo inicial valido.");
-        return;
-      }
-
-      try {
-        await apiFetch("/transactions", {
-          method: "POST",
-          body: JSON.stringify({
-            kind: "income",
-            category: "Saldo inicial",
-            amount,
-            occurred_on: new Date().toISOString().slice(0, 10),
-            description: "Saldo inicial da conta",
-            source: "manual",
-          }),
-        });
-        closeSetupModal();
-        await loadDashboard();
-        showAlert("Saldo inicial salvo com sucesso.", "ok");
-      } catch (err) {
-        showAlert(err.message || "Nao foi possivel salvar o saldo inicial.");
-      }
-    }
+    document.getElementById("form-lancamento").addEventListener("submit", submitLaunch);
+    kindEl.addEventListener("change", onKindChange);
 
     window.addEventListener("DOMContentLoaded", async () => {
       try {
         const ok = await checkAccess();
         if (!ok) return;
         await renderSidebarUser();
+        await onKindChange();
         await loadDashboard();
       } catch (err) {
-        showAlert(err.message || "Nao foi possivel carregar o dashboard.");
+        showAlert(err.message || "Nao foi possivel carregar a tela inicial.");
       }
     });
   </script>

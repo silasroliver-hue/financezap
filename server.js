@@ -373,6 +373,65 @@ api.post(
 const TX_ID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+api.patch(
+  "/transactions/:id",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    if (!id || !TX_ID_RE.test(id)) {
+      return res.status(400).json({ error: "id inválido" });
+    }
+
+    const patch = {};
+    const { kind, category, amount, description, occurred_on, payment_method } = req.body || {};
+    const VALID_PAYMENT_METHODS = ["pix","debito","boleto","dinheiro","transferencia","credito"];
+
+    if (kind != null) {
+      if (kind !== "income" && kind !== "expense") {
+        return res.status(400).json({ error: "kind deve ser income ou expense" });
+      }
+      patch.kind = kind;
+    }
+    if (category != null) {
+      patch.category = String(category).trim() || "Geral";
+    }
+    if (amount != null) {
+      const amt = Number(amount);
+      if (!Number.isFinite(amt) || amt <= 0) {
+        return res.status(400).json({ error: "amount inválido" });
+      }
+      patch.amount = amt;
+    }
+    if (description != null) {
+      patch.description = String(description).slice(0, 500) || null;
+    }
+    if (occurred_on != null) {
+      patch.occurred_on = occurred_on || new Date().toISOString().slice(0, 10);
+    }
+    if (payment_method !== undefined) {
+      patch.payment_method = VALID_PAYMENT_METHODS.includes(payment_method) ? payment_method : null;
+    }
+
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ error: "Nenhum campo válido enviado" });
+    }
+
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("transactions")
+      .update(patch)
+      .eq("id", id)
+      .eq("user_id", req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: "Lançamento não encontrado" });
+    }
+    res.json(data);
+  })
+);
+
 api.delete(
   "/transactions/:id",
   authRequired,
