@@ -8,188 +8,131 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .home-wrap {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .dark-card {
-      background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-      border: 1px solid rgba(148, 163, 184, .25);
-      border-radius: 16px;
-      box-shadow: 0 14px 32px rgba(2, 6, 23, .18);
-      color: #e5e7eb;
-      padding: 1rem;
-    }
-
-    .dark-top {
+    .head-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: .8rem;
       flex-wrap: wrap;
-    }
-
-    .dark-title {
-      margin: 0;
-      font-size: 1.1rem;
-      color: #f9fafb;
-      font-weight: 800;
-      letter-spacing: -.01em;
-    }
-
-    .dark-sub {
-      margin-top: .3rem;
-      color: #9ca3af;
-      font-size: .82rem;
+      margin-bottom: 1rem;
     }
 
     .month-nav {
       display: flex;
       align-items: center;
-      gap: .45rem;
+      gap: .5rem;
       flex-wrap: wrap;
     }
 
     .month-nav button {
-      border: 1px solid rgba(148,163,184,.35);
-      background: #0f172a;
-      color: #e2e8f0;
+      border: 1px solid var(--dash-border);
+      background: #fff;
       border-radius: 10px;
-      padding: .35rem .62rem;
-      font-size: .8rem;
+      padding: .35rem .65rem;
+      font-size: .82rem;
       font-weight: 700;
+      color: var(--dash-ink);
       cursor: pointer;
       font-family: var(--dash-font);
     }
 
     .month-nav strong {
-      min-width: 125px;
+      min-width: 128px;
       text-align: center;
-      font-size: .84rem;
-      color: #f8fafc;
     }
 
-    .search-like {
-      margin-top: .85rem;
-      border-radius: 10px;
-      border: 1px solid rgba(148,163,184,.25);
-      background: rgba(15,23,42,.55);
-      padding: .62rem .75rem;
-      color: #94a3b8;
-      font-size: .85rem;
-    }
-
-    .kpis {
+    .cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: .8rem;
+      margin-bottom: 1rem;
     }
 
-    .kpi {
-      border: 1px solid rgba(148,163,184,.22);
-      border-radius: 12px;
-      background: rgba(15,23,42,.6);
-      padding: .75rem;
-    }
-
-    .kpi label {
-      display: block;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      font-size: .65rem;
-      margin-bottom: .25rem;
-    }
-
-    .kpi strong {
-      color: #f8fafc;
-      font-size: 1.05rem;
-      font-weight: 800;
-    }
-
-    .kpi strong.inc { color: #34d399; }
-    .kpi strong.exp { color: #f87171; }
-
-    .list-card {
-      background: #fff;
+    .summary-card {
       border: 1px solid var(--dash-border);
       border-radius: 14px;
+      background: #fff;
       box-shadow: var(--dash-shadow);
-      padding: 1rem;
+      padding: .9rem;
     }
 
-    .list-card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .7rem;
-      margin-bottom: .7rem;
-      flex-wrap: wrap;
-    }
-
-    .list-card h2 {
-      margin: 0;
-      font-size: .95rem;
-    }
-
-    .recent-list {
-      display: grid;
-      gap: .6rem;
-    }
-
-    .recent-item {
-      border: 1px solid var(--dash-border-soft);
-      border-radius: 10px;
-      background: #f8fafc;
-      padding: .7rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: .6rem;
-    }
-
-    .recent-title {
-      margin: 0;
-      font-size: .86rem;
-      color: var(--dash-ink);
-      font-weight: 800;
-    }
-
-    .recent-sub {
-      margin-top: .2rem;
+    .summary-card label {
+      display: block;
+      font-size: .68rem;
+      text-transform: uppercase;
       color: var(--dash-muted);
-      font-size: .75rem;
+      letter-spacing: .05em;
+      margin-bottom: .3rem;
     }
 
-    .cat-list {
+    .summary-card strong {
+      font-size: 1.1rem;
+      color: var(--dash-ink);
+    }
+
+    .summary-card strong.inc { color: var(--dash-income); }
+    .summary-card strong.exp { color: var(--dash-expense); }
+
+    .dash-grid {
       display: grid;
-      gap: .35rem;
+      gap: .9rem;
+    }
+
+    @media (min-width: 980px) {
+      .dash-grid {
+        grid-template-columns: 1.2fr .8fr;
+      }
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+      max-height: 240px;
+    }
+
+    .simple-list {
+      display: grid;
+      gap: .65rem;
+      margin-top: .75rem;
+    }
+
+    .simple-item {
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: .75rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .6rem;
+    }
+
+    .simple-item-title {
+      margin: 0;
+      font-size: .88rem;
+      font-weight: 800;
+      color: var(--dash-ink);
+    }
+
+    .simple-item-sub {
+      margin-top: .25rem;
+      font-size: .76rem;
+      color: var(--dash-muted);
     }
 
     .cat-row {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: .4rem;
-      border-bottom: 1px solid var(--dash-border-soft);
+      gap: .5rem;
+      align-items: center;
       padding: .45rem 0;
-      font-size: .82rem;
+      border-bottom: 1px solid var(--dash-border-soft);
+      font-size: .83rem;
     }
 
     .cat-row:last-child {
       border-bottom: none;
-    }
-
-    .home-grid {
-      display: grid;
-      gap: 1rem;
-    }
-
-    @media (min-width: 980px) {
-      .home-grid {
-        grid-template-columns: 1.2fr .8fr;
-      }
     }
 
     .modal-overlay {
@@ -197,7 +140,7 @@
       position: fixed;
       inset: 0;
       z-index: 500;
-      background: rgba(2, 6, 23, .52);
+      background: rgba(2, 6, 23, .45);
       align-items: center;
       justify-content: center;
       padding: 1rem;
@@ -251,64 +194,60 @@
     </aside>
 
     <main class="dash-main">
+      <div class="head-row">
+        <div class="month-nav">
+          <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
+          <strong id="month-label">-</strong>
+          <button type="button" onclick="changeMonth(1)">Proximo mes</button>
+        </div>
+        <button class="dash-btn dash-btn-primary" type="button" onclick="openModal()">+ Lancamento</button>
+      </div>
+
       <div id="alert"></div>
 
-      <section class="home-wrap">
-        <article class="dark-card">
-          <div class="dark-top">
-            <div>
-              <h1 class="dark-title">Painel financeiro</h1>
-              <div class="dark-sub">Visao geral da conta unica com lancamento rapido no mesmo lugar.</div>
-            </div>
-            <div class="month-nav">
-              <button type="button" onclick="changeMonth(-1)">Mes anterior</button>
-              <strong id="month-label">-</strong>
-              <button type="button" onclick="changeMonth(1)">Proximo mes</button>
-            </div>
-          </div>
+      <section class="cards-grid">
+        <article class="summary-card">
+          <label>Saldo da conta unica</label>
+          <strong id="balance-total">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Entradas no mes</label>
+          <strong id="income-month" class="inc">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Saidas no mes</label>
+          <strong id="expense-month" class="exp">R$ 0,00</strong>
+        </article>
+        <article class="summary-card">
+          <label>Resultado do mes</label>
+          <strong id="balance-month">R$ 0,00</strong>
+        </article>
+      </section>
 
-          <div class="search-like">Clique em <strong>Lancamento</strong> para abrir o modal de receita, despesa ou cartao de credito.</div>
+      <section class="dash-grid" style="margin-bottom:1rem">
+        <article class="dash-card chart-card">
+          <h2 style="margin:0 0 .7rem">Evolucao do mes</h2>
+          <canvas id="line-chart"></canvas>
+        </article>
+        <article class="dash-card chart-card">
+          <h2 style="margin:0 0 .7rem">Gastos por categoria</h2>
+          <canvas id="donut-chart"></canvas>
+        </article>
+      </section>
 
-          <div class="kpis" style="margin-top:.8rem">
-            <div class="kpi">
-              <label>Saldo acumulado</label>
-              <strong id="kpi-balance">R$ 0,00</strong>
-            </div>
-            <div class="kpi">
-              <label>Entradas do mes</label>
-              <strong id="kpi-income" class="inc">R$ 0,00</strong>
-            </div>
-            <div class="kpi">
-              <label>Saidas do mes</label>
-              <strong id="kpi-expense" class="exp">R$ 0,00</strong>
-            </div>
-            <div class="kpi">
-              <label>Resultado do mes</label>
-              <strong id="kpi-result">R$ 0,00</strong>
-            </div>
+      <section class="dash-grid">
+        <article class="dash-card">
+          <div class="dash-card-head" style="margin-bottom:.65rem">
+            <h2 style="margin:0">Lançamentos recentes</h2>
+            <a class="dash-link" href="gastos.html">Ver tudo</a>
           </div>
-
-          <div style="margin-top:.85rem;display:flex;justify-content:flex-end">
-            <button class="dash-btn dash-btn-primary" type="button" onclick="openModal()">+ Lancamento</button>
-          </div>
+          <div id="recent-list" class="simple-list"></div>
         </article>
 
-        <section class="home-grid">
-          <article class="list-card">
-            <div class="list-card-head">
-              <h2>Lancamentos recentes</h2>
-              <a class="dash-link" href="gastos.html">Ver movimentacoes</a>
-            </div>
-            <div class="recent-list" id="recent-list"></div>
-          </article>
-
-          <article class="list-card">
-            <div class="list-card-head">
-              <h2>Maiores categorias de gasto</h2>
-            </div>
-            <div class="cat-list" id="cat-list"></div>
-          </article>
-        </section>
+        <article class="dash-card">
+          <h2 style="margin:0 0 .65rem">Categorias com mais gasto</h2>
+          <div id="cats-list"></div>
+        </article>
       </section>
     </main>
   </div>
@@ -390,15 +329,17 @@
     const MONTHS_PT = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     let curYear = new Date().getFullYear();
     let curMonth = new Date().getMonth() + 1;
+    let lineChart = null;
+    let donutChart = null;
 
     const kindEl = document.getElementById("m-kind");
     const normalFields = document.getElementById("normal-fields");
     const cardFields = document.getElementById("card-fields");
 
     function esc(value) {
-      const d = document.createElement("div");
-      d.textContent = value == null ? "" : String(value);
-      return d.innerHTML;
+      const div = document.createElement("div");
+      div.textContent = value == null ? "" : String(value);
+      return div.innerHTML;
     }
 
     function escAttr(value) {
@@ -416,7 +357,9 @@
       const el = document.getElementById("alert");
       const cls = type === "ok" ? "dash-alert dash-alert-ok" : "dash-alert";
       el.innerHTML = `<div class="${cls}">${esc(message)}</div>`;
-      setTimeout(() => { el.innerHTML = ""; }, 4000);
+      setTimeout(() => {
+        el.innerHTML = "";
+      }, 4000);
     }
 
     function openModal() {
@@ -536,32 +479,33 @@
       }
     }
 
-    function renderKpis(d) {
+    function renderSummary(d) {
       document.getElementById("month-label").textContent = monthLabel(curYear, curMonth);
-      document.getElementById("kpi-balance").textContent = fmtBRL(d.balanceTotalAllTime || 0);
-      document.getElementById("kpi-income").textContent = fmtBRL(d.income || 0);
-      document.getElementById("kpi-expense").textContent = fmtBRL(d.expense || 0);
-      const resultEl = document.getElementById("kpi-result");
-      const result = Number(d.balance || 0);
-      resultEl.textContent = fmtBRL(result);
-      resultEl.className = result < 0 ? "exp" : "inc";
+      document.getElementById("balance-total").textContent = fmtBRL(d.balanceTotalAllTime || 0);
+      document.getElementById("income-month").textContent = fmtBRL(d.income || 0);
+      document.getElementById("expense-month").textContent = fmtBRL(d.expense || 0);
+
+      const monthBalance = Number(d.balance || 0);
+      const monthEl = document.getElementById("balance-month");
+      monthEl.textContent = fmtBRL(monthBalance);
+      monthEl.className = monthBalance < 0 ? "exp" : "inc";
     }
 
     function renderRecent(d) {
       const list = document.getElementById("recent-list");
-      const rows = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
-      if (!rows.length) {
-        list.innerHTML = '<p class="dash-empty">Nenhum lancamento no mes.</p>';
+      const items = Array.isArray(d.recentTransactions) ? d.recentTransactions : [];
+      if (!items.length) {
+        list.innerHTML = '<p class="dash-empty">Nenhum lançamento recente.</p>';
         return;
       }
 
-      list.innerHTML = rows.slice(0, 10).map((row) => {
+      list.innerHTML = items.slice(0, 10).map((row) => {
         const isIncome = row.kind === "income";
         return `
-          <article class="recent-item">
+          <article class="simple-item">
             <div style="min-width:0;flex:1">
-              <h3 class="recent-title">${esc(row.description || row.category || "Lancamento")}</h3>
-              <div class="recent-sub">${esc(row.category || "Geral")} · ${esc(fmtDate(row.occurred_on))}</div>
+              <h3 class="simple-item-title">${esc(row.description || row.category || "Lancamento")}</h3>
+              <div class="simple-item-sub">${esc(row.category || "Geral")} · ${esc(fmtDate(row.occurred_on))}</div>
             </div>
             <strong class="${isIncome ? "dash-text-inc" : "dash-text-exp"}">${fmtBRL(row.amount || 0)}</strong>
           </article>
@@ -570,14 +514,14 @@
     }
 
     function renderCategories(d) {
-      const el = document.getElementById("cat-list");
+      const el = document.getElementById("cats-list");
       const rows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
       if (!rows.length) {
-        el.innerHTML = '<p class="dash-empty">Sem categorias de gasto neste mes.</p>';
+        el.innerHTML = '<p class="dash-empty">Sem gastos categorizados neste mes.</p>';
         return;
       }
 
-      el.innerHTML = rows.slice(0, 12).map((row) => `
+      el.innerHTML = rows.slice(0, 10).map((row) => `
         <div class="cat-row">
           <span>${esc(row.category || "Geral")}</span>
           <strong>${fmtBRL(row.amount || 0)}</strong>
@@ -585,12 +529,78 @@
       `).join("");
     }
 
+    function renderCharts(d) {
+      const daily = Array.isArray(d.daily) ? d.daily : [];
+      const lineCtx = document.getElementById("line-chart");
+      const donutCtx = document.getElementById("donut-chart");
+      if (!lineCtx || !donutCtx || typeof Chart === "undefined") return;
+
+      const labels = daily.map((row) => String(row.day).padStart(2, "0"));
+      const incomeData = daily.map((row) => Number(row.income || 0));
+      const expenseData = daily.map((row) => Number(row.expense || 0));
+
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(lineCtx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Entradas",
+              data: incomeData,
+              borderColor: "#059669",
+              backgroundColor: "rgba(5,150,105,.15)",
+              tension: .3,
+              fill: false,
+              borderWidth: 2
+            },
+            {
+              label: "Saidas",
+              data: expenseData,
+              borderColor: "#dc2626",
+              backgroundColor: "rgba(220,38,38,.15)",
+              tension: .3,
+              fill: false,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      const catRows = Array.isArray(d.expenseByCategory) ? d.expenseByCategory : [];
+      const topRows = catRows.slice(0, 6);
+      const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6"];
+
+      if (donutChart) donutChart.destroy();
+      if (!topRows.length) return;
+      donutChart = new Chart(donutCtx, {
+        type: "doughnut",
+        data: {
+          labels: topRows.map((row) => row.category || "Geral"),
+          datasets: [{ data: topRows.map((row) => Number(row.amount || 0)), backgroundColor: colors.slice(0, topRows.length), borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+    }
+
     async function loadDashboard() {
       const data = await apiFetch(`/dashboard?year=${curYear}&month=${curMonth}`);
       const d = data || {};
-      renderKpis(d);
+      renderSummary(d);
       renderRecent(d);
       renderCategories(d);
+      renderCharts(d);
     }
 
     function changeMonth(delta) {
@@ -613,10 +623,11 @@
         const ok = await checkAccess();
         if (!ok) return;
         await renderSidebarUser();
+        document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
         await onKindChange();
         await loadDashboard();
       } catch (err) {
-        showAlert(err.message || "Nao foi possivel carregar a tela inicial.");
+        showAlert(err.message || "Nao foi possivel carregar o dashboard.");
       }
     });
   </script>
