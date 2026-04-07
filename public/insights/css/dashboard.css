@@ -707,6 +707,7 @@ body.dash-body {
   display: flex;
   gap: .75rem;
   align-items: flex-end;
+  flex-wrap: wrap;
 }
 .bills-val-row .dash-form-row input { max-width: 100%; width: 100%; }
 .bills-submit-btn { white-space: nowrap; flex-shrink: 0; align-self: flex-end; }
@@ -1055,6 +1056,10 @@ body.dash-body {
   /* Contas Bancárias mobile */
   .accounts-form-row2 { flex-direction: column; gap: .6rem; }
   .accounts-submit-btn { flex: 1; }
+
+  /* Contas do mês mobile: evita esconder campo de vencimento */
+  .bills-val-row { flex-direction: column; align-items: stretch; }
+  .bills-submit-btn { width: 100%; justify-content: center; }
 
   .dash-grid-2 { grid-template-columns: 1fr !important; }
   .dash-card { padding: 1rem; }
