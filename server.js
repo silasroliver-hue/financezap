@@ -112,6 +112,16 @@ function safeAmount(n) {
   return Number.isFinite(v) ? v : 0;
 }
 
+function normalizeDescriptionForKind(kind, category, description) {
+  const raw = description != null ? String(description).trim() : "";
+  if (raw) return raw.slice(0, 500);
+  if (kind === "expense") {
+    const cat = String(category || "").trim();
+    return (cat || "Despesa").slice(0, 500);
+  }
+  return null;
+}
+
 function nextDayYmd(ymd) {
   const d = new Date(`${ymd}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
@@ -749,12 +759,14 @@ api.post(
       return res.status(400).json({ error: "amount inválido" });
     }
     const VALID_PAYMENT_METHODS = ["pix","debito","boleto","dinheiro","transferencia","credito"];
+    const normalizedCategory =
+      typeof category === "string" && category.trim() ? category.trim() : "Geral";
     const row = {
       user_id: req.userId,
       kind,
-      category: typeof category === "string" && category.trim() ? category.trim() : "Geral",
+      category: normalizedCategory,
       amount: amt,
-      description: description != null ? String(description).slice(0, 500) : null,
+      description: normalizeDescriptionForKind(kind, normalizedCategory, description),
       occurred_on: occurred_on || new Date().toISOString().slice(0, 10),
       source: source === "whatsapp" || source === "import" || source === "api" ? source : "manual",
       payment_method: VALID_PAYMENT_METHODS.includes(payment_method) ? payment_method : null,
@@ -1951,6 +1963,7 @@ api.post(
         user_id: profile.id, kind: "expense",
         category: ctx.category || "Despesa", amount: ctx.amount,
         occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+        description: normalizeDescriptionForKind("expense", ctx.category || "Despesa", null),
         payment_method,
       });
       await clearSession();
@@ -2824,7 +2837,11 @@ api.post(
       kind,
       category: typeof body.category === "string" && body.category.trim() ? body.category.trim() : "WhatsApp",
       amount: amt,
-      description: body.description != null ? String(body.description).slice(0, 500) : null,
+      description: normalizeDescriptionForKind(
+        kind,
+        typeof body.category === "string" && body.category.trim() ? body.category.trim() : "WhatsApp",
+        body.description
+      ),
       occurred_on: body.occurred_on || body.date || new Date().toISOString().slice(0, 10),
       source: "whatsapp",
     };
