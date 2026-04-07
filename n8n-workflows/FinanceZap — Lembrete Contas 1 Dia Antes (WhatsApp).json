@@ -1,0 +1,203 @@
+{
+  "name": "FinanceZap — Lembrete Contas 1 Dia Antes (WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      },
+      "id": "4f9d7b84-9ea6-4e35-a9c8-ecbbf5eb42ca",
+      "name": "Disparo Diario 09h",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/bills/notifications/next-day",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 25000
+        }
+      },
+      "id": "f2da6f32-5a62-4ac8-94d4-c063f61c007d",
+      "name": "Buscar Contas Vencendo Amanhã",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json || {};\nconst items = Array.isArray(payload.items) ? payload.items : [];\n\nif (!items.length) {\n  return [];\n}\n\nreturn items.map((it) => ({ json: it }));"
+      },
+      "id": "12de9855-2339-4f2b-a493-1f7445e17f79",
+      "name": "Expandir Itens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function toBRL(v) {\n  const n = Number(v || 0);\n  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\n}\n\nfunction toBRDate(isoDate) {\n  if (!isoDate || typeof isoDate !== 'string') return '';\n  const [y, m, d] = isoDate.split('-');\n  if (!y || !m || !d) return isoDate;\n  return `${d}/${m}/${y}`;\n}\n\nconst row = $input.first().json || {};\nlet phone = String(row.whatsapp_phone || '').replace(/\\D/g, '');\nif (!phone || phone.length < 8) {\n  return [];\n}\n\n// Normaliza para BR com DDI 55 (Evolution API funciona melhor nesse formato)\nif (phone.length === 10 || phone.length === 11) {\n  phone = `55${phone}`;\n}\nif (phone.startsWith('0')) {\n  phone = phone.replace(/^0+/, '');\n  if (phone.length === 10 || phone.length === 11) phone = `55${phone}`;\n}\n\nconst fullName = String(row.full_name || '').trim();\nconst firstName = fullName ? fullName.split(/\\s+/)[0] : 'amigo';\nconst billName = String(row.bill_name || 'Conta');\nconst amount = toBRL(row.bill_amount);\nconst category = String(row.bill_category || 'Contas do mês');\nconst dueDate = toBRDate(String(row.due_date || ''));\n\nconst msg = `Ei, ${firstName}! 🛒 Espero que tudo bem com vc, estou aqui apenas para te avisar que tem uma conta sua vencendo! 😊\\n\\n🧾 Resumo:\\n\\n🛒 Descrição: ${billName}\\n\\n💰 Valor: ${amount}\\n\\n🛍️ Categoria: ${category}\\n\\n📅 Data: ${dueDate}\\n\\n📊 Para visualizar mais detalhes e relatórios, acesse a plataforma em\\n\\nhttps://financezap.thesilasstudio.com.br/insights/index.html\\n\\nSe precisar de algo a mais é só me chamar! 😄`;\n\nreturn [{\n  json: {\n    phone,\n    msg,\n    bill_id: row.bill_id || null,\n    user_id: row.user_id || null,\n    due_date: row.due_date || null\n  }\n}];"
+      },
+      "id": "d3359925-c08a-43ff-a63d-09f6e455e5a3",
+      "name": "Montar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.msg }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "ad8ea80d-66d6-4096-bf95-5b1ecfceb666",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Disparo Diario 09h": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contas Vencendo Amanhã",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contas Vencendo Amanhã": {
+      "main": [
+        [
+          {
+            "node": "Expandir Itens",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expandir Itens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir Itens": {
+      "main": [
+        [
+          {
+            "node": "Montar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "5a4e75ae-0529-4cb9-8f11-b8e81b6bc4a9",
+  "meta": {
+    "instanceId": "cc0470caf224343477a718c4b592ef1203acb31a19dc39cd7d8b6ac0079b02ce"
+  },
+  "id": "financezap-reminder-bills-next-day",
+  "tags": []
+}

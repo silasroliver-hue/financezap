@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relatórios - FinanceZap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <style>
+    .report-toolbar {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .report-toolbar-fields {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .report-toolbar .dash-form-row { margin: 0; min-width: 140px; }
+
+    .report-toolbar-actions {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+
+    .report-grid {
+      display: grid;
+      gap: .9rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-bottom: 1rem;
+    }
+
+    .report-kpi {
+      border: 1px solid #d1fae5;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+      padding: .82rem;
+    }
+
+    .report-kpi label {
+      display: block;
+      font-size: .68rem;
+      text-transform: uppercase;
+      color: #0f766e;
+      letter-spacing: .06em;
+      margin-bottom: .3rem;
+      font-weight: 800;
+    }
+
+    .report-kpi strong {
+      font-size: 1.1rem;
+      color: var(--dash-ink);
+    }
+
+    .report-card { margin-bottom: .95rem; }
+
+    .report-table-wrap {
+      overflow: auto;
+      border: 1px solid var(--dash-border-soft);
+      border-radius: 12px;
+      margin-top: .65rem;
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+      min-width: 620px;
+    }
+
+    .report-table th,
+    .report-table td {
+      padding: .55rem .6rem;
+      border-bottom: 1px solid var(--dash-border-soft);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .report-table th {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--dash-muted);
+      background: #f8fafc;
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-empty {
+      margin-top: .65rem;
+      color: var(--dash-muted);
+      font-size: .86rem;
+    }
+  </style>
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-brand">
+        <a href="/" class="dash-sidebar-logo">
+          <div class="dash-sidebar-logo-icon">💰</div>
+          <div>
+            <strong>FinanceZap</strong>
+            <small>Dashboard</small>
+          </div>
+        </a>
+      </div>
+      <nav id="sidebar-nav"></nav>
+      <div class="dash-sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main class="dash-main">
+      <div class="dash-page-head">
+        <h1>Relatórios</h1>
+        <p>Excel para análise e PDF para envio simples.</p>
+      </div>
+
+      <div id="alert"></div>
+
+      <div class="dash-card report-toolbar">
+        <div class="report-toolbar-fields">
+          <div class="dash-form-row">
+            <label for="year">Ano</label>
+            <input type="number" id="year" min="2020" max="2100" />
+          </div>
+          <div class="dash-form-row">
+            <label for="month">Mês</label>
+            <select id="month"></select>
+          </div>
+        </div>
+        <div class="report-toolbar-actions">
+          <button type="button" class="dash-btn dash-btn-ghost" id="btn-load">Atualizar</button>
+          <button type="button" class="dash-btn dash-btn-primary" id="btn-excel">Baixar Excel</button>
+          <button type="button" class="dash-btn dash-btn-ghost" id="btn-pdf">Gerar PDF</button>
+        </div>
+      </div>
+
+      <section id="kpis" class="report-grid"></section>
+
+      <section class="dash-card report-card">
+        <div class="dash-card-head">
+          <h2>Gastos por categoria</h2>
+        </div>
+        <div id="cats-box"></div>
+      </section>
+
+      <section class="dash-card report-card">
+        <div class="dash-card-head">
+          <h2>Cartão de crédito (projeção)</h2>
+        </div>
+        <div id="cards-box"></div>
+      </section>
+
+      <section class="dash-card report-card">
+        <div class="dash-card-head">
+          <h2>Contas do mês</h2>
+        </div>
+        <div id="bills-box"></div>
+      </section>
+
+      <section class="dash-card report-card">
+        <div class="dash-card-head">
+          <h2>Comparativo 12 meses</h2>
+        </div>
+        <div id="cmp-box"></div>
+      </section>
+
+      <section class="dash-card report-card">
+        <div class="dash-card-head">
+          <h2>Extrato de movimentações</h2>
+        </div>
+        <div id="moves-box"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    renderSidebarNav("reports");
+
+    const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    let reportData = null;
+
+    function esc(v) {
+      const d = document.createElement("div");
+      d.textContent = v == null ? "" : String(v);
+      return d.innerHTML;
+    }
+
+    function showAlert(msg, ok) {
+      const el = document.getElementById("alert");
+      el.innerHTML = `<div class="${ok ? "dash-alert dash-alert-ok" : "dash-alert"}">${esc(msg)}</div>`;
+      setTimeout(() => { el.innerHTML = ""; }, 3500);
+    }
+
+    function mountMonths() {
+      const month = document.getElementById("month");
+      month.innerHTML = MONTHS.map((name, idx) => `<option value="${idx + 1}">${name}</option>`).join("");
+      const now = new Date();
+      document.getElementById("year").value = now.getFullYear();
+      month.value = String(now.getMonth() + 1);
+    }
+
+    function mkTable(headers, rows) {
+      if (!rows.length) return '<p class="report-empty">Sem dados para este período.</p>';
+      const thead = `<tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>`;
+      const tbody = rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+      return `<div class="report-table-wrap"><table class="report-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+    }
+
+    function renderReport(data) {
+      const k = data.summary || {};
+      const kpis = [
+        ["Saldo inicial", fmtBRL(k.opening_balance || 0)],
+        ["Entradas no mês", fmtBRL(k.income_month || 0)],
+        ["Saídas no mês", fmtBRL(k.expense_month || 0)],
+        ["Resultado do mês", fmtBRL(k.result_month || 0)],
+        ["Saldo final", fmtBRL(k.closing_balance || 0)],
+        ["% gasto da renda", `${Number(k.expense_percent_of_income || 0).toFixed(1)}%`],
+      ];
+
+      document.getElementById("kpis").innerHTML = kpis.map((it) => `
+        <article class="report-kpi">
+          <label>${esc(it[0])}</label>
+          <strong>${esc(it[1])}</strong>
+        </article>
+      `).join("");
+
+      const catsRows = (data.expense_by_category || []).map((r) => [r.category || "Geral", fmtBRL(r.amount || 0)]);
+      document.getElementById("cats-box").innerHTML = mkTable(["Categoria", "Valor"], catsRows);
+
+      const cardsRows = (data.credit_cards?.cards || []).map((r) => [
+        r.card_name || "Cartão",
+        r.due_day || "-",
+        fmtBRL(r.current_month_total || 0),
+        fmtBRL(r.next_month_total || 0),
+      ]);
+      document.getElementById("cards-box").innerHTML = mkTable(["Cartão", "Vencimento", "Mês atual", "Próximo mês"], cardsRows);
+
+      const billsRows = (data.bills || []).map((r) => [
+        r.name || "Conta",
+        r.due_day || "-",
+        fmtBRL(r.amount_reference || 0),
+        r.paid ? "Pago" : "Pendente",
+        r.paid_at ? fmtDate(r.paid_at) : "-",
+      ]);
+      document.getElementById("bills-box").innerHTML = mkTable(["Conta", "Vencimento", "Valor", "Status", "Data pagamento"], billsRows);
+
+      const cmpRows = (data.comparative_12m || []).map((r) => [
+        r.month_label || r.month_key,
+        fmtBRL(r.income || 0),
+        fmtBRL(r.expense || 0),
+        fmtBRL(r.balance || 0),
+      ]);
+      document.getElementById("cmp-box").innerHTML = mkTable(["Mês", "Entradas", "Saídas", "Resultado"], cmpRows);
+
+      const movRows = (data.movements || []).map((r) => [
+        fmtDate(r.date),
+        r.type,
+        r.category,
+        r.description || "-",
+        r.payment_method || "-",
+        fmtBRL(r.amount || 0),
+      ]);
+      document.getElementById("moves-box").innerHTML = mkTable(["Data", "Tipo", "Categoria", "Descrição", "Pagamento", "Valor"], movRows);
+    }
+
+    async function loadReport() {
+      const y = Number(document.getElementById("year").value);
+      const m = Number(document.getElementById("month").value);
+      const data = await apiFetch(`/reports/monthly?year=${y}&month=${m}`);
+      reportData = data;
+      renderReport(data || {});
+    }
+
+    async function downloadExcel() {
+      const y = Number(document.getElementById("year").value);
+      const m = Number(document.getElementById("month").value);
+      const bases = (window.__API_CANDIDATES__ || [window.__API__ || "/insights/api"]).map((b) => String(b).replace(/\/$/, ""));
+      const headers = (typeof window.getAuthHeader === "function") ? await window.getAuthHeader() : {};
+
+      let response = null;
+      for (const base of bases) {
+        try {
+          const r = await fetch(`${base}/reports/monthly.xlsx?year=${y}&month=${m}`, { headers });
+          if (r.ok) { response = r; break; }
+        } catch (_) {}
+      }
+      if (!response || !response.ok) throw new Error("Não foi possível baixar o Excel.");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-${y}-${String(m).padStart(2, "0")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function printPdf() {
+      if (!reportData) {
+        showAlert("Carregue o relatório antes de gerar PDF.");
+        return;
+      }
+      const y = Number(document.getElementById("year").value);
+      const m = Number(document.getElementById("month").value);
+      const w = window.open("", "_blank");
+      if (!w) {
+        showAlert("Libere pop-up para gerar PDF.");
+        return;
+      }
+
+      const html = `
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Relatório FinanceZap</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+          h1 { margin: 0 0 6px; font-size: 22px; }
+          h2 { margin: 22px 0 8px; font-size: 16px; }
+          p { margin: 0 0 8px; color: #475569; }
+          table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+          th, td { border: 1px solid #e2e8f0; padding: 6px 8px; font-size: 12px; text-align: left; }
+          th { background: #f8fafc; }
+          .kpi { margin: 6px 0; font-size: 13px; }
+          @page { size: A4; margin: 14mm; }
+        </style>
+      </head>
+      <body>
+        <h1>Relatório Mensal FinanceZap</h1>
+        <p>Período: ${MONTHS[m - 1]} ${y}</p>
+        <p>Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
+
+        <h2>Resumo</h2>
+        <div class="kpi">Saldo inicial: ${fmtBRL(reportData.summary?.opening_balance || 0)}</div>
+        <div class="kpi">Entradas: ${fmtBRL(reportData.summary?.income_month || 0)}</div>
+        <div class="kpi">Saídas: ${fmtBRL(reportData.summary?.expense_month || 0)}</div>
+        <div class="kpi">Resultado: ${fmtBRL(reportData.summary?.result_month || 0)}</div>
+        <div class="kpi">Saldo final: ${fmtBRL(reportData.summary?.closing_balance || 0)}</div>
+
+        <h2>Top gastos por categoria</h2>
+        <table>
+          <thead><tr><th>Categoria</th><th>Valor</th></tr></thead>
+          <tbody>
+            ${(reportData.expense_by_category || []).slice(0, 12).map((r) => `<tr><td>${esc(r.category || "Geral")}</td><td>${fmtBRL(r.amount || 0)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+
+        <h2>Cartão de crédito</h2>
+        <table>
+          <thead><tr><th>Cartão</th><th>Mês atual</th><th>Próximo mês</th></tr></thead>
+          <tbody>
+            ${(reportData.credit_cards?.cards || []).map((r) => `<tr><td>${esc(r.card_name || "Cartão")}</td><td>${fmtBRL(r.current_month_total || 0)}</td><td>${fmtBRL(r.next_month_total || 0)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      </body>
+      </html>`;
+
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+
+    document.getElementById("btn-load").addEventListener("click", () => {
+      loadReport().catch((err) => showAlert(err.message || "Erro ao carregar relatório."));
+    });
+
+    document.getElementById("btn-excel").addEventListener("click", () => {
+      downloadExcel()
+        .then(() => showAlert("Excel gerado com sucesso.", true))
+        .catch((err) => showAlert(err.message || "Erro ao gerar Excel."));
+    });
+
+    document.getElementById("btn-pdf").addEventListener("click", printPdf);
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const ok = await checkAccess();
+        if (!ok) return;
+        await renderSidebarUser();
+        mountMonths();
+        await loadReport();
+      } catch (err) {
+        showAlert(err.message || "Erro ao carregar relatórios.");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -23,6 +23,7 @@
   // Itens que ficam dentro do painel "Menu"
   const configLinks = [
     { href: "pagamentos.html",  id: "pay", label: "Contas do mes", icon: SVG.calendar },
+    { href: "relatorios.html",  id: "reports", label: "Relatorios", icon: SVG.chart },
   ];
 
   const allLinks = [...mainLinks, ...configLinks];

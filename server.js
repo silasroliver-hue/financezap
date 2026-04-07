@@ -2,12 +2,14 @@ require("dotenv").config();
 const path = require("path");
 const express = require("express");
 const nodemailer = require("nodemailer");
+const XLSX = require("xlsx");
 const { getSupabase } = require("./lib/supabase");
 const { dashboardRoute } = require("./lib/dashboard-route");
 const { authRequired, authOnly } = require("./lib/auth-middleware");
 const {
   distinctCategories,
   distinctCategoriesByKind,
+  sumAccumulatedThroughDate,
 } = require("./lib/transactions-aggregate");
 const {
   buildCreditCardInstallmentRows,
@@ -64,6 +66,331 @@ function normalizeKindQuery(v) {
 }
 
 const CATEGORIES_LEGACY_FALLBACK = ["Outros"];
+
+function parseYearMonth(query) {
+  const y = parseInt(String(query.year || new Date().getFullYear()), 10);
+  const m = parseInt(String(query.month || new Date().getMonth() + 1), 10);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) return null;
+  return { y, m };
+}
+
+function monthBounds(y, m) {
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+  const nextM = m === 12 ? 1 : m + 1;
+  const nextY = m === 12 ? y + 1 : y;
+  const end = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  return { start, end, daysInMonth };
+}
+
+function shiftYearMonth(y, m, delta) {
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 };
+}
+
+function monthKey(y, m) {
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+function monthLabelPt(y, m) {
+  const names = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  return `${names[m - 1] || String(m).padStart(2, "0")}/${y}`;
+}
+
+function previousDateYmd(ymd) {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function safeAmount(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? v : 0;
+}
+
+async function buildMonthlyReport(sb, userId, y, m) {
+  const { start, end, daysInMonth } = monthBounds(y, m);
+  const monthKeyRef = monthKey(y, m);
+  const monthEnd = `${monthKeyRef}-${String(daysInMonth).padStart(2, "0")}`;
+  const monthStartPrevDay = previousDateYmd(start);
+
+  const [
+    txMonthRes,
+    totalsBefore,
+    totalsEnd,
+    billsTplRes,
+    billsPayRes,
+    cardsRes,
+    tx12Res,
+  ] = await Promise.all([
+    sb
+      .from("transactions")
+      .select("id,kind,amount,category,description,occurred_on,payment_method,source,created_at")
+      .eq("user_id", userId)
+      .gte("occurred_on", start)
+      .lt("occurred_on", end)
+      .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false }),
+    sumAccumulatedThroughDate(sb, monthStartPrevDay, userId),
+    sumAccumulatedThroughDate(sb, monthEnd, userId),
+    sb
+      .from("recurring_bills")
+      .select("id,name,default_amount,due_day,notify_one_day_before")
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true }),
+    sb
+      .from("bill_payments")
+      .select("bill_id,paid,amount_paid,paid_at")
+      .eq("user_id", userId)
+      .eq("year", y)
+      .eq("month", m),
+    sb
+      .from("credit_cards")
+      .select("id,name,color,due_day")
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    (async () => {
+      const start12 = shiftYearMonth(y, m, -11);
+      const endNext = shiftYearMonth(y, m, 1);
+      return sb
+        .from("transactions")
+        .select("kind,amount,occurred_on")
+        .eq("user_id", userId)
+        .gte("occurred_on", `${monthKey(start12.y, start12.m)}-01`)
+        .lt("occurred_on", `${monthKey(endNext.y, endNext.m)}-01`);
+    })(),
+  ]);
+
+  if (txMonthRes.error) throw txMonthRes.error;
+  if (billsTplRes.error) throw billsTplRes.error;
+  if (billsPayRes.error) throw billsPayRes.error;
+  if (cardsRes.error) throw cardsRes.error;
+  if (tx12Res.error) throw tx12Res.error;
+
+  const txMonth = txMonthRes.data || [];
+  const billsTemplates = billsTplRes.data || [];
+  const billsPayments = billsPayRes.data || [];
+  const cards = cardsRes.data || [];
+  const tx12 = tx12Res.data || [];
+
+  let income = 0;
+  let expense = 0;
+  const byCategory = new Map();
+  for (const row of txMonth) {
+    const amount = safeAmount(row.amount);
+    if (row.kind === "income") income += amount;
+    else expense += amount;
+    if (row.kind === "expense") {
+      const cat = String(row.category || "Geral");
+      byCategory.set(cat, (byCategory.get(cat) || 0) + amount);
+    }
+  }
+
+  const expenseByCategory = [...byCategory.entries()]
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const payMap = new Map(billsPayments.map((p) => [p.bill_id, p]));
+  const bills = billsTemplates.map((bill) => {
+    const pay = payMap.get(bill.id);
+    return {
+      bill_id: bill.id,
+      name: bill.name,
+      due_day: bill.due_day,
+      notify_one_day_before: !!bill.notify_one_day_before,
+      amount_reference: safeAmount(bill.default_amount),
+      paid: !!pay?.paid,
+      amount_paid: pay ? safeAmount(pay.amount_paid) : 0,
+      paid_at: pay?.paid_at || null,
+    };
+  });
+
+  const nextKey = shiftYearMonth(y, m, 1);
+  const monthProjection = [];
+  const txCardsByMonth = new Map();
+  if (cards.length) {
+    const loaded = await loadUserCreditCardsWithRows(sb, userId, monthKeyRef, 12);
+    const overview = buildCreditCardOverview(loaded.cards, loaded.rows, monthKeyRef, 12);
+    for (const monthRow of overview.months || []) {
+      monthProjection.push({
+        month_key: monthRow.monthKey,
+        month_label: monthLabelPt(
+          parseInt(String(monthRow.monthKey).slice(0, 4), 10),
+          parseInt(String(monthRow.monthKey).slice(5, 7), 10)
+        ),
+        total: safeAmount(monthRow.total),
+      });
+      for (const c of monthRow.cards || []) {
+        const key = `${monthRow.monthKey}:${c.card_id}`;
+        txCardsByMonth.set(key, safeAmount(c.total));
+      }
+    }
+  }
+
+  const creditCards = cards.map((c) => {
+    const cur = txCardsByMonth.get(`${monthKeyRef}:${c.id}`) || 0;
+    const nxt = txCardsByMonth.get(`${monthKey(nextKey.y, nextKey.m)}:${c.id}`) || 0;
+    return {
+      card_id: c.id,
+      card_name: c.name,
+      due_day: c.due_day,
+      current_month_total: cur,
+      next_month_total: nxt,
+    };
+  });
+
+  const comparative = [];
+  const monthAgg = new Map();
+  for (const row of tx12) {
+    const key = String(row.occurred_on || "").slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key)) continue;
+    if (!monthAgg.has(key)) monthAgg.set(key, { income: 0, expense: 0 });
+    const bucket = monthAgg.get(key);
+    const amount = safeAmount(row.amount);
+    if (row.kind === "income") bucket.income += amount;
+    else bucket.expense += amount;
+  }
+  for (let i = 11; i >= 0; i--) {
+    const ref = shiftYearMonth(y, m, -i);
+    const key = monthKey(ref.y, ref.m);
+    const bucket = monthAgg.get(key) || { income: 0, expense: 0 };
+    comparative.push({
+      month_key: key,
+      month_label: monthLabelPt(ref.y, ref.m),
+      income: bucket.income,
+      expense: bucket.expense,
+      balance: bucket.income - bucket.expense,
+    });
+  }
+
+  return {
+    generated_at: new Date().toISOString(),
+    period: {
+      year: y,
+      month: m,
+      month_key: monthKeyRef,
+      month_label: monthLabelPt(y, m),
+      start_date: start,
+      end_date: monthEnd,
+    },
+    summary: {
+      opening_balance: safeAmount(totalsBefore.balanceTotalAllTime),
+      income_month: income,
+      expense_month: expense,
+      result_month: income - expense,
+      closing_balance: safeAmount(totalsEnd.balanceTotalAllTime),
+      expense_percent_of_income: income > 0 ? (expense / income) * 100 : 0,
+    },
+    movements: txMonth.map((row) => ({
+      date: row.occurred_on,
+      type: row.kind === "income" ? "Receita" : "Despesa",
+      category: row.category || "Geral",
+      description: row.description || "",
+      payment_method: row.payment_method || "",
+      source: row.source || "",
+      amount: safeAmount(row.amount),
+    })),
+    credit_cards: {
+      cards: creditCards,
+      projection: monthProjection,
+    },
+    bills,
+    expense_by_category: expenseByCategory,
+    comparative_12m: comparative,
+  };
+}
+
+function workbookFromMonthlyReport(report) {
+  const wb = XLSX.utils.book_new();
+
+  const summaryRows = [
+    ["Relatório", "Resumo Mensal"],
+    ["Período", report.period.month_label],
+    ["Gerado em", report.generated_at],
+    ["Saldo inicial", report.summary.opening_balance],
+    ["Entradas no mês", report.summary.income_month],
+    ["Saídas no mês", report.summary.expense_month],
+    ["Resultado do mês", report.summary.result_month],
+    ["Saldo final", report.summary.closing_balance],
+    ["% gasto da renda", report.summary.expense_percent_of_income / 100],
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary["!cols"] = [{ wch: 24 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo_Mensal");
+
+  const wsMovements = XLSX.utils.json_to_sheet(
+    report.movements.map((r) => ({
+      Data: r.date,
+      Tipo: r.type,
+      Categoria: r.category,
+      Descricao: r.description,
+      Forma_Pagamento: r.payment_method,
+      Origem: r.source,
+      Valor: r.amount,
+    }))
+  );
+  wsMovements["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 36 }, { wch: 16 }, { wch: 12 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wsMovements, "Extrato_Movimentacoes");
+
+  const wsCards = XLSX.utils.json_to_sheet(
+    report.credit_cards.cards.map((r) => ({
+      Cartao: r.card_name,
+      Dia_Vencimento: r.due_day || "",
+      Total_Mes_Atual: r.current_month_total,
+      Total_Proximo_Mes: r.next_month_total,
+    }))
+  );
+  wsCards["!cols"] = [{ wch: 24 }, { wch: 16 }, { wch: 18 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, wsCards, "Cartao_Resumo");
+
+  const wsCardsProjection = XLSX.utils.json_to_sheet(
+    report.credit_cards.projection.map((r) => ({
+      Mes: r.month_label,
+      Mes_Key: r.month_key,
+      Total: r.total,
+    }))
+  );
+  wsCardsProjection["!cols"] = [{ wch: 18 }, { wch: 10 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wsCardsProjection, "Cartao_Projecao");
+
+  const wsBills = XLSX.utils.json_to_sheet(
+    report.bills.map((r) => ({
+      Conta: r.name,
+      Dia_Vencimento: r.due_day || "",
+      Valor_Referencia: r.amount_reference,
+      Pago: r.paid ? "Sim" : "Não",
+      Valor_Pago: r.amount_paid,
+      Data_Pagamento: r.paid_at || "",
+      Aviso_1_Dia_Antes: r.notify_one_day_before ? "Sim" : "Não",
+    }))
+  );
+  wsBills["!cols"] = [{ wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, wsBills, "Contas_Do_Mes");
+
+  const wsCategories = XLSX.utils.json_to_sheet(
+    report.expense_by_category.map((r) => ({
+      Categoria: r.category,
+      Valor: r.amount,
+    }))
+  );
+  wsCategories["!cols"] = [{ wch: 24 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, wsCategories, "Gastos_Categoria");
+
+  const wsComparative = XLSX.utils.json_to_sheet(
+    report.comparative_12m.map((r) => ({
+      Mes: r.month_label,
+      Entradas: r.income,
+      Saidas: r.expense,
+      Resultado: r.balance,
+    }))
+  );
+  wsComparative["!cols"] = [{ wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wsComparative, "Comparativo_12M");
+
+  return wb;
+}
 
 async function buildCategoryList(sb, kind, userId) {
   // Primeiro tenta categorias do usuário (user_categories)
@@ -285,6 +612,35 @@ api.get(
       list.length === 0 ? null : { paid: paidCount, total: list.length };
 
     res.json({ year: y, month: m, income, expense, balance: income - expense, investmentsTotal, billsProgress });
+  })
+);
+
+api.get(
+  "/reports/monthly",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    const ym = parseYearMonth(req.query || {});
+    if (!ym) return res.status(400).json({ error: "year/month inválidos" });
+    const sb = getSupabase();
+    const report = await buildMonthlyReport(sb, req.userId, ym.y, ym.m);
+    res.json(report);
+  })
+);
+
+api.get(
+  "/reports/monthly.xlsx",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    const ym = parseYearMonth(req.query || {});
+    if (!ym) return res.status(400).json({ error: "year/month inválidos" });
+    const sb = getSupabase();
+    const report = await buildMonthlyReport(sb, req.userId, ym.y, ym.m);
+    const wb = workbookFromMonthlyReport(report);
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const filename = `relatorio-${monthKey(ym.y, ym.m)}.xlsx`;
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buf);
   })
 );
 
