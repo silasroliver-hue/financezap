@@ -49,14 +49,26 @@
       <div class="dash-card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem;font-size:.95rem">Nova conta fixa</h2>
         <form id="new-bill" class="bills-new-form">
-          <div class="dash-form-row" style="margin:0">
-            <label for="bname">Nome</label>
-            <input id="bname" type="text" placeholder="Ex.: ENEL, Aluguel, Internet" />
+          <div class="bills-val-row">
+            <div class="dash-form-row" style="margin:0;flex:2">
+              <label for="bname">Nome</label>
+              <input id="bname" type="text" placeholder="Ex.: ENEL, Aluguel, Internet" />
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1">
+              <label for="bdue">Vencimento (dia)</label>
+              <input id="bdue" type="number" min="1" max="31" placeholder="Ex.: 10" />
+            </div>
           </div>
           <div class="bills-val-row">
             <div class="dash-form-row" style="margin:0;flex:1">
               <label for="bval">Valor referência (R$)</label>
               <input id="bval" type="number" step="0.01" min="0" placeholder="0,00" />
+            </div>
+            <div class="dash-form-row" style="margin:0;flex:1;display:flex;flex-direction:column;justify-content:flex-end">
+              <label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;text-transform:none;letter-spacing:0">
+                <input id="bnotify" type="checkbox" checked />
+                Avisar 1 dia antes (WhatsApp)
+              </label>
             </div>
             <button type="submit" class="dash-btn dash-btn-primary bills-submit-btn">+ Cadastrar</button>
           </div>
@@ -129,10 +141,12 @@
           const badge = it.paid
             ? '<span class="dash-badge dash-badge-ok">✓ Pago</span>'
             : '<span class="dash-badge dash-badge-pending">Pendente</span>';
+          const dueText = it.due_day ? `Vence dia ${it.due_day}` : "Sem dia de vencimento";
+          const notifyText = it.notify_one_day_before ? " · Aviso 1 dia antes: ligado" : " · Aviso 1 dia antes: desligado";
           return `<div class="dash-card dash-bill-row" style="padding:.9rem 1.25rem;margin-bottom:.5rem">
             <div>
               <strong style="font-size:.95rem">${esc(it.name)}</strong>
-              <div class="dash-note" style="margin-top:.2rem">Ref. ${fmtBRL(it.default_amount)}</div>
+              <div class="dash-note" style="margin-top:.2rem">Ref. ${fmtBRL(it.default_amount)} · ${esc(dueText + notifyText)}</div>
             </div>
             <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
               ${badge}
@@ -168,11 +182,19 @@
       ev.preventDefault();
       const name = document.getElementById("bname").value.trim();
       const default_amount = document.getElementById("bval").value || 0;
+      const due_day_raw = document.getElementById("bdue").value;
+      const due_day = due_day_raw ? Number(due_day_raw) : null;
+      const notify_one_day_before = !!document.getElementById("bnotify").checked;
       if (!name) return;
       try {
-        await apiFetch("/bills/template", { method: "POST", body: JSON.stringify({ name, default_amount }) });
+        await apiFetch("/bills/template", {
+          method: "POST",
+          body: JSON.stringify({ name, default_amount, due_day, notify_one_day_before })
+        });
         document.getElementById("bname").value = "";
         document.getElementById("bval").value = "";
+        document.getElementById("bdue").value = "";
+        document.getElementById("bnotify").checked = true;
         await load();
       } catch(e) {
         document.getElementById("alert").innerHTML = '<div class="dash-alert">' + esc(e.message) + '</div>';

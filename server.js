@@ -582,8 +582,12 @@ api.post(
   "/bills/template",
   authRequired,
   asyncHandler(async (req, res) => {
-    const { name, default_amount, due_day, sort_order } = req.body || {};
+    const { name, default_amount, due_day, notify_one_day_before, sort_order } = req.body || {};
     if (!name || typeof name !== "string") return res.status(400).json({ error: "name obrigatório" });
+    const due = due_day != null && due_day !== "" ? Number(due_day) : null;
+    if (due != null && (!Number.isInteger(due) || due < 1 || due > 31)) {
+      return res.status(400).json({ error: "due_day inválido (1-31)" });
+    }
     const sb = getSupabase();
     const { data, error } = await sb
       .from("recurring_bills")
@@ -591,13 +595,81 @@ api.post(
         user_id: req.userId,
         name: name.trim().slice(0, 200),
         default_amount: Number(default_amount) || 0,
-        due_day: due_day != null ? Number(due_day) : null,
+        due_day: due,
+        notify_one_day_before: !!notify_one_day_before,
         sort_order: Number.isFinite(Number(sort_order)) ? Number(sort_order) : 0,
       })
       .select()
       .single();
     if (error) throw error;
     res.status(201).json(data);
+  })
+);
+
+api.get(
+  "/bills/notifications/next-day",
+  requireWebhookSecret,
+  asyncHandler(async (req, res) => {
+    const tz = process.env.APP_TIMEZONE || "America/Sao_Paulo";
+    const today = new Date();
+    const ymdToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(today);
+
+    const baseDate = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date || ""))
+      ? new Date(`${req.query.date}T12:00:00Z`)
+      : new Date(`${ymdToday}T12:00:00Z`);
+    baseDate.setUTCDate(baseDate.getUTCDate() + 1);
+
+    const dueYear = baseDate.getUTCFullYear();
+    const dueMonth = baseDate.getUTCMonth() + 1;
+    const dueDay = baseDate.getUTCDate();
+    const dueDate = `${dueYear}-${String(dueMonth).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
+
+    const sb = getSupabase();
+    const { data: bills, error: bErr } = await sb
+      .from("recurring_bills")
+      .select("id,user_id,name,default_amount,due_day,notify_one_day_before")
+      .eq("notify_one_day_before", true)
+      .eq("due_day", dueDay);
+    if (bErr) throw bErr;
+
+    const rows = bills || [];
+    if (!rows.length) {
+      return res.json({ due_date: dueDate, total: 0, items: [] });
+    }
+
+    const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+    const { data: profiles, error: pErr } = await sb
+      .from("user_profiles")
+      .select("id,full_name,whatsapp_phone,has_access")
+      .in("id", userIds);
+    if (pErr) throw pErr;
+
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+    const items = rows
+      .map((bill) => {
+        const profile = profileMap.get(bill.user_id);
+        if (!profile || !profile.has_access || !profile.whatsapp_phone) return null;
+        return {
+          user_id: bill.user_id,
+          full_name: profile.full_name || null,
+          whatsapp_phone: profile.whatsapp_phone,
+          bill_id: bill.id,
+          bill_name: bill.name,
+          bill_type: "conta_do_mes",
+          bill_amount: Number(bill.default_amount) || 0,
+          due_day: bill.due_day,
+          due_date: dueDate,
+          notify_one_day_before: true,
+        };
+      })
+      .filter(Boolean);
+
+    res.json({ due_date: dueDate, total: items.length, items });
   })
 );
 
