@@ -7,6 +7,7 @@ const { getSupabase } = require("./lib/supabase");
 const { dashboardRoute } = require("./lib/dashboard-route");
 const { authRequired, authOnly } = require("./lib/auth-middleware");
 const {
+  accumulatedThroughYMD,
   distinctCategories,
   distinctCategoriesByKind,
   sumAccumulatedThroughDate,
