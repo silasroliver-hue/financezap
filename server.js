@@ -122,6 +122,50 @@ function normalizeDescriptionForKind(kind, category, description) {
   return null;
 }
 
+function parseQuickTransactionFromText(inputText) {
+  const text = String(inputText || "").trim();
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  const ENTRADA_WORDS = ["entrada", "recebi", "salario", "salário", "renda", "ganho", "ganhei", "pix recebido", "recebido"];
+  const SAIDA_WORDS = [
+    "saida", "saída", "gasto", "gastei", "paguei", "pagamento", "despesa", "comprei", "transferi",
+    "pix enviado", "enviei", "enviado", "pix saiu", "mandei"
+  ];
+
+  let kind = null;
+  for (const w of ENTRADA_WORDS) {
+    if (lower.includes(w)) {
+      kind = "income";
+      break;
+    }
+  }
+  if (!kind) {
+    for (const w of SAIDA_WORDS) {
+      if (lower.includes(w)) {
+        kind = "expense";
+        break;
+      }
+    }
+  }
+  if (!kind) return null;
+
+  const amountMatch = text.match(/(\d+[.,]?\d*)/);
+  const amount = amountMatch ? parseFloat(String(amountMatch[1]).replace(",", ".")) : null;
+  if (!amount || !Number.isFinite(amount) || amount <= 0) return null;
+
+  const after = amountMatch ? text.slice(text.indexOf(amountMatch[1]) + amountMatch[1].length).trim() : "";
+  const categoryGuess = after
+    .replace(/^(reais?|rs|r\$|de|do|da|no|na|em|para|pra|pro|por|pix)\s+/i, "")
+    .replace(/^(o|a|os|as|um|uma)\s+/i, "")
+    .trim();
+  const category =
+    categoryGuess.length > 1
+      ? categoryGuess.charAt(0).toUpperCase() + categoryGuess.slice(1)
+      : (kind === "income" ? "Receita" : "Despesa");
+
+  return { kind, amount, category };
+}
+
 function nextDayYmd(ymd) {
   const d = new Date(`${ymd}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
@@ -2202,23 +2246,14 @@ api.post(
       return res.json({ type: "user", reply: "🤔 Qual é a sua dúvida? Pode perguntar!" });
     }
 
-    // ── Fallback: tenta detectar transação rápida (ex: "saiu 50 mercado")
-    const ENTRADA_WORDS = ["entrada", "recebi", "salario", "salário", "renda", "ganho", "ganhei"];
-    const SAIDA_WORDS   = ["saida", "saída", "gasto", "gastei", "paguei", "pagamento", "despesa", "comprei", "transferi"];
-    let kind = null;
-    for (const w of ENTRADA_WORDS) { if (lower.includes(w)) { kind = "income"; break; } }
-    if (!kind) for (const w of SAIDA_WORDS) { if (lower.includes(w)) { kind = "expense"; break; } }
-
-    const amountMatch = text.match(/(\d+[.,]?\d*)/);
-    const amount = amountMatch ? parseFloat(amountMatch[1].replace(",", ".")) : null;
-
-    if (kind && amount && amount > 0) {
-      const after = amountMatch ? text.slice(text.indexOf(amountMatch[1]) + amountMatch[1].length).trim() : "";
-      const category = after.length > 1 ? after.charAt(0).toUpperCase() + after.slice(1) : (kind === "income" ? "Receita" : "Despesa");
+    // ── Fallback: detecta transação rápida por texto livre
+    const quick = parseQuickTransactionFromText(text);
+    if (quick && quick.amount > 0) {
+      const { kind, amount, category } = quick;
       await sb.from("transactions").insert({
         user_id: profile.id, kind, category, amount,
         occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
-        description: text,
+        description: normalizeDescriptionForKind(kind, category, text),
       });
       const emoji = kind === "income" ? "💚" : "❤️";
       const tipo = kind === "income" ? "Receita" : "Despesa";
@@ -2324,14 +2359,26 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
 
     let parsed = null;
     try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      const clean = String(rawText || "").replace(/```json|```/gi, "").trim();
+      try {
+        parsed = JSON.parse(clean);
+      } catch (_) {
+        const start = clean.indexOf("{");
+        const end = clean.lastIndexOf("}");
+        if (start >= 0 && end > start) {
+          parsed = JSON.parse(clean.slice(start, end + 1));
+        }
+      }
     } catch (_) { /* ignora erro de parse */ }
 
-    if (!parsed?.transaction) {
-      const transcript = parsed?.transcript || "Áudio recebido";
+    const transcript = String(parsed?.transcript || "").trim();
+    const fallbackTx = parseQuickTransactionFromText(transcript);
+    const tx = parsed?.transaction || fallbackTx || null;
+
+    if (!tx) {
+      const transcriptSafe = transcript || "Áudio recebido";
       return res.json({ type: "user", reply:
-        `🎤 *Áudio recebido!*\n\n📝 _"${transcript}"_\n\n` +
+        `🎤 *Áudio recebido!*\n\n📝 _"${transcriptSafe}"_\n\n` +
         `Hmm, não consegui identificar uma transação nesse áudio. 🤔\n\n` +
         `Tente falar algo como:\n` +
         `_"Gastei cinquenta reais no mercado"_ ou\n` +
@@ -2340,7 +2387,7 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
       });
     }
 
-    const { kind, amount, category } = parsed.transaction;
+    const { kind, amount, category } = tx;
     const validAmount = parseFloat(amount);
     if (!validAmount || validAmount <= 0) {
       return res.json({ type: "user", reply: `🎤 Áudio recebido! Mas não consegui identificar o valor. Tente novamente ou use o *menu*.` });
@@ -2354,7 +2401,7 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
       await sb.from("transactions").insert({
         user_id: profile.id, kind: "income", category: category || "Receita",
         amount: validAmount, occurred_on: today, source: "whatsapp",
-        description: parsed.transcript || category,
+        description: transcript || category,
       });
       return res.json({ type: "user", reply:
         `🎤 *Áudio processado com sucesso!*\n\n` +
@@ -2372,7 +2419,7 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
       await sb.from("transactions").insert({
         user_id: profile.id, kind: "expense", category: category || "Despesa",
         amount: validAmount, occurred_on: today, source: "whatsapp",
-        description: parsed.transcript || category,
+        description: normalizeDescriptionForKind("expense", category || "Despesa", transcript || null),
       });
       return res.json({ type: "user", reply:
         `🎤 *Áudio processado com sucesso!*\n\n` +
