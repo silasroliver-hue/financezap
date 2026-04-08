@@ -432,7 +432,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $json.phone, title: $json.listData.title, description: $json.listData.description, footer: $json.listData.footer, buttonText: $json.listData.buttonText, sections: $json.listData.sections }) }}",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, title: $json.listData.title, description: $json.listData.description, footerText: $json.listData.footer, buttonText: $json.listData.buttonText, sections: $json.listData.sections }) }}",
         "options": { "timeout": 15000 }
       },
       "id": "list-send-node-aaaa-bbbb-cccc-dddd-eeee",
