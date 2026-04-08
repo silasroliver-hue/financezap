@@ -2279,8 +2279,11 @@ api.post(
     const audioBase64 = req.body?.audioBase64 || null;
     const mimeType = req.body?.mimeType || "audio/ogg; codecs=opus";
 
-    if (!rawPhone || !audioBase64) {
-      return res.status(400).json({ error: "phone e audioBase64 são obrigatórios" });
+    if (!rawPhone) {
+      return res.status(400).json({ error: "phone é obrigatório" });
+    }
+    if (!audioBase64) {
+      return res.json({ type: "user", reply: "🎤 Recebi seu áudio, mas não consegui fazer o download. Tente enviar novamente!" });
     }
 
     const sb = getSupabase();
@@ -2424,8 +2427,11 @@ api.post(
     const mimeType = req.body?.mimeType || "image/jpeg";
     const caption = req.body?.caption || "";
 
-    if (!rawPhone || !imageBase64) {
-      return res.status(400).json({ error: "phone e imageBase64 são obrigatórios" });
+    if (!rawPhone) {
+      return res.status(400).json({ error: "phone é obrigatório" });
+    }
+    if (!imageBase64) {
+      return res.json({ type: "user", reply: "📸 Recebi sua imagem, mas não consegui fazer o download. Tente enviar novamente!" });
     }
 
     const sb = getSupabase();
