@@ -2287,8 +2287,13 @@ api.post(
   asyncHandler(async (req, res) => {
     const rawPhone = String(req.body?.phone || "").replace(/\D/g, "");
     const pushName = req.body?.pushName || "você";
-    const audioBase64 = req.body?.audioBase64 || null;
+    const audioBase64Raw = req.body?.audioBase64 || null;
     const mimeType = req.body?.mimeType || "audio/ogg; codecs=opus";
+
+    const audioBase64 =
+      typeof audioBase64Raw === "string"
+        ? audioBase64Raw.trim().replace(/^data:[^;]+;base64,/, "")
+        : null;
 
     if (!rawPhone) {
       return res.status(400).json({ error: "phone é obrigatório" });
