@@ -2195,6 +2195,35 @@ api.post(
       return res.json({ type: "list", listData: WHATSAPP_MENU_LIST(profile.full_name), reply: WHATSAPP_MENU(profile.full_name) });
     }
 
+    // Atalho mais rápido: texto livre de transação registra direto sem perguntar mais nada
+    if (!isGreeting) {
+      const quick = parseQuickTransactionFromText(text);
+      if (quick && quick.amount > 0) {
+        const { kind, amount, category } = quick;
+        await sb.from("transactions").insert({
+          user_id: profile.id, kind, category, amount,
+          occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+          description: normalizeDescriptionForKind(kind, category, text),
+        });
+        const emoji = kind === "income" ? "💚" : "❤️";
+        const tipo = kind === "income" ? "Receita" : "Despesa";
+        const appUrlQuick = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+        const todayQuick = new Date();
+        const dateQuickStr = todayQuick.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        return res.json({ type: "user", reply:
+          `✅ *${tipo} registrada automaticamente!* ${emoji}\n\n` +
+          `━━━━━━━━━━━━━━━━━━━\n` +
+          `📌 *Descrição:* ${category}\n` +
+          `💰 *Valor:* ${brl(amount)}\n` +
+          `🏷️ *Categoria:* ${category}\n` +
+          `📅 *Data:* ${dateQuickStr}\n` +
+          `━━━━━━━━━━━━━━━━━━━\n\n` +
+          `📊 Acesse seu dashboard:\n${appUrlQuick}/insights/\n\n` +
+          `_Digite *menu* para ver todas as opções._`
+        });
+      }
+    }
+
     if (isOption1) {
       await saveSession("waiting_extrato_days", {});
       return res.json({ type: "user", reply: "📊 *Extrato por período*\n\nQuantos dias você quer ver? (ex: *7*, *30*, *90*)" });
@@ -2244,33 +2273,6 @@ api.post(
     if (isOption6) {
       await saveSession("waiting_question", {});
       return res.json({ type: "user", reply: "🤔 Qual é a sua dúvida? Pode perguntar!" });
-    }
-
-    // ── Fallback: detecta transação rápida por texto livre
-    const quick = parseQuickTransactionFromText(text);
-    if (quick && quick.amount > 0) {
-      const { kind, amount, category } = quick;
-      await sb.from("transactions").insert({
-        user_id: profile.id, kind, category, amount,
-        occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
-        description: normalizeDescriptionForKind(kind, category, text),
-      });
-      const emoji = kind === "income" ? "💚" : "❤️";
-      const tipo = kind === "income" ? "Receita" : "Despesa";
-      const appUrlQuick = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
-      const todayQuick = new Date();
-      const dateQuickStr = todayQuick.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-      return res.json({ type: "user", reply:
-        `✅ *${tipo} registrada automaticamente!* ${emoji}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━\n` +
-        `📌 *Descrição:* ${category}\n` +
-        `💰 *Valor:* ${brl(amount)}\n` +
-        `🏷️ *Categoria:* ${category}\n` +
-        `📅 *Data:* ${dateQuickStr}\n` +
-        `━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📊 Acesse seu dashboard:\n${appUrlQuick}/insights/\n\n` +
-        `_Digite *menu* para ver todas as opções._`
-      });
     }
 
     // Sem intenção detectada → envia menu interativo
@@ -2372,7 +2374,9 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
     } catch (_) { /* ignora erro de parse */ }
 
     const transcript = String(parsed?.transcript || "").trim();
-    const fallbackTx = parseQuickTransactionFromText(transcript);
+    const fallbackTx =
+      parseQuickTransactionFromText(transcript) ||
+      parseQuickTransactionFromText(rawText);
     const tx = parsed?.transaction || fallbackTx || null;
 
     if (!tx) {
