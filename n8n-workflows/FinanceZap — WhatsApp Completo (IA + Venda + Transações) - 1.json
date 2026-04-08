@@ -121,7 +121,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || 'defina-um-segredo-longo-para-o-n8n' }}"
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
             }
           ]
         },
@@ -140,6 +140,10 @@
             {
               "name": "pushName",
               "value": "={{ $json.pushName }}"
+            },
+            {
+              "name": "secret",
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
             }
           ]
         },
@@ -250,7 +254,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || 'defina-um-segredo-longo-para-o-n8n' }}"
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
             }
           ]
         },
@@ -269,6 +273,10 @@
             {
               "name": "pushName",
               "value": "={{ $json.pushName }}"
+            },
+            {
+              "name": "secret",
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
             }
           ]
         },
