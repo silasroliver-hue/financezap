@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Extrai dados do webhook da Evolution API (com suporte a áudio e imagem) ──\nconst raw = $input.first().json;\nconst body = raw.body || raw;\n\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst pushName = body?.data?.pushName || 'amigo';\n\n// Detecta tipo de mídia\nconst isAudio = !!(msgData.audioMessage || msgData.pttMessage);\nconst isImage = !!(msgData.imageMessage);\nconst isText = !!(msgData.conversation || msgData.extendedTextMessage);\n\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nif (!phone) {\n  return [{ json: { action: 'skip', reason: 'no_phone' } }];\n}\n\n// Áudio sem texto → processa como mídia\nif (isAudio) {\n  const messageObject = body?.data?.message || {};\n  return [{ json: { action: 'audio', phone, pushName, messageObject: JSON.stringify(messageObject), fullData: JSON.stringify(body?.data || {}) } }];\n}\n\n// Imagem → processa como mídia (com caption opcional)\nif (isImage) {\n  const messageObject = body?.data?.message || {};\n  const caption = msgData.imageMessage?.caption || '';\n  return [{ json: { action: 'image', phone, pushName, text: caption, messageObject: JSON.stringify(messageObject), fullData: JSON.stringify(body?.data || {}) } }];\n}\n\n// Texto\nif (!text) {\n  return [{ json: { action: 'skip', reason: 'no_text' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];\n"
+        "jsCode": "// ── Extrai dados do webhook da Evolution API (com suporte a áudio e imagem) ──\nconst raw = $input.first().json;\nconst body = raw.body || raw;\n\nif (body?.data?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\nconst remoteJid = body?.data?.key?.remoteJid || '';\nif (remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group' } }];\n}\n\nconst phone = remoteJid.replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nconst msgData = body?.data?.message || {};\nconst pushName = body?.data?.pushName || 'amigo';\n\nconst isAudio = !!(msgData.audioMessage || msgData.pttMessage);\nconst isImage = !!(msgData.imageMessage);\n\nconst text = (\n  msgData.conversation ||\n  msgData.extendedTextMessage?.text ||\n  msgData.imageMessage?.caption ||\n  ''\n).trim();\n\nif (!phone) {\n  return [{ json: { action: 'skip', reason: 'no_phone' } }];\n}\n\nif (isAudio) {\n  const messageObject = body?.data?.message || {};\n  return [{ json: { action: 'audio', phone, pushName, messageObject: JSON.stringify(messageObject) } }];\n}\n\nif (isImage) {\n  const messageObject = body?.data?.message || {};\n  const caption = msgData.imageMessage?.caption || '';\n  return [{ json: { action: 'image', phone, pushName, text: caption, messageObject: JSON.stringify(messageObject) } }];\n}\n\nif (!text) {\n  return [{ json: { action: 'skip', reason: 'no_text' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];\n"
       },
       "id": "3960ba4d-a1c6-4ee3-be54-014a3f0c9a75",
       "name": "Parsear Mensagem",
@@ -156,7 +156,7 @@
         }
       },
       "id": "aa11bb22-1111-2222-3333-audio-download",
-      "name": "Download Áudio",
+      "name": "Download Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [900, 560],
@@ -190,17 +190,17 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepara dados do áudio para enviar ao backend\nconst parseMensagem = $('Parsear Mensagem').first().json;\nconst downloadResp = $input.first().json;\n\nconst base64 = downloadResp.base64 || downloadResp.data || null;\nconst mimeType = downloadResp.mediaType || 'audio/ogg; codecs=opus';\n\nif (!base64) {\n  return [{ json: { action: 'send', phone: parseMensagem.phone, msg: '🎤 Recebi seu áudio, mas não consegui processá-lo. Tente novamente ou use o *menu* para lançar manualmente.' } }];\n}\n\nreturn [{ json: {\n  phone: parseMensagem.phone,\n  pushName: parseMensagem.pushName,\n  audioBase64: base64,\n  mimeType: mimeType\n} }];\n"
+        "jsCode": "// Prepara dados do audio para enviar ao backend\nconst parseMensagem = $('Parsear Mensagem').first().json;\nconst downloadResp = $input.first().json;\n\nconst base64 = downloadResp.base64 || downloadResp.data || null;\nconst mimeType = downloadResp.mediaType || 'audio/ogg; codecs=opus';\n\nif (!base64) {\n  return [{ json: { phone: parseMensagem.phone, msg: 'Recebi seu audio, mas nao consegui processar. Tente novamente ou use o menu para lancar manualmente.' } }];\n}\n\nreturn [{ json: {\n  phone: parseMensagem.phone,\n  pushName: parseMensagem.pushName,\n  audioBase64: base64,\n  mimeType: mimeType\n} }];\n"
       },
       "id": "ee55ff66-5555-6666-7777-audio-prep",
-      "name": "Preparar Áudio",
+      "name": "Preparar Audio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1100, 560]
     },
     {
       "parameters": {
-        "jsCode": "// Prepara dados da imagem para enviar ao backend\nconst parseMensagem = $('Parsear Mensagem').first().json;\nconst downloadResp = $input.first().json;\n\nconst base64 = downloadResp.base64 || downloadResp.data || null;\nconst mimeType = downloadResp.mediaType || 'image/jpeg';\n\nif (!base64) {\n  return [{ json: { action: 'send', phone: parseMensagem.phone, msg: '📸 Recebi a imagem, mas não consegui processá-la. Tente uma foto mais nítida ou use o *menu*.' } }];\n}\n\nreturn [{ json: {\n  phone: parseMensagem.phone,\n  pushName: parseMensagem.pushName,\n  imageBase64: base64,\n  mimeType: mimeType,\n  caption: parseMensagem.text || ''\n} }];\n"
+        "jsCode": "// Prepara dados da imagem para enviar ao backend\nconst parseMensagem = $('Parsear Mensagem').first().json;\nconst downloadResp = $input.first().json;\n\nconst base64 = downloadResp.base64 || downloadResp.data || null;\nconst mimeType = downloadResp.mediaType || 'image/jpeg';\n\nif (!base64) {\n  return [{ json: { phone: parseMensagem.phone, msg: 'Recebi a imagem, mas nao consegui processar. Tente uma foto mais nitida ou use o menu.' } }];\n}\n\nreturn [{ json: {\n  phone: parseMensagem.phone,\n  pushName: parseMensagem.pushName,\n  imageBase64: base64,\n  mimeType: mimeType,\n  caption: parseMensagem.text || ''\n} }];\n"
       },
       "id": "gg77hh88-7777-8888-9999-image-prep",
       "name": "Preparar Imagem",
@@ -235,7 +235,7 @@
         }
       },
       "id": "ii99jj00-9999-aaaa-bbbb-backend-audio",
-      "name": "Backend Áudio",
+      "name": "Backend Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1320, 560],
@@ -277,24 +277,23 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Roteia resposta do backend ──────────────────────────────────────────────\nconst resp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\n// Erros de rede/timeout\nif ($input.first().json.error && !resp.type) {\n  return [{ json: { action: 'send', phone: parsed.phone, msg: '⚠️ Serviço temporariamente indisponível. Tente novamente em instantes.' } }];\n}\n\nconst type = resp.type || 'user';\n\n// Usuário não registrado → vai para agente de vendas\nif (type === 'sales') {\n  return [{ json: { action: 'sales', phone: parsed.phone, text: parsed.text, pushName: parsed.pushName } }];\n}\n\n// Menu (list) → envia como texto formatado (sendList da Evolution é instável)\nif (type === 'list') {\n  const menuText = resp.reply || 'Olá! Como posso ajudar?';\n  return [{ json: { action: 'send', phone: parsed.phone, msg: menuText } }];\n}\n\n// Usuário registrado → envia resposta direta\nconst reply = resp.reply || 'Olá! Como posso ajudar?';\nreturn [{ json: { action: 'send', phone: parsed.phone, msg: reply } }];\n"
+        "jsCode": "// Roteia resposta do backend de audio ou imagem\nconst resp = $input.first().json;\nconst phone = $json.phone || '';\n\nconst reply = resp.reply || 'Nao consegui processar. Tente novamente!';\nreturn [{ json: { phone, msg: reply } }];\n"
+      },
+      "id": "mm33nn44-cccc-dddd-eeee-media-resposta",
+      "name": "Processar Resposta Midia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 640]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Roteia resposta do backend de texto\nconst resp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\nif ($input.first().json.error && !resp.type) {\n  return [{ json: { action: 'send', phone: parsed.phone, msg: 'Servico temporariamente indisponivel. Tente novamente em instantes.' } }];\n}\n\nconst type = resp.type || 'user';\n\nif (type === 'sales') {\n  return [{ json: { action: 'sales', phone: parsed.phone, text: parsed.text, pushName: parsed.pushName } }];\n}\n\nconst reply = resp.reply || 'Ola! Como posso ajudar?';\nreturn [{ json: { action: 'send', phone: parsed.phone, msg: reply } }];\n"
       },
       "id": "b2c3d4e5-2222-3333-4444-555566667777",
       "name": "Processar Resposta Chat",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 400],
-      "notes": "type=list → usa reply (texto) como fallback confiável"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Roteia resposta do backend de áudio ou imagem\nconst resp = $input.first().json;\nconst phone = $json.phone || '';\n\nconst reply = resp.reply || '⚠️ Não consegui processar. Tente novamente!';\nreturn [{ json: { action: 'send', phone, msg: reply } }];\n"
-      },
-      "id": "mm33nn44-cccc-dddd-eeee-media-resposta",
-      "name": "Processar Resposta Mídia",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1540, 640]
+      "position": [1120, 400]
     },
     {
       "parameters": {
@@ -332,7 +331,7 @@
         "options": { "fallbackOutput": "extra" }
       },
       "id": "c3d4e5f6-3333-4444-5555-666677778888",
-      "name": "Roteador Sales/Send",
+      "name": "Roteador Sales Send",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [1340, 400]
@@ -371,7 +370,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Formata resposta do agente de vendas ──────────────────────────────────\nconst aiResp = $input.first()?.json || {};\nconst parsed = $('Processar Resposta Chat').first()?.json || {};\n\nlet reply = aiResp.reply ||\n  'Olá! 👋 Conheça o FinanceZap — controle financeiro pelo WhatsApp.\\n\\nDigite *quero saber mais* para ver como funciona! ⚡';\n\nreply = String(reply).replace(/\\r/g, '').trim();\n\nconst phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (!phone) throw new Error('Telefone inválido.');\n\nreturn [{ json: { phone, msg: reply } }];\n"
+        "jsCode": "// Formata resposta do agente de vendas\nconst aiResp = $input.first()?.json || {};\nconst parsed = $('Processar Resposta Chat').first()?.json || {};\n\nlet reply = aiResp.reply ||\n  'Ola! Conheca o FinanceZap, controle financeiro pelo WhatsApp. Digite quero saber mais para ver como funciona!';\n\nreply = String(reply).replace(/\\r/g, '').trim();\n\nconst phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (!phone) throw new Error('Telefone invalido.');\n\nreturn [{ json: { phone, msg: reply } }];\n"
       },
       "id": "e5f6a7b8-5555-6666-7777-888899990000",
       "name": "Formatar Resposta IA",
@@ -409,29 +408,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendList/{{ 'financezap' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $json.phone, title: $json.listData.title, description: $json.listData.description, footerText: $json.listData.footer, buttonText: $json.listData.buttonText, listType: 'MODULE', sections: $json.listData.sections }) }}",
-        "options": { "timeout": 15000 }
-      },
-      "id": "list-send-node-aaaa-bbbb-cccc-dddd-eeee",
-      "name": "Enviar Lista (Menu)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2000, 560],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true }",
         "options": {}
@@ -455,7 +431,7 @@
       "main": [
         [{ "node": "Respond Skip", "type": "main", "index": 0 }],
         [{ "node": "Backend Chat", "type": "main", "index": 0 }],
-        [{ "node": "Download Áudio", "type": "main", "index": 0 }],
+        [{ "node": "Download Audio", "type": "main", "index": 0 }],
         [{ "node": "Download Imagem", "type": "main", "index": 0 }]
       ]
     },
@@ -465,10 +441,10 @@
         [{ "node": "Processar Resposta Chat", "type": "main", "index": 0 }]
       ]
     },
-    "Download Áudio": {
+    "Download Audio": {
       "main": [
-        [{ "node": "Preparar Áudio", "type": "main", "index": 0 }],
-        [{ "node": "Preparar Áudio", "type": "main", "index": 0 }]
+        [{ "node": "Preparar Audio", "type": "main", "index": 0 }],
+        [{ "node": "Preparar Audio", "type": "main", "index": 0 }]
       ]
     },
     "Download Imagem": {
@@ -477,31 +453,31 @@
         [{ "node": "Preparar Imagem", "type": "main", "index": 0 }]
       ]
     },
-    "Preparar Áudio": {
-      "main": [[{ "node": "Backend Áudio", "type": "main", "index": 0 }]]
+    "Preparar Audio": {
+      "main": [[{ "node": "Backend Audio", "type": "main", "index": 0 }]]
     },
     "Preparar Imagem": {
       "main": [[{ "node": "Backend Imagem", "type": "main", "index": 0 }]]
     },
-    "Backend Áudio": {
+    "Backend Audio": {
       "main": [
-        [{ "node": "Processar Resposta Mídia", "type": "main", "index": 0 }],
-        [{ "node": "Processar Resposta Mídia", "type": "main", "index": 0 }]
+        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }],
+        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }]
       ]
     },
     "Backend Imagem": {
       "main": [
-        [{ "node": "Processar Resposta Mídia", "type": "main", "index": 0 }],
-        [{ "node": "Processar Resposta Mídia", "type": "main", "index": 0 }]
+        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }],
+        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }]
       ]
     },
-    "Processar Resposta Mídia": {
+    "Processar Resposta Midia": {
       "main": [[{ "node": "Enviar Texto", "type": "main", "index": 0 }]]
     },
     "Processar Resposta Chat": {
-      "main": [[{ "node": "Roteador Sales/Send/List", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Roteador Sales Send", "type": "main", "index": 0 }]]
     },
-    "Roteador Sales/Send": {
+    "Roteador Sales Send": {
       "main": [
         [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }],
         [{ "node": "Enviar Texto", "type": "main", "index": 0 }]
@@ -518,7 +494,7 @@
     },
     "Enviar Texto": {
       "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
-    },
+    }
   },
   "active": true,
   "settings": {
