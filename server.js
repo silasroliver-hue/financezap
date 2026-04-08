@@ -1842,7 +1842,6 @@ const WHATSAPP_MENU = (name) =>
   `4️⃣ Lançar no cartão de crédito\n` +
   `5️⃣ Saldo atual\n` +
   `6️⃣ Tirar uma dúvida\n\n` +
-  `_💡 Dica: você também pode enviar um áudio ou foto de comprovante e eu registro automaticamente!_\n\n` +
   `_Digite o número da opção ou descreva o que quer fazer._`;
 
 api.post(
@@ -1917,6 +1916,7 @@ api.post(
 
     // Helper: formata moeda
     const brl = (v) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+    const parseAmountInput = (value) => parseFloat(String(value || "").replace(",", ".").replace(/[^0-9.]/g, ""));
 
     // ── Detecta "cancelar" em qualquer estado
     if (["cancelar", "sair", "voltar", "menu", "cancel"].includes(lower)) {
@@ -2030,7 +2030,7 @@ api.post(
 
     // ── Estado: aguardando valor de despesa
     if (state === "waiting_despesa_amount") {
-      const amount = parseFloat(lower.replace(",", ".").replace(/[^0-9.]/g, ""));
+      const amount = parseAmountInput(lower);
       if (!amount || amount <= 0) {
         return res.json({ type: "user", reply: "Valor inválido. Informe o valor da despesa (ex: *250* ou *89,90*):" });
       }
@@ -2043,14 +2043,17 @@ api.post(
       const PM_MAP = { "1":"pix","pix":"pix","2":"debito","débito":"debito","debito":"debito","3":"boleto","boleto":"boleto","4":"dinheiro","dinheiro":"dinheiro","5":"transferencia","transferência":"transferencia","transferencia":"transferencia" };
       const PM_LABEL = { pix:"PIX", debito:"Débito", boleto:"Boleto", dinheiro:"Dinheiro", transferencia:"Transferência" };
       const payment_method = PM_MAP[lower] || null;
-      await sb.from("transactions").insert({
+      const { data: txExpense } = await sb.from("transactions").insert({
         user_id: profile.id, kind: "expense",
         category: ctx.category || "Despesa", amount: ctx.amount,
         occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
         description: normalizeDescriptionForKind("expense", ctx.category || "Despesa", null),
         payment_method,
+      }).select("id").single();
+      await saveSession("waiting_expense_post_action", {
+        transaction_id: txExpense?.id || null,
+        category: ctx.category || "Despesa",
       });
-      await clearSession();
       const pmLabel = payment_method ? PM_LABEL[payment_method] : "Não informado";
       const todayDespesa = new Date();
       const dateDespesaStr = todayDespesa.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -2065,8 +2068,74 @@ api.post(
         `📅 *Data:* ${dateDespesaStr}\n` +
         `━━━━━━━━━━━━━━━━━━━\n\n` +
         `📊 Para ver relatórios detalhados, acesse:\n${appUrlDespesa}/insights/\n\n` +
-        `_Se precisar de algo mais, é só chamar! 🎉_`
+        `Se quiser corrigir agora:\n` +
+        `1️⃣ Alterar valor\n` +
+        `2️⃣ Alterar local/descrição\n` +
+        `3️⃣ Excluir despesa\n` +
+        `4️⃣ Manter como está`
       });
+    }
+
+    // ── Estado: pós-confirmação da despesa (editar/excluir)
+    if (state === "waiting_expense_post_action") {
+      if (["1", "alterar valor", "valor", "editar valor"].includes(lower)) {
+        await saveSession("waiting_expense_edit_amount", ctx);
+        return res.json({ type: "user", reply: "Perfeito. Informe o *novo valor* da despesa (ex: *120* ou *89,90*):" });
+      }
+      if (["2", "alterar local", "local", "alterar descrição", "descricao", "descrição", "editar local", "editar descrição", "editar descricao"].includes(lower)) {
+        await saveSession("waiting_expense_edit_description", ctx);
+        return res.json({ type: "user", reply: "Certo. Informe o novo *local/descrição* (ex: *Mercado Central*):" });
+      }
+      if (["3", "excluir", "apagar", "deletar", "remover"].includes(lower)) {
+        if (ctx.transaction_id) {
+          await sb.from("transactions").delete().eq("id", ctx.transaction_id).eq("user_id", profile.id).eq("kind", "expense");
+        }
+        await clearSession();
+        return res.json({ type: "user", reply: "🗑️ Despesa excluída com sucesso." });
+      }
+      if (["4", "ok", "manter", "manter como está", "manter como esta", "nao", "não"].includes(lower)) {
+        await clearSession();
+        return res.json({ type: "user", reply: "Perfeito! Mantive a despesa como está. ✅" });
+      }
+      return res.json({ type: "user", reply:
+        `Escolha uma opção para essa despesa:\n\n` +
+        `1️⃣ Alterar valor\n` +
+        `2️⃣ Alterar local/descrição\n` +
+        `3️⃣ Excluir despesa\n` +
+        `4️⃣ Manter como está`
+      });
+    }
+
+    if (state === "waiting_expense_edit_amount") {
+      const newAmount = parseAmountInput(lower);
+      if (!newAmount || newAmount <= 0) {
+        return res.json({ type: "user", reply: "Valor inválido. Digite o novo valor (ex: *120* ou *89,90*)." });
+      }
+      if (ctx.transaction_id) {
+        await sb.from("transactions")
+          .update({ amount: newAmount })
+          .eq("id", ctx.transaction_id)
+          .eq("user_id", profile.id)
+          .eq("kind", "expense");
+      }
+      await clearSession();
+      return res.json({ type: "user", reply: `✅ Valor atualizado para *${brl(newAmount)}*.` });
+    }
+
+    if (state === "waiting_expense_edit_description") {
+      const description = String(text || "").trim().slice(0, 500);
+      if (!description) {
+        return res.json({ type: "user", reply: "Descrição inválida. Digite o novo local/descrição da despesa." });
+      }
+      if (ctx.transaction_id) {
+        await sb.from("transactions")
+          .update({ description })
+          .eq("id", ctx.transaction_id)
+          .eq("user_id", profile.id)
+          .eq("kind", "expense");
+      }
+      await clearSession();
+      return res.json({ type: "user", reply: `✅ Local/descrição atualizado para: *${description}*.` });
     }
 
     // ── Estado: aguardando seleção de cartão
@@ -2200,16 +2269,22 @@ api.post(
       const quick = parseQuickTransactionFromText(text);
       if (quick && quick.amount > 0) {
         const { kind, amount, category } = quick;
-        await sb.from("transactions").insert({
+        const { data: quickTx } = await sb.from("transactions").insert({
           user_id: profile.id, kind, category, amount,
           occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
           description: normalizeDescriptionForKind(kind, category, text),
-        });
+        }).select("id").single();
         const emoji = kind === "income" ? "💚" : "❤️";
         const tipo = kind === "income" ? "Receita" : "Despesa";
         const appUrlQuick = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
         const todayQuick = new Date();
         const dateQuickStr = todayQuick.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        if (kind === "expense" && quickTx?.id) {
+          await saveSession("waiting_expense_post_action", {
+            transaction_id: quickTx.id,
+            category,
+          });
+        }
         return res.json({ type: "user", reply:
           `✅ *${tipo} registrada automaticamente!* ${emoji}\n\n` +
           `━━━━━━━━━━━━━━━━━━━\n` +
@@ -2219,7 +2294,13 @@ api.post(
           `📅 *Data:* ${dateQuickStr}\n` +
           `━━━━━━━━━━━━━━━━━━━\n\n` +
           `📊 Acesse seu dashboard:\n${appUrlQuick}/insights/\n\n` +
-          `_Digite *menu* para ver todas as opções._`
+          (kind === "expense"
+            ? `Quer corrigir algo agora?\n` +
+              `1️⃣ Alterar valor\n` +
+              `2️⃣ Alterar local/descrição\n` +
+              `3️⃣ Excluir despesa\n` +
+              `4️⃣ Manter como está`
+            : `_Digite *menu* para ver todas as opções._`)
         });
       }
     }
@@ -2356,12 +2437,23 @@ Se não conseguir identificar uma transação financeira no áudio, responda:
 {"transcript": "...", "transaction": null}` }
             ],
           }],
-          generationConfig: { maxOutputTokens: 400, temperature: 0.1 },
+          generationConfig: {
+            maxOutputTokens: 400,
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
         }),
       }
     );
 
     const gemData = await gemRes.json();
+    if (!gemRes.ok) {
+      const errMsg = gemData?.error?.message || "falha na transcrição";
+      return res.json({
+        type: "user",
+        reply: `🎤 Recebi seu áudio, mas houve falha ao transcrever agora (${errMsg}). Tente novamente em alguns segundos.`,
+      });
+    }
     const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     let parsed = null;

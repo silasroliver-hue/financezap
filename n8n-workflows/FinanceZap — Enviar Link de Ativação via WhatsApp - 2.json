@@ -60,12 +60,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
+        "url": "={{ $env.EVOLUTION_BASE_URL || 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ $env.EVOLUTION_INSTANCE || 'financezap' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY || '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
           ]
         },
         "sendBody": true,

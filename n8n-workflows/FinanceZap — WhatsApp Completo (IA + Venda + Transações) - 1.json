@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extrai dados do webhook da Evolution API (robusto para variações de payload)\nconst raw = $input.first().json || {};\nconst body = raw.body || raw;\n\nif (body?.data?.key?.fromMe === true || body?.data?.messages?.[0]?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\nconst keyObj = body?.data?.key || body?.data?.messages?.[0]?.key || {};\nconst msgObj = body?.data?.message || body?.data?.messages?.[0]?.message || {};\nconst remoteJid = keyObj.remoteJid || '';\nif (!remoteJid || remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group_or_no_jid' } }];\n}\n\nlet phone = String(remoteJid).replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nif (!phone) {\n  return [{ json: { action: 'skip', reason: 'no_phone' } }];\n}\nif (phone.length === 10 || phone.length === 11) {\n  phone = '55' + phone;\n}\n\nconst pushName = body?.data?.pushName || body?.data?.messages?.[0]?.pushName || 'amigo';\nconst isAudio = !!(msgObj.audioMessage || msgObj.pttMessage);\nconst isImage = !!msgObj.imageMessage;\n\nconst text = (\n  msgObj.conversation ||\n  msgObj.extendedTextMessage?.text ||\n  msgObj.imageMessage?.caption ||\n  ''\n).trim();\n\nif (isAudio) {\n  const waMessage = { key: keyObj, message: msgObj };\n  return [{ json: { action: 'audio', phone, pushName, messageObject: JSON.stringify(waMessage) } }];\n}\n\nif (isImage) {\n  const waMessage = { key: keyObj, message: msgObj };\n  const caption = msgObj.imageMessage?.caption || '';\n  return [{ json: { action: 'image', phone, pushName, text: caption, messageObject: JSON.stringify(waMessage) } }];\n}\n\nif (!text) {\n  return [{ json: { action: 'skip', reason: 'no_text' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];"
+        "jsCode": "// Extrai dados do webhook da Evolution API (somente texto)\nconst raw = $input.first().json || {};\nconst body = raw.body || raw;\n\nif (body?.data?.key?.fromMe === true || body?.data?.messages?.[0]?.key?.fromMe === true) {\n  return [{ json: { action: 'skip', reason: 'fromMe' } }];\n}\n\nconst event = body?.event || '';\nif (!event.includes('messages')) {\n  return [{ json: { action: 'skip', reason: 'not_message' } }];\n}\n\nconst keyObj = body?.data?.key || body?.data?.messages?.[0]?.key || {};\nconst msgObj = body?.data?.message || body?.data?.messages?.[0]?.message || {};\nconst remoteJid = keyObj.remoteJid || '';\nif (!remoteJid || remoteJid.includes('@g.us')) {\n  return [{ json: { action: 'skip', reason: 'group_or_no_jid' } }];\n}\n\nlet phone = String(remoteJid).replace(/@s\\.whatsapp\\.net/, '').replace(/[^0-9]/g, '');\nif (!phone) {\n  return [{ json: { action: 'skip', reason: 'no_phone' } }];\n}\nif (phone.length === 10 || phone.length === 11) {\n  phone = '55' + phone;\n}\n\nconst pushName = body?.data?.pushName || body?.data?.messages?.[0]?.pushName || 'amigo';\nconst text = (\n  msgObj.conversation ||\n  msgObj.extendedTextMessage?.text ||\n  ''\n).trim();\n\nif (!text) {\n  return [{ json: { action: 'skip', reason: 'no_text_or_media' } }];\n}\n\nreturn [{ json: { action: 'process', phone, pushName, text } }];"
       },
       "id": "3960ba4d-a1c6-4ee3-be54-014a3f0c9a75",
       "name": "Parsear Mensagem",
@@ -77,48 +77,6 @@
                 ],
                 "combinator": "and"
               }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "audio",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "image",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
             }
           ]
         },
@@ -153,7 +111,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp-chat",
+        "url": "={{ $env.FINANCEZAP_API_BASE || 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp-chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -163,7 +121,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || 'defina-um-segredo-longo-para-o-n8n' }}"
             }
           ]
         },
@@ -203,243 +161,6 @@
         400
       ],
       "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/chat/getBase64FromMediaMessage/{{ 'financezap' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "apikey",
-              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: JSON.parse($json.messageObject), convertToMp4: false }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 30000
-        }
-      },
-      "id": "aa11bb22-1111-2222-3333-audio-download",
-      "name": "Download Audio",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        900,
-        560
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/chat/getBase64FromMediaMessage/{{ 'financezap' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "apikey",
-              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: JSON.parse($json.messageObject), convertToMp4: false }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 30000
-        }
-      },
-      "id": "cc33dd44-3333-4444-5555-image-download",
-      "name": "Download Imagem",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        900,
-        720
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Prepara dados do áudio para enviar ao backend (robusto para variações da Evolution)\nconst parsed = $('Parsear Mensagem').first().json || {};\nconst resp = $input.first().json || {};\n\nlet base64 =\n  resp.base64 ||\n  resp.data?.base64 ||\n  resp.data ||\n  resp.message?.base64 ||\n  null;\n\nif (typeof base64 === 'object' && base64) {\n  base64 = base64.base64 || null;\n}\nif (typeof base64 === 'string') {\n  base64 = base64.trim().replace(/^data:[^;]+;base64,/, '');\n}\n\nconst mimeType =\n  resp.mediaType ||\n  resp.mimetype ||\n  resp.data?.mimetype ||\n  'audio/ogg; codecs=opus';\n\nlet phone = String(parsed.phone || '').replace(/\\D/g, '');\nif (phone.length === 10 || phone.length === 11) phone = '55' + phone;\n\nif (!phone || !base64) {\n  return [];\n}\n\nreturn [{ json: {\n  phone,\n  pushName: parsed.pushName || 'amigo',\n  audioBase64: base64,\n  mimeType\n} }];"
-      },
-      "id": "ee55ff66-5555-6666-7777-audio-prep",
-      "name": "Preparar Audio",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1100,
-        560
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Prepara dados da imagem para enviar ao backend\nconst parseMensagem = $('Parsear Mensagem').first().json;\nconst downloadResp = $input.first().json;\n\nconst base64 = downloadResp.base64 || downloadResp.data || null;\nconst mimeType = downloadResp.mediaType || 'image/jpeg';\n\nif (!base64) {\n  return [{ json: { phone: parseMensagem.phone, msg: 'Recebi a imagem, mas nao consegui processar. Tente uma foto mais nitida ou use o menu.' } }];\n}\n\nreturn [{ json: {\n  phone: parseMensagem.phone,\n  pushName: parseMensagem.pushName,\n  imageBase64: base64,\n  mimeType: mimeType,\n  caption: parseMensagem.text || ''\n} }];\n"
-      },
-      "id": "gg77hh88-7777-8888-9999-image-prep",
-      "name": "Preparar Imagem",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1100,
-        720
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp-audio",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-webhook-secret",
-              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "phone",
-              "value": "={{ $json.phone }}"
-            },
-            {
-              "name": "pushName",
-              "value": "={{ $json.pushName }}"
-            },
-            {
-              "name": "audioBase64",
-              "value": "={{ $json.audioBase64 }}"
-            },
-            {
-              "name": "mimeType",
-              "value": "={{ $json.mimeType }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 40000
-        }
-      },
-      "id": "ii99jj00-9999-aaaa-bbbb-backend-audio",
-      "name": "Backend Audio",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1320,
-        560
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/webhook/whatsapp-image",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-webhook-secret",
-              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "phone",
-              "value": "={{ $json.phone }}"
-            },
-            {
-              "name": "pushName",
-              "value": "={{ $json.pushName }}"
-            },
-            {
-              "name": "imageBase64",
-              "value": "={{ $json.imageBase64 }}"
-            },
-            {
-              "name": "mimeType",
-              "value": "={{ $json.mimeType }}"
-            },
-            {
-              "name": "caption",
-              "value": "={{ $json.caption }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 40000
-        }
-      },
-      "id": "kk11ll22-aaaa-bbbb-cccc-backend-image",
-      "name": "Backend Imagem",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1320,
-        720
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Roteia resposta do backend de audio ou imagem com telefone seguro\nconst resp = $input.first().json || {};\n\nlet phone = '';\ntry {\n  phone = String($('Preparar Audio').first().json.phone || '').replace(/\\D/g, '');\n} catch (e) {}\nif (!phone) {\n  try {\n    phone = String($('Preparar Imagem').first().json.phone || '').replace(/\\D/g, '');\n  } catch (e) {}\n}\n\n// Normaliza para BR com DDI 55\nif (phone.length === 10 || phone.length === 11) {\n  phone = '55' + phone;\n}\n\n// Se não houver telefone, não tenta enviar para Evolution (evita 400)\nif (!phone || phone.length < 12) {\n  return [];\n}\n\nconst reply = String(resp.reply || 'Nao consegui processar. Tente novamente!').trim();\nreturn [{ json: { phone, msg: reply } }];"
-      },
-      "id": "mm33nn44-cccc-dddd-eeee-media-resposta",
-      "name": "Processar Resposta Midia",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1540,
-        640
-      ]
     },
     {
       "parameters": {
@@ -519,7 +240,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://financezap.thesilasstudio.com.br' }}/api/ai/sales-chat",
+        "url": "={{ $env.FINANCEZAP_API_BASE || 'https://financezap.thesilasstudio.com.br' }}/api/ai/sales-chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -529,7 +250,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+              "value": "={{ $env.N8N_WEBHOOK_SECRET || 'defina-um-segredo-longo-para-o-n8n' }}"
             }
           ]
         },
@@ -586,7 +307,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ 'financezap' }}",
+        "url": "={{ $env.EVOLUTION_BASE_URL || 'https://evo.thesilasstudio.com.br' }}/message/sendText/{{ $env.EVOLUTION_INSTANCE || 'financezap' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -596,7 +317,7 @@
             },
             {
               "name": "apikey",
-              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
+              "value": "={{ $env.EVOLUTION_API_KEY || '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
             }
           ]
         },
@@ -683,20 +404,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Download Audio",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Download Imagem",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -712,111 +419,6 @@
         [
           {
             "node": "Processar Resposta Chat",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download Audio": {
-      "main": [
-        [
-          {
-            "node": "Preparar Audio",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Preparar Audio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download Imagem": {
-      "main": [
-        [
-          {
-            "node": "Preparar Imagem",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Preparar Imagem",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar Audio": {
-      "main": [
-        [
-          {
-            "node": "Backend Audio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar Imagem": {
-      "main": [
-        [
-          {
-            "node": "Backend Imagem",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Backend Audio": {
-      "main": [
-        [
-          {
-            "node": "Processar Resposta Midia",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Processar Resposta Midia",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Backend Imagem": {
-      "main": [
-        [
-          {
-            "node": "Processar Resposta Midia",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Processar Resposta Midia",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Processar Resposta Midia": {
-      "main": [
-        [
-          {
-            "node": "Enviar Texto",
             "type": "main",
             "index": 0
           }
