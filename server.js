@@ -1763,6 +1763,34 @@ api.post(
 
 // ─── Webhook: chat WhatsApp com máquina de estados ────────────────────────
 
+// ── Menu principal como List Message (Evolution API) ─────────────────────────
+const WHATSAPP_MENU_LIST = (name) => ({
+  title: "FinanceZap 💰",
+  description: `Olá, *${name}*! 👋 Bem-vindo ao seu assistente financeiro.\n\nO que você quer fazer hoje?`,
+  footer: "FinanceZap · Controle financeiro pelo WhatsApp",
+  buttonText: "📋 Ver opções",
+  sections: [
+    {
+      title: "💸 Lançamentos",
+      rows: [
+        { rowId: "2", title: "💚 Lançar receita", description: "Salário, freelance e outras entradas" },
+        { rowId: "3", title: "❤️ Lançar despesa",  description: "Mercado, conta, transporte..." },
+        { rowId: "4", title: "💳 Cartão de crédito", description: "Compras parceladas ou à vista" },
+        { rowId: "5", title: "📈 Investimento", description: "Atualizar saldo em banco ou corretora" },
+      ],
+    },
+    {
+      title: "📊 Consultas",
+      rows: [
+        { rowId: "1", title: "📊 Ver extrato", description: "Histórico de transações por período" },
+        { rowId: "6", title: "💰 Ver saldo", description: "Contas bancárias e investimentos" },
+        { rowId: "7", title: "🤔 Tirar dúvida", description: "Pergunte qualquer coisa sobre finanças" },
+      ],
+    },
+  ],
+});
+
+// Texto de fallback (caso Evolution não suporte list)
 const WHATSAPP_MENU = (name) =>
   `Olá, *${name}*! 👋 O que você quer fazer?\n\n` +
   `1️⃣ Extrato por período\n` +
@@ -1772,6 +1800,7 @@ const WHATSAPP_MENU = (name) =>
   `5️⃣ Lançar investimento\n` +
   `6️⃣ Ver saldo das contas\n` +
   `7️⃣ Tirar uma dúvida\n\n` +
+  `_💡 Dica: você também pode enviar um áudio ou foto de comprovante e eu registro automaticamente!_\n\n` +
   `_Digite o número da opção ou descreva o que quer fazer._`;
 
 api.post(
@@ -1850,7 +1879,7 @@ api.post(
     // ── Detecta "cancelar" em qualquer estado
     if (["cancelar", "sair", "voltar", "menu", "cancel"].includes(lower)) {
       await clearSession();
-      return res.json({ type: "user", reply: WHATSAPP_MENU(profile.full_name) });
+      return res.json({ type: "list", listData: WHATSAPP_MENU_LIST(profile.full_name), reply: WHATSAPP_MENU(profile.full_name) });
     }
 
     // ── Estado: aguardando dias do extrato
@@ -1923,7 +1952,20 @@ api.post(
         occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
       }).select().single();
       await clearSession();
-      return res.json({ type: "user", reply: `💚 *Receita registrada!*\n\n💰 ${brl(amount)} — ${ctx.category}\n✅ Salvo no FinanceZap!` });
+      const today = new Date();
+      const dateStr = today.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+      return res.json({ type: "user", reply:
+        `✅ *Receita registrada com sucesso!* 💚\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `📌 *Descrição:* ${ctx.category}\n` +
+        `💰 *Valor:* ${brl(amount)}\n` +
+        `🏷️ *Categoria:* ${ctx.category}\n` +
+        `📅 *Data:* ${dateStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 Para ver relatórios detalhados, acesse:\n${appUrl}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
     }
 
     // ── Estado: aguardando categoria de despesa
@@ -1967,8 +2009,22 @@ api.post(
         payment_method,
       });
       await clearSession();
-      const pmLabel = payment_method ? ` · ${PM_LABEL[payment_method]}` : "";
-      return res.json({ type: "user", reply: `❤️ *Despesa registrada!*\n\n💸 ${brl(ctx.amount)} — ${ctx.category}${pmLabel}\n✅ Salvo no FinanceZap!` });
+      const pmLabel = payment_method ? PM_LABEL[payment_method] : "Não informado";
+      const todayDespesa = new Date();
+      const dateDespesaStr = todayDespesa.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const appUrlDespesa = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+      return res.json({ type: "user", reply:
+        `✅ *Despesa registrada com sucesso!* ❤️\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `📌 *Descrição:* ${ctx.category}\n` +
+        `💸 *Valor:* ${brl(ctx.amount)}\n` +
+        `🏷️ *Categoria:* ${ctx.category}\n` +
+        `💳 *Pagamento:* ${pmLabel}\n` +
+        `📅 *Data:* ${dateDespesaStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 Para ver relatórios detalhados, acesse:\n${appUrlDespesa}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
     }
 
     // ── Estado: aguardando seleção de cartão
@@ -2023,11 +2079,22 @@ api.post(
       });
       await sb.from("credit_card_transactions").insert(ccRows);
       await clearSession();
-      const instLabel =
-        installments > 1
-          ? ` (${installments}x · total ${brl(ctx.amount)} · 1ª parc. ${brl(ccRows[0].amount)})`
-          : " (à vista)";
-      return res.json({ type: "user", reply: `💳 *Lançado no cartão!*\n\n🃏 ${ctx.card_name}\n💸 ${brl(ctx.amount)}${instLabel} — ${ctx.category}\n✅ Salvo no FinanceZap!` });
+      const instLabel = installments > 1 ? `${installments}x de ${brl(ccRows[0].amount)}` : "À vista";
+      const appUrlCartao = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+      const todayCartao = new Date();
+      const dateCartaoStr = todayCartao.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      return res.json({ type: "user", reply:
+        `✅ *Lançamento no cartão realizado!* 💳\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `🃏 *Cartão:* ${ctx.card_name}\n` +
+        `📌 *Categoria:* ${ctx.category}\n` +
+        `💸 *Valor total:* ${brl(ctx.amount)}\n` +
+        `🔢 *Parcelamento:* ${instLabel}\n` +
+        `📅 *Data da compra:* ${dateCartaoStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 Para ver a fatura completa, acesse:\n${appUrlCartao}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
     }
 
     // ── Estado: aguardando banco do investimento
@@ -2056,7 +2123,16 @@ api.post(
         await sb.from("investments").insert({ user_id: profile.id, broker_name: ctx.broker, balance, updated_at: new Date().toISOString() });
       }
       await clearSession();
-      return res.json({ type: "user", reply: `📈 *Investimento atualizado!*\n\n🏦 ${ctx.broker}: *${brl(balance)}*\n✅ Salvo no FinanceZap!` });
+      const appUrlInvest = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+      return res.json({ type: "user", reply:
+        `✅ *Investimento atualizado com sucesso!* 📈\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `🏦 *Banco/Corretora:* ${ctx.broker}\n` +
+        `💰 *Saldo atual:* ${brl(balance)}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 Para acompanhar sua evolução patrimonial:\n${appUrlInvest}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
     }
 
     // ── Estado: aguardando pergunta (dúvidas)
@@ -2093,7 +2169,7 @@ api.post(
     const isOption7 = /^(7|duvida|dúvida|ajuda|pergunta|como|o que|como funciona|\?)/.test(lower);
 
     if (isGreeting) {
-      return res.json({ type: "user", reply: WHATSAPP_MENU(profile.full_name) });
+      return res.json({ type: "list", listData: WHATSAPP_MENU_LIST(profile.full_name), reply: WHATSAPP_MENU(profile.full_name) });
     }
 
     if (isOption1) {
@@ -2172,21 +2248,305 @@ api.post(
       });
       const emoji = kind === "income" ? "💚" : "❤️";
       const tipo = kind === "income" ? "Receita" : "Despesa";
-      return res.json({ type: "user", reply: `${emoji} *${tipo} registrada!*\n\n💰 ${brl(amount)} — ${category}\n✅ Salvo no FinanceZap!\n\nDigite *menu* para mais opções.` });
+      const appUrlQuick = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+      const todayQuick = new Date();
+      const dateQuickStr = todayQuick.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      return res.json({ type: "user", reply:
+        `✅ *${tipo} registrada automaticamente!* ${emoji}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `📌 *Descrição:* ${category}\n` +
+        `💰 *Valor:* ${brl(amount)}\n` +
+        `🏷️ *Categoria:* ${category}\n` +
+        `📅 *Data:* ${dateQuickStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 Acesse seu dashboard:\n${appUrlQuick}/insights/\n\n` +
+        `_Digite *menu* para ver todas as opções._`
+      });
     }
 
-    // Sem intenção detectada → envia menu com dica
-    return res.json({
-      type: "user",
-      reply: `Não entendi o que você quer fazer, *${profile.full_name}*. 🤔\n\nEscolha uma das opções abaixo:\n\n` +
-        `1️⃣ Extrato por período\n` +
-        `2️⃣ Lançar receita\n` +
-        `3️⃣ Lançar despesa\n` +
-        `4️⃣ Lançar no cartão de crédito\n` +
-        `5️⃣ Lançar investimento\n` +
-        `6️⃣ Ver saldo das contas\n` +
-        `7️⃣ Tirar uma dúvida\n\n` +
-        `_Digite apenas o número da opção (ex: *1* para extrato)._`,
+    // Sem intenção detectada → envia menu interativo
+    return res.json({ type: "list", listData: WHATSAPP_MENU_LIST(profile.full_name), reply: WHATSAPP_MENU(profile.full_name) });
+  })
+);
+
+// ─── Webhook: transação via ÁUDIO (Gemini transcreve + extrai) ───────────────
+api.post(
+  "/webhook/whatsapp-audio",
+  requireWebhookSecret,
+  asyncHandler(async (req, res) => {
+    const rawPhone = String(req.body?.phone || "").replace(/\D/g, "");
+    const pushName = req.body?.pushName || "você";
+    const audioBase64 = req.body?.audioBase64 || null;
+    const mimeType = req.body?.mimeType || "audio/ogg; codecs=opus";
+
+    if (!rawPhone || !audioBase64) {
+      return res.status(400).json({ error: "phone e audioBase64 são obrigatórios" });
+    }
+
+    const sb = getSupabase();
+
+    // Busca usuário
+    const phoneVariants = [rawPhone];
+    if (rawPhone.startsWith("55") && rawPhone.length > 10) phoneVariants.push(rawPhone.slice(2));
+    else phoneVariants.push("55" + rawPhone);
+
+    const { data: profiles } = await sb
+      .from("user_profiles")
+      .select("id, full_name, has_access")
+      .in("whatsapp_phone", phoneVariants)
+      .limit(1);
+    const profile = profiles?.[0] || null;
+
+    if (!profile || !profile.has_access) {
+      return res.json({ type: "user", reply: "Acesso não liberado. Entre em contato para ativar sua conta! 😊" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.json({ type: "user", reply: "Serviço de reconhecimento de voz temporariamente indisponível. Tente digitar sua transação." });
+
+    const firstName = (profile.full_name || pushName).split(" ")[0];
+    const brl = (v) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+    // Usa Gemini para transcrever e extrair dados da transação
+    const gemRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              { inlineData: { mimeType: mimeType.split(";")[0].trim(), data: audioBase64 } },
+              { text: `Você é um assistente financeiro. Transcreva o áudio e extraia informações de transação financeira.
+Se a pessoa mencionou um gasto, despesa, compra ou pagamento → kind = "expense".
+Se mencionou salário, receita, ganho ou entrada → kind = "income".
+Extraia o valor numérico e a categoria/descrição do que foi gasto ou recebido.
+
+Responda APENAS com um JSON válido neste formato exato:
+{
+  "transcript": "texto transcrito aqui",
+  "transaction": {
+    "kind": "expense",
+    "amount": 50.00,
+    "category": "Mercado"
+  }
+}
+
+Se não conseguir identificar uma transação financeira no áudio, responda:
+{"transcript": "...", "transaction": null}` }
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 400, temperature: 0.1 },
+        }),
+      }
+    );
+
+    const gemData = await gemRes.json();
+    const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    let parsed = null;
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch (_) { /* ignora erro de parse */ }
+
+    if (!parsed?.transaction) {
+      const transcript = parsed?.transcript || "Áudio recebido";
+      return res.json({ type: "user", reply:
+        `🎤 *Áudio recebido!*\n\n📝 _"${transcript}"_\n\n` +
+        `Hmm, não consegui identificar uma transação nesse áudio. 🤔\n\n` +
+        `Tente falar algo como:\n` +
+        `_"Gastei cinquenta reais no mercado"_ ou\n` +
+        `_"Recebi mil e quinhentos de salário"_\n\n` +
+        `Ou escolha uma opção no *menu*.`
+      });
+    }
+
+    const { kind, amount, category } = parsed.transaction;
+    const validAmount = parseFloat(amount);
+    if (!validAmount || validAmount <= 0) {
+      return res.json({ type: "user", reply: `🎤 Áudio recebido! Mas não consegui identificar o valor. Tente novamente ou use o *menu*.` });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const dateStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+
+    if (kind === "income") {
+      await sb.from("transactions").insert({
+        user_id: profile.id, kind: "income", category: category || "Receita",
+        amount: validAmount, occurred_on: today, source: "whatsapp",
+        description: parsed.transcript || category,
+      });
+      return res.json({ type: "user", reply:
+        `🎤 *Áudio processado com sucesso!*\n\n` +
+        `✅ *Receita registrada!* 💚\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `📌 *Descrição:* ${category || "Receita"}\n` +
+        `💰 *Valor:* ${brl(validAmount)}\n` +
+        `🏷️ *Categoria:* ${category || "Receita"}\n` +
+        `📅 *Data:* ${dateStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 ${appUrl}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
+    } else {
+      await sb.from("transactions").insert({
+        user_id: profile.id, kind: "expense", category: category || "Despesa",
+        amount: validAmount, occurred_on: today, source: "whatsapp",
+        description: parsed.transcript || category,
+      });
+      return res.json({ type: "user", reply:
+        `🎤 *Áudio processado com sucesso!*\n\n` +
+        `✅ *Despesa registrada!* ❤️\n\n` +
+        `━━━━━━━━━━━━━━━━━━━\n` +
+        `📌 *Descrição:* ${category || "Despesa"}\n` +
+        `💸 *Valor:* ${brl(validAmount)}\n` +
+        `🏷️ *Categoria:* ${category || "Despesa"}\n` +
+        `📅 *Data:* ${dateStr}\n` +
+        `━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📊 ${appUrl}/insights/\n\n` +
+        `_Se precisar de algo mais, é só chamar! 🎉_`
+      });
+    }
+  })
+);
+
+// ─── Webhook: transação via IMAGEM/comprovante (Gemini Vision) ────────────────
+api.post(
+  "/webhook/whatsapp-image",
+  requireWebhookSecret,
+  asyncHandler(async (req, res) => {
+    const rawPhone = String(req.body?.phone || "").replace(/\D/g, "");
+    const pushName = req.body?.pushName || "você";
+    const imageBase64 = req.body?.imageBase64 || null;
+    const mimeType = req.body?.mimeType || "image/jpeg";
+    const caption = req.body?.caption || "";
+
+    if (!rawPhone || !imageBase64) {
+      return res.status(400).json({ error: "phone e imageBase64 são obrigatórios" });
+    }
+
+    const sb = getSupabase();
+
+    const phoneVariants = [rawPhone];
+    if (rawPhone.startsWith("55") && rawPhone.length > 10) phoneVariants.push(rawPhone.slice(2));
+    else phoneVariants.push("55" + rawPhone);
+
+    const { data: profiles } = await sb
+      .from("user_profiles")
+      .select("id, full_name, has_access")
+      .in("whatsapp_phone", phoneVariants)
+      .limit(1);
+    const profile = profiles?.[0] || null;
+
+    if (!profile || !profile.has_access) {
+      return res.json({ type: "user", reply: "Acesso não liberado. Entre em contato para ativar sua conta! 😊" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.json({ type: "user", reply: "Serviço de análise de imagem temporariamente indisponível. Tente digitar sua transação." });
+
+    const brl = (v) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+    const captionHint = caption ? `\nO usuário também enviou a legenda: "${caption}"` : "";
+
+    // Usa Gemini Vision para analisar comprovante
+    const gemRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              { inlineData: { mimeType: mimeType.split(";")[0].trim(), data: imageBase64 } },
+              { text: `Você é um assistente financeiro. Analise esta imagem.${captionHint}
+
+Se for um comprovante de pagamento, recibo, nota fiscal, extrato ou qualquer documento financeiro:
+- Extraia o valor total pago
+- Identifique o estabelecimento/descrição
+- Classifique como despesa (pagamento) ou receita (recebimento)
+- Sugira uma categoria (ex: Mercado, Restaurante, Combustível, Saúde, Serviços, etc.)
+
+Responda APENAS com JSON válido:
+{
+  "isFinancial": true,
+  "kind": "expense",
+  "amount": 150.00,
+  "category": "Mercado",
+  "description": "Compra no Supermercado X",
+  "date": "2024-01-15"
+}
+
+Se NÃO for um documento financeiro, responda:
+{"isFinancial": false, "reason": "explicação"}`}
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 400, temperature: 0.1 },
+        }),
+      }
+    );
+
+    const gemData = await gemRes.json();
+    const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    let parsed = null;
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch (_) { /* ignora erro de parse */ }
+
+    if (!parsed?.isFinancial) {
+      return res.json({ type: "user", reply:
+        `📸 *Imagem recebida!*\n\n` +
+        `Hmm, não identifiquei um comprovante financeiro nessa imagem. 🤔\n\n` +
+        `Você pode enviar:\n` +
+        `📄 Comprovante de PIX\n` +
+        `🧾 Nota fiscal ou recibo\n` +
+        `📱 Print de pagamento\n` +
+        `💳 Extrato bancário\n\n` +
+        `Ou use o *menu* para lançar manualmente!`
+      });
+    }
+
+    const validAmount = parseFloat(parsed.amount);
+    if (!validAmount || validAmount <= 0) {
+      return res.json({ type: "user", reply: `📸 Comprovante recebido, mas não consegui identificar o valor claramente. Tente uma foto mais nítida ou use o *menu* para lançar manualmente.` });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const occurredOn = parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date) ? parsed.date : today;
+    const dateStr = new Date(occurredOn + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+    const kind = parsed.kind === "income" ? "income" : "expense";
+    const kindEmoji = kind === "income" ? "💚" : "❤️";
+    const kindLabel = kind === "income" ? "Receita" : "Despesa";
+    const valorLabel = kind === "income" ? "💰" : "💸";
+
+    await sb.from("transactions").insert({
+      user_id: profile.id,
+      kind,
+      category: parsed.category || (kind === "income" ? "Receita" : "Despesa"),
+      amount: validAmount,
+      occurred_on: occurredOn,
+      source: "whatsapp",
+      description: parsed.description || parsed.category || "Via comprovante",
+    });
+
+    return res.json({ type: "user", reply:
+      `📸 *Comprovante processado com sucesso!* ${kindEmoji}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━\n` +
+      `📌 *Descrição:* ${parsed.description || parsed.category}\n` +
+      `${valorLabel} *Valor:* ${brl(validAmount)}\n` +
+      `🏷️ *Categoria:* ${parsed.category}\n` +
+      `📅 *Data:* ${dateStr}\n` +
+      `✔️ *Tipo:* ${kindLabel}\n` +
+      `━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📊 Para visualizar mais detalhes e relatórios:\n${appUrl}/insights/\n\n` +
+      `_Se precisar de algo mais, é só chamar! 🎉_`
     });
   })
 );
