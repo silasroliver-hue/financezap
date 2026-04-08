@@ -121,7 +121,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
+              "value": "a1c7a81c51e3715a0f491f11f5d3ca2c"
             }
           ]
         },
@@ -143,7 +143,7 @@
             },
             {
               "name": "secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
+              "value": "a1c7a81c51e3715a0f491f11f5d3ca2c"
             }
           ]
         },
@@ -254,7 +254,7 @@
             },
             {
               "name": "x-webhook-secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
+              "value": "a1c7a81c51e3715a0f491f11f5d3ca2c"
             }
           ]
         },
@@ -276,7 +276,7 @@
             },
             {
               "name": "secret",
-              "value": "={{ $env.N8N_WEBHOOK_SECRET || $env.FINANCEZAP_WEBHOOK_SECRET || '' }}"
+              "value": "a1c7a81c51e3715a0f491f11f5d3ca2c"
             }
           ]
         },
