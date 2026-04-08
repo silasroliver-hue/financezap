@@ -1918,6 +1918,7 @@ api.post(
     // Helper: formata moeda
     const brl = (v) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
     const parseAmountInput = (value) => parseFloat(String(value || "").replace(",", ".").replace(/[^0-9.]/g, ""));
+    const appTodayYMD = () => accumulatedThroughYMD();
 
     // ── Detecta "cancelar" em qualquer estado
     if (["cancelar", "sair", "voltar", "menu", "cancel"].includes(lower)) {
@@ -1931,6 +1932,7 @@ api.post(
       if (!days || days < 1 || days > 365) {
         return res.json({ type: "user", reply: "Por favor, informe um número de dias válido (ex: *7*, *30*, *90*)." });
       }
+      const asOf = accumulatedThroughYMD();
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - days);
       const fromStr = fromDate.toISOString().slice(0, 10);
@@ -1940,6 +1942,7 @@ api.post(
         .select("kind, amount, category, occurred_on")
         .eq("user_id", profile.id)
         .gte("occurred_on", fromStr)
+        .lte("occurred_on", asOf)
         .order("occurred_on", { ascending: false })
         .limit(50);
 
@@ -1992,7 +1995,7 @@ api.post(
       const { data: tx } = await sb.from("transactions").insert({
         user_id: profile.id, kind: "income",
         category: ctx.category || "Receita", amount,
-        occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+        occurred_on: appTodayYMD(), source: "whatsapp",
       }).select().single();
       await clearSession();
       const today = new Date();
@@ -2047,7 +2050,7 @@ api.post(
       const { data: txExpense } = await sb.from("transactions").insert({
         user_id: profile.id, kind: "expense",
         category: ctx.category || "Despesa", amount: ctx.amount,
-        occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+        occurred_on: appTodayYMD(), source: "whatsapp",
         description: normalizeDescriptionForKind("expense", ctx.category || "Despesa", null),
         payment_method,
       }).select("id").single();
@@ -2187,7 +2190,7 @@ api.post(
         category: ctx.category,
         totalAmount: ctx.amount,
         installments,
-        purchaseDateStr: new Date().toISOString().slice(0, 10),
+        purchaseDateStr: appTodayYMD(),
       });
       await sb.from("credit_card_transactions").insert(ccRows);
       await clearSession();
@@ -2272,7 +2275,7 @@ api.post(
         const { kind, amount, category } = quick;
         const { data: quickTx } = await sb.from("transactions").insert({
           user_id: profile.id, kind, category, amount,
-          occurred_on: new Date().toISOString().slice(0, 10), source: "whatsapp",
+          occurred_on: appTodayYMD(), source: "whatsapp",
           description: normalizeDescriptionForKind(kind, category, text),
         }).select("id").single();
         const emoji = kind === "income" ? "💚" : "❤️";
