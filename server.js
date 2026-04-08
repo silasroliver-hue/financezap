@@ -2336,19 +2336,17 @@ api.post(
     }
 
     if (isOption5) {
-      const { data: accounts } = await sb.from("bank_accounts").select("name, balance").eq("user_id", profile.id).order("sort_order");
-      const { data: investments } = await sb.from("investments").select("broker_name, balance").eq("user_id", profile.id).order("sort_order");
-
-      const accLines = (accounts || []).map(a => `🏦 ${a.name}: *${brl(a.balance)}*`);
-      const invLines = (investments || []).map(i => `📈 ${i.broker_name}: *${brl(i.balance)}*`);
-      const totalAcc = (accounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
-      const totalInv = (investments || []).reduce((s, i) => s + Number(i.balance || 0), 0);
-
-      const lines = [...accLines, ...(invLines.length ? ["", ...invLines] : [])];
-      if (!lines.length) {
-        return res.json({ type: "user", reply: "Você ainda não cadastrou nenhuma conta. Acesse o dashboard para adicionar suas contas! 💡" });
-      }
-      return res.json({ type: "user", reply: `💰 *Saldo atual:*\n\n${lines.join("\n")}\n\n💳 Total contas: *${brl(totalAcc)}*\n📈 Total invest.: *${brl(totalInv)}*\n\n🏆 Patrimônio total: *${brl(totalAcc + totalInv)}*` });
+      const asOf = accumulatedThroughYMD();
+      const totals = await sumAccumulatedThroughDate(sb, asOf, profile.id);
+      return res.json({
+        type: "user",
+        reply:
+          `💰 *Saldo atual da conta única:*\n\n` +
+          `🏆 *${brl(totals.balanceTotalAllTime)}*\n\n` +
+          `📥 Receitas acumuladas: *${brl(totals.incomeTotalAllTime)}*\n` +
+          `📤 Despesas acumuladas: *${brl(totals.expenseTotalAllTime)}*\n` +
+          `📅 Atualizado até: *${asOf.split("-").reverse().join("/")}*`,
+      });
     }
 
     if (isOption6) {
