@@ -12,7 +12,10 @@
       "name": "Webhook Evolution API",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 400],
+      "position": [
+        240,
+        400
+      ],
       "webhookId": "financezap-whatsapp"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Parsear Mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 400]
+      "position": [
+        460,
+        400
+      ]
     },
     {
       "parameters": {
@@ -31,12 +37,20 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "skip",
-                    "operator": { "type": "string", "operation": "equals" },
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
                     "id": "skip-rule"
                   }
                 ],
@@ -45,12 +59,20 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "process",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -58,12 +80,20 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "audio",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -71,12 +101,20 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "image",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -84,13 +122,18 @@
             }
           ]
         },
-        "options": { "fallbackOutput": "extra" }
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "id": "4c54a862-e3b7-4ac3-bf66-4dbf6ff38cae",
       "name": "Roteador Principal",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [680, 400]
+      "position": [
+        680,
+        400
+      ]
     },
     {
       "parameters": {
@@ -102,7 +145,10 @@
       "name": "Respond Skip",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 160]
+      "position": [
+        900,
+        160
+      ]
     },
     {
       "parameters": {
@@ -111,21 +157,40 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json.phone }}" },
-            { "name": "text", "value": "={{ $json.text }}" },
-            { "name": "pushName", "value": "={{ $json.pushName }}" }
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "pushName",
+              "value": "={{ $json.pushName }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 25000
         }
       },
@@ -133,7 +198,10 @@
       "name": "Backend Chat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 400],
+      "position": [
+        900,
+        400
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -143,15 +211,25 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ message: JSON.parse($json.messageObject), convertToMp4: false }) }}",
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -159,7 +237,10 @@
       "name": "Download Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 560],
+      "position": [
+        900,
+        560
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -169,15 +250,25 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ message: JSON.parse($json.messageObject), convertToMp4: false }) }}",
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -185,7 +276,10 @@
       "name": "Download Imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 720],
+      "position": [
+        900,
+        720
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -196,7 +290,10 @@
       "name": "Preparar Audio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 560]
+      "position": [
+        1100,
+        560
+      ]
     },
     {
       "parameters": {
@@ -206,7 +303,10 @@
       "name": "Preparar Imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 720]
+      "position": [
+        1100,
+        720
+      ]
     },
     {
       "parameters": {
@@ -215,22 +315,44 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json.phone }}" },
-            { "name": "pushName", "value": "={{ $json.pushName }}" },
-            { "name": "audioBase64", "value": "={{ $json.audioBase64 }}" },
-            { "name": "mimeType", "value": "={{ $json.mimeType }}" }
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "pushName",
+              "value": "={{ $json.pushName }}"
+            },
+            {
+              "name": "audioBase64",
+              "value": "={{ $json.audioBase64 }}"
+            },
+            {
+              "name": "mimeType",
+              "value": "={{ $json.mimeType }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 40000
         }
       },
@@ -238,7 +360,10 @@
       "name": "Backend Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 560],
+      "position": [
+        1320,
+        560
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -248,23 +373,48 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json.phone }}" },
-            { "name": "pushName", "value": "={{ $json.pushName }}" },
-            { "name": "imageBase64", "value": "={{ $json.imageBase64 }}" },
-            { "name": "mimeType", "value": "={{ $json.mimeType }}" },
-            { "name": "caption", "value": "={{ $json.caption }}" }
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "pushName",
+              "value": "={{ $json.pushName }}"
+            },
+            {
+              "name": "imageBase64",
+              "value": "={{ $json.imageBase64 }}"
+            },
+            {
+              "name": "mimeType",
+              "value": "={{ $json.mimeType }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 40000
         }
       },
@@ -272,18 +422,24 @@
       "name": "Backend Imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 720],
+      "position": [
+        1320,
+        720
+      ],
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "jsCode": "// Roteia resposta do backend de audio ou imagem\nconst resp = $input.first().json;\nconst phone = $json.phone || '';\n\nconst reply = resp.reply || 'Nao consegui processar. Tente novamente!';\nreturn [{ json: { phone, msg: reply } }];\n"
+        "jsCode": "// Roteia resposta do backend de audio ou imagem com telefone seguro\nconst resp = $input.first().json || {};\n\nlet phone = '';\ntry {\n  phone = String($('Preparar Audio').first().json.phone || '').replace(/\\D/g, '');\n} catch (e) {}\nif (!phone) {\n  try {\n    phone = String($('Preparar Imagem').first().json.phone || '').replace(/\\D/g, '');\n  } catch (e) {}\n}\n\n// Normaliza para BR com DDI 55\nif (phone.length === 10 || phone.length === 11) {\n  phone = '55' + phone;\n}\n\n// Se não houver telefone, não tenta enviar para Evolution (evita 400)\nif (!phone || phone.length < 12) {\n  return [];\n}\n\nconst reply = String(resp.reply || 'Nao consegui processar. Tente novamente!').trim();\nreturn [{ json: { phone, msg: reply } }];"
       },
       "id": "mm33nn44-cccc-dddd-eeee-media-resposta",
       "name": "Processar Resposta Midia",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 640]
+      "position": [
+        1540,
+        640
+      ]
     },
     {
       "parameters": {
@@ -293,7 +449,10 @@
       "name": "Processar Resposta Chat",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 400]
+      "position": [
+        1120,
+        400
+      ]
     },
     {
       "parameters": {
@@ -301,12 +460,20 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "sales",
-                    "operator": { "type": "string", "operation": "equals" },
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
                     "id": "sales-rule"
                   }
                 ],
@@ -315,12 +482,20 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.action }}",
                     "rightValue": "send",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ],
                 "combinator": "and"
@@ -328,13 +503,18 @@
             }
           ]
         },
-        "options": { "fallbackOutput": "extra" }
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "id": "c3d4e5f6-3333-4444-5555-666677778888",
       "name": "Roteador Sales Send",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1340, 400]
+      "position": [
+        1340,
+        400
+      ]
     },
     {
       "parameters": {
@@ -343,21 +523,40 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-webhook-secret", "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ 'defina-um-segredo-longo-para-o-n8n' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json.phone }}" },
-            { "name": "message", "value": "={{ $json.text }}" },
-            { "name": "pushName", "value": "={{ $json.pushName }}" }
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "pushName",
+              "value": "={{ $json.pushName }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -365,7 +564,10 @@
       "name": "Agente IA Vendas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 280],
+      "position": [
+        1560,
+        280
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -376,7 +578,10 @@
       "name": "Formatar Resposta IA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 280]
+      "position": [
+        1780,
+        280
+      ]
     },
     {
       "parameters": {
@@ -385,25 +590,42 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "apikey", "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ '5B2DC42A9262-4C0C-8B33-E2B05465909E' }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "number", "value": "={{ $json.phone }}" },
-            { "name": "text", "value": "={{ $json.msg }}" }
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.msg }}"
+            }
           ]
         },
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "2ba1bc39-acd3-49ee-a81b-e7476af7a46f",
       "name": "Enviar Texto",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2000, 400],
+      "position": [
+        2000,
+        400
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -416,84 +638,259 @@
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2220, 400]
+      "position": [
+        2220,
+        400
+      ]
     }
   ],
   "pinData": {},
   "connections": {
     "Webhook Evolution API": {
-      "main": [[{ "node": "Parsear Mensagem", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parsear Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parsear Mensagem": {
-      "main": [[{ "node": "Roteador Principal", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Roteador Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Roteador Principal": {
       "main": [
-        [{ "node": "Respond Skip", "type": "main", "index": 0 }],
-        [{ "node": "Backend Chat", "type": "main", "index": 0 }],
-        [{ "node": "Download Audio", "type": "main", "index": 0 }],
-        [{ "node": "Download Imagem", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Backend Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Backend Chat": {
       "main": [
-        [{ "node": "Processar Resposta Chat", "type": "main", "index": 0 }],
-        [{ "node": "Processar Resposta Chat", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Processar Resposta Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Processar Resposta Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Download Audio": {
       "main": [
-        [{ "node": "Preparar Audio", "type": "main", "index": 0 }],
-        [{ "node": "Preparar Audio", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Preparar Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Download Imagem": {
       "main": [
-        [{ "node": "Preparar Imagem", "type": "main", "index": 0 }],
-        [{ "node": "Preparar Imagem", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Preparar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Preparar Audio": {
-      "main": [[{ "node": "Backend Audio", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Backend Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Preparar Imagem": {
-      "main": [[{ "node": "Backend Imagem", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Backend Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Backend Audio": {
       "main": [
-        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }],
-        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Processar Resposta Midia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Processar Resposta Midia",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Backend Imagem": {
       "main": [
-        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }],
-        [{ "node": "Processar Resposta Midia", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Processar Resposta Midia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Processar Resposta Midia",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Processar Resposta Midia": {
-      "main": [[{ "node": "Enviar Texto", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Processar Resposta Chat": {
-      "main": [[{ "node": "Roteador Sales Send", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Roteador Sales Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Roteador Sales Send": {
       "main": [
-        [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }],
-        [{ "node": "Enviar Texto", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Agente IA Vendas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Agente IA Vendas": {
       "main": [
-        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }],
-        [{ "node": "Formatar Resposta IA", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Formatar Resposta IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatar Resposta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Formatar Resposta IA": {
-      "main": [[{ "node": "Enviar Texto", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Enviar Texto": {
-      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,

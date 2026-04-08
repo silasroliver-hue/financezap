@@ -1776,15 +1776,14 @@ const WHATSAPP_MENU_LIST = (name) => ({
         { rowId: "2", title: "💚 Lançar receita", description: "Salário, freelance e outras entradas" },
         { rowId: "3", title: "❤️ Lançar despesa",  description: "Mercado, conta, transporte..." },
         { rowId: "4", title: "💳 Cartão de crédito", description: "Compras parceladas ou à vista" },
-        { rowId: "5", title: "📈 Investimento", description: "Atualizar saldo em banco ou corretora" },
       ],
     },
     {
       title: "📊 Consultas",
       rows: [
         { rowId: "1", title: "📊 Ver extrato", description: "Histórico de transações por período" },
-        { rowId: "6", title: "💰 Ver saldo", description: "Contas bancárias e investimentos" },
-        { rowId: "7", title: "🤔 Tirar dúvida", description: "Pergunte qualquer coisa sobre finanças" },
+        { rowId: "5", title: "💰 Saldo atual", description: "Resumo do saldo da conta" },
+        { rowId: "6", title: "🤔 Tirar dúvida", description: "Pergunte qualquer coisa sobre finanças" },
       ],
     },
   ],
@@ -1797,9 +1796,8 @@ const WHATSAPP_MENU = (name) =>
   `2️⃣ Lançar receita\n` +
   `3️⃣ Lançar despesa\n` +
   `4️⃣ Lançar no cartão de crédito\n` +
-  `5️⃣ Lançar investimento\n` +
-  `6️⃣ Ver saldo das contas\n` +
-  `7️⃣ Tirar uma dúvida\n\n` +
+  `5️⃣ Saldo atual\n` +
+  `6️⃣ Tirar uma dúvida\n\n` +
   `_💡 Dica: você também pode enviar um áudio ou foto de comprovante e eu registro automaticamente!_\n\n` +
   `_Digite o número da opção ou descreva o que quer fazer._`;
 
@@ -2099,39 +2097,21 @@ api.post(
 
     // ── Estado: aguardando banco do investimento
     if (state === "waiting_invest_broker") {
-      const broker = text.trim().slice(0, 120);
-      await saveSession("waiting_invest_amount", { broker });
-      return res.json({ type: "user", reply: `📈 Banco/corretora: *${broker}*\n\nAgora informe o *saldo atual* nessa conta (ex: 5000):` });
+      await clearSession();
+      return res.json({
+        type: "list",
+        listData: WHATSAPP_MENU_LIST(profile.full_name),
+        reply: "📌 A opção de investimento foi removida nesta versão.\n\nUse o menu para continuar.",
+      });
     }
 
     // ── Estado: aguardando valor do investimento
     if (state === "waiting_invest_amount") {
-      const balance = parseFloat(lower.replace(",", ".").replace(/[^0-9.]/g, ""));
-      if (!balance || balance < 0) {
-        return res.json({ type: "user", reply: "Valor inválido. Informe o saldo (ex: *5000* ou *5000,50*):" });
-      }
-      // Upsert investimento
-      const { data: existing } = await sb
-        .from("investments")
-        .select("id")
-        .eq("user_id", profile.id)
-        .ilike("broker_name", ctx.broker || "")
-        .single();
-      if (existing) {
-        await sb.from("investments").update({ balance, updated_at: new Date().toISOString() }).eq("id", existing.id);
-      } else {
-        await sb.from("investments").insert({ user_id: profile.id, broker_name: ctx.broker, balance, updated_at: new Date().toISOString() });
-      }
       await clearSession();
-      const appUrlInvest = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
-      return res.json({ type: "user", reply:
-        `✅ *Investimento atualizado com sucesso!* 📈\n\n` +
-        `━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 *Banco/Corretora:* ${ctx.broker}\n` +
-        `💰 *Saldo atual:* ${brl(balance)}\n` +
-        `━━━━━━━━━━━━━━━━━━━\n\n` +
-        `📊 Para acompanhar sua evolução patrimonial:\n${appUrlInvest}/insights/\n\n` +
-        `_Se precisar de algo mais, é só chamar! 🎉_`
+      return res.json({
+        type: "list",
+        listData: WHATSAPP_MENU_LIST(profile.full_name),
+        reply: "📌 A opção de investimento foi removida nesta versão.\n\nUse o menu para continuar.",
       });
     }
 
@@ -2164,9 +2144,8 @@ api.post(
     const isOption2 = /^(2|receita|entrada|recebi|ganhei|salario|salário)/.test(lower);
     const isOption3 = /^(3|despesa|gasto|saida|saída|paguei|gastei|comprei)/.test(lower);
     const isOption4 = /^(4|cartao|cartão|credito|crédito|fatura|visa|master)/.test(lower);
-    const isOption5 = /^(5|investimento|poupança|poupanca|aplicacao|aplicação)/.test(lower);
-    const isOption6 = /^(6|saldo|contas|conta|balance)/.test(lower);
-    const isOption7 = /^(7|duvida|dúvida|ajuda|pergunta|como|o que|como funciona|\?)/.test(lower);
+    const isOption5 = /^(5|saldo|saldo atual|contas|conta|balance)/.test(lower);
+    const isOption6 = /^(6|duvida|dúvida|ajuda|pergunta|como|o que|como funciona|\?)/.test(lower);
 
     if (isGreeting) {
       return res.json({ type: "list", listData: WHATSAPP_MENU_LIST(profile.full_name), reply: WHATSAPP_MENU(profile.full_name) });
@@ -2203,11 +2182,6 @@ api.post(
     }
 
     if (isOption5) {
-      await saveSession("waiting_invest_broker", {});
-      return res.json({ type: "user", reply: "📈 *Lançar investimento*\n\nQual banco ou corretora? (ex: Nubank, XP, Itaú)" });
-    }
-
-    if (isOption6) {
       const { data: accounts } = await sb.from("bank_accounts").select("name, balance").eq("user_id", profile.id).order("sort_order");
       const { data: investments } = await sb.from("investments").select("broker_name, balance").eq("user_id", profile.id).order("sort_order");
 
@@ -2220,10 +2194,10 @@ api.post(
       if (!lines.length) {
         return res.json({ type: "user", reply: "Você ainda não cadastrou nenhuma conta. Acesse o dashboard para adicionar suas contas! 💡" });
       }
-      return res.json({ type: "user", reply: `💰 *Saldo das suas contas:*\n\n${lines.join("\n")}\n\n💳 Total contas: *${brl(totalAcc)}*\n📈 Total invest.: *${brl(totalInv)}*\n\n🏆 Patrimônio total: *${brl(totalAcc + totalInv)}*` });
+      return res.json({ type: "user", reply: `💰 *Saldo atual:*\n\n${lines.join("\n")}\n\n💳 Total contas: *${brl(totalAcc)}*\n📈 Total invest.: *${brl(totalInv)}*\n\n🏆 Patrimônio total: *${brl(totalAcc + totalInv)}*` });
     }
 
-    if (isOption7) {
+    if (isOption6) {
       await saveSession("waiting_question", {});
       return res.json({ type: "user", reply: "🤔 Qual é a sua dúvida? Pode perguntar!" });
     }
