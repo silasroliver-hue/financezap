@@ -277,13 +277,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Roteia resposta do backend (texto, list, audio, imagem) ─────────────────\nconst resp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\n// Erros de rede/timeout\nif ($input.first().json.error && !resp.type) {\n  return [{ json: { action: 'send', phone: parsed.phone, msg: '⚠️ Serviço temporariamente indisponível. Tente novamente em instantes.' } }];\n}\n\nconst type = resp.type || 'user';\n\n// Usuário não registrado → vai para agente de vendas\nif (type === 'sales') {\n  return [{ json: { action: 'sales', phone: parsed.phone, text: parsed.text, pushName: parsed.pushName } }];\n}\n\n// Menu interativo como List Message\nif (type === 'list' && resp.listData) {\n  return [{ json: { action: 'list', phone: parsed.phone, listData: resp.listData } }];\n}\n\n// Usuário registrado → envia resposta direta\nconst reply = resp.reply || 'Olá! Como posso ajudar?';\nreturn [{ json: { action: 'send', phone: parsed.phone, msg: reply } }];\n"
+        "jsCode": "// ── Roteia resposta do backend ──────────────────────────────────────────────\nconst resp = $input.first().json;\nconst parsed = $('Parsear Mensagem').first().json;\n\n// Erros de rede/timeout\nif ($input.first().json.error && !resp.type) {\n  return [{ json: { action: 'send', phone: parsed.phone, msg: '⚠️ Serviço temporariamente indisponível. Tente novamente em instantes.' } }];\n}\n\nconst type = resp.type || 'user';\n\n// Usuário não registrado → vai para agente de vendas\nif (type === 'sales') {\n  return [{ json: { action: 'sales', phone: parsed.phone, text: parsed.text, pushName: parsed.pushName } }];\n}\n\n// Menu (list) → envia como texto formatado (sendList da Evolution é instável)\nif (type === 'list') {\n  const menuText = resp.reply || 'Olá! Como posso ajudar?';\n  return [{ json: { action: 'send', phone: parsed.phone, msg: menuText } }];\n}\n\n// Usuário registrado → envia resposta direta\nconst reply = resp.reply || 'Olá! Como posso ajudar?';\nreturn [{ json: { action: 'send', phone: parsed.phone, msg: reply } }];\n"
       },
       "id": "b2c3d4e5-2222-3333-4444-555566667777",
       "name": "Processar Resposta Chat",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 400]
+      "position": [1120, 400],
+      "notes": "type=list → usa reply (texto) como fallback confiável"
     },
     {
       "parameters": {
@@ -325,26 +326,13 @@
                 ],
                 "combinator": "and"
               }
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "list",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              }
             }
           ]
         },
         "options": { "fallbackOutput": "extra" }
       },
       "id": "c3d4e5f6-3333-4444-5555-666677778888",
-      "name": "Roteador Sales/Send/List",
+      "name": "Roteador Sales/Send",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [1340, 400]
@@ -513,11 +501,10 @@
     "Processar Resposta Chat": {
       "main": [[{ "node": "Roteador Sales/Send/List", "type": "main", "index": 0 }]]
     },
-    "Roteador Sales/Send/List": {
+    "Roteador Sales/Send": {
       "main": [
         [{ "node": "Agente IA Vendas", "type": "main", "index": 0 }],
-        [{ "node": "Enviar Texto", "type": "main", "index": 0 }],
-        [{ "node": "Enviar Lista (Menu)", "type": "main", "index": 0 }]
+        [{ "node": "Enviar Texto", "type": "main", "index": 0 }]
       ]
     },
     "Agente IA Vendas": {
@@ -532,9 +519,6 @@
     "Enviar Texto": {
       "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
     },
-    "Enviar Lista (Menu)": {
-      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
-    }
   },
   "active": true,
   "settings": {
