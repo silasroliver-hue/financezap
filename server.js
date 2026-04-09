@@ -632,6 +632,83 @@ api.patch(
   })
 );
 
+api.get(
+  "/profile/initial-balance-status",
+  authOnly,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("user_profiles")
+      .select("*")
+      .eq("id", req.userId)
+      .single();
+    if (error) throw error;
+    const initialBalanceSetAt = data?.initial_balance_set_at || null;
+    res.json({
+      needs_initial_balance: !initialBalanceSetAt,
+      initial_balance_set_at: initialBalanceSetAt,
+      initial_balance_amount: data?.initial_balance_amount ?? null,
+    });
+  })
+);
+
+api.post(
+  "/profile/initial-balance",
+  authOnly,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+
+    const { data: profile, error: profileErr } = await sb
+      .from("user_profiles")
+      .select("*")
+      .eq("id", req.userId)
+      .single();
+    if (profileErr) throw profileErr;
+    if (!profile) return res.status(404).json({ error: "Perfil não encontrado" });
+
+    if (profile.initial_balance_set_at) {
+      return res.json({ ok: true, already_set: true });
+    }
+
+    const skip = req.body?.skip === true;
+    let parsedAmount = null;
+
+    if (!skip) {
+      const amount = Number(req.body?.amount);
+      if (!Number.isFinite(amount)) {
+        return res.status(400).json({ error: "amount inválido" });
+      }
+      if (Math.abs(amount) > 999999999) {
+        return res.status(400).json({ error: "amount fora do limite permitido" });
+      }
+      parsedAmount = Number(amount.toFixed(2));
+    }
+
+    if (!skip && parsedAmount !== 0) {
+      await sb.from("transactions").insert({
+        user_id: req.userId,
+        kind: parsedAmount >= 0 ? "income" : "expense",
+        category: "Saldo inicial",
+        amount: Math.abs(parsedAmount),
+        occurred_on: accumulatedThroughYMD(),
+        source: "api",
+        description: "Saldo inicial definido no primeiro acesso",
+      });
+    }
+
+    const { error: updateErr } = await sb
+      .from("user_profiles")
+      .update({
+        initial_balance_set_at: new Date().toISOString(),
+        initial_balance_amount: skip ? null : parsedAmount,
+      })
+      .eq("id", req.userId);
+    if (updateErr) throw updateErr;
+
+    res.json({ ok: true, skipped: skip, amount: skip ? null : parsedAmount });
+  })
+);
+
 // ─── Admin: liberar acesso manualmente ────────────────────────────────────
 
 api.post(

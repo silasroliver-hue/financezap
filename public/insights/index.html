@@ -179,6 +179,13 @@
       margin-top: 1rem;
     }
 
+    .initial-balance-note {
+      margin: .2rem 0 .85rem;
+      font-size: .82rem;
+      color: var(--dash-muted);
+      line-height: 1.5;
+    }
+
     .credit-radar-card {
       border: 1px solid #c7f9e5;
       background: linear-gradient(145deg, #f7fffb 0%, #ecfdf5 62%, #ffffff 100%);
@@ -430,6 +437,25 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-initial-balance">
+    <div class="modal-card">
+      <h3>Defina seu saldo inicial</h3>
+      <p class="initial-balance-note">
+        Esse passo aparece apenas no primeiro acesso. O valor informado será usado como base do seu saldo acumulado.
+      </p>
+      <form id="form-initial-balance">
+        <div class="dash-form-row">
+          <label for="ib-amount">Saldo inicial (R$)</label>
+          <input id="ib-amount" type="number" step="0.01" placeholder="Ex.: 1500.00 (use negativo se necessário)" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="dash-btn dash-btn-ghost" id="btn-initial-balance-skip">Agora não</button>
+          <button type="submit" class="dash-btn dash-btn-primary" id="btn-initial-balance-save">Salvar e continuar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="/js/auth.js"></script>
   <script src="js/api.js"></script>
@@ -454,6 +480,11 @@
     const kindEl = document.getElementById("m-kind");
     const normalFields = document.getElementById("normal-fields");
     const cardFields = document.getElementById("card-fields");
+    const initialBalanceModal = document.getElementById("modal-initial-balance");
+    const initialBalanceForm = document.getElementById("form-initial-balance");
+    const initialBalanceInput = document.getElementById("ib-amount");
+    const initialBalanceSaveBtn = document.getElementById("btn-initial-balance-save");
+    const initialBalanceSkipBtn = document.getElementById("btn-initial-balance-skip");
 
     function esc(value) {
       const div = document.createElement("div");
@@ -490,6 +521,19 @@
 
     function closeModal() {
       document.getElementById("modal-lancamento").classList.remove("open");
+    }
+
+    function openInitialBalanceModal() {
+      if (!initialBalanceModal) return;
+      initialBalanceModal.classList.add("open");
+      document.body.style.overflow = "hidden";
+      if (initialBalanceInput) initialBalanceInput.focus();
+    }
+
+    function closeInitialBalanceModal() {
+      if (!initialBalanceModal) return;
+      initialBalanceModal.classList.remove("open");
+      document.body.style.overflow = "";
     }
 
     async function loadCategories(targetId, kind) {
@@ -797,6 +841,73 @@
       renderCreditRadar(creditOverview || { cards: [], months: [] });
     }
 
+    async function maybeAskInitialBalance() {
+      let status = null;
+      try {
+        status = await apiFetch("/profile/initial-balance-status");
+      } catch (_err) {
+        try {
+          const profile = await apiFetch("/profile");
+          status = {
+            needs_initial_balance: !profile?.initial_balance_set_at,
+            initial_balance_set_at: profile?.initial_balance_set_at || null,
+            initial_balance_amount: profile?.initial_balance_amount ?? null,
+          };
+        } catch (_err2) {
+          return;
+        }
+      }
+      if (!status || !status.needs_initial_balance) return;
+
+      return new Promise((resolve) => {
+        const finish = async (fn) => {
+          initialBalanceSaveBtn.disabled = true;
+          initialBalanceSkipBtn.disabled = true;
+          try {
+            await fn();
+            closeInitialBalanceModal();
+            resolve();
+          } catch (err) {
+            showAlert(err.message || "Nao foi possivel salvar o saldo inicial.");
+          } finally {
+            initialBalanceSaveBtn.disabled = false;
+            initialBalanceSkipBtn.disabled = false;
+          }
+        };
+
+        const onSubmit = (event) => {
+          event.preventDefault();
+          const amount = Number(initialBalanceInput.value);
+          if (!Number.isFinite(amount)) {
+            showAlert("Informe um valor valido para o saldo inicial.");
+            return;
+          }
+          finish(async () => {
+            await apiFetch("/profile/initial-balance", {
+              method: "POST",
+              body: JSON.stringify({ amount }),
+            });
+            showAlert("Saldo inicial salvo com sucesso.", "ok");
+            await loadDashboard();
+          });
+        };
+
+        const onSkip = () => {
+          finish(async () => {
+            await apiFetch("/profile/initial-balance", {
+              method: "POST",
+              body: JSON.stringify({ skip: true }),
+            });
+            showAlert("Tudo certo. Você pode definir esse valor depois em Movimentacoes.", "ok");
+          });
+        };
+
+        initialBalanceForm.addEventListener("submit", onSubmit, { once: true });
+        initialBalanceSkipBtn.addEventListener("click", onSkip, { once: true });
+        openInitialBalanceModal();
+      });
+    }
+
     document.getElementById("form-lancamento").addEventListener("submit", submitLaunch);
     kindEl.addEventListener("change", onKindChange);
     document.getElementById("btn-apply-range").addEventListener("click", () => {
@@ -821,6 +932,7 @@
         document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
         await onKindChange();
         await loadDashboard();
+        await maybeAskInitialBalance();
       } catch (err) {
         showAlert(err.message || "Nao foi possivel carregar o dashboard.");
       }
