@@ -1413,6 +1413,28 @@
     }, { threshold: 0.3 });
     dashObs.observe(dash);
   }
+
+  // ── Captura UTM / ref do link de influenciador ──────────────────────────
+  (function captureUtm() {
+    const p = new URLSearchParams(window.location.search);
+    const ref = p.get('ref');
+    const src = p.get('utm_source');
+    if (ref) localStorage.setItem('fz_ref', ref);
+    if (src) localStorage.setItem('fz_utm_source', src);
+
+    // Propaga ref em todos os links de checkout da página
+    if (ref || src) {
+      const qs = new URLSearchParams();
+      if (ref) qs.set('ref', ref);
+      if (src) qs.set('utm_source', src);
+      document.querySelectorAll('a[href*="/checkout"]').forEach(a => {
+        const url = new URL(a.href);
+        if (ref) url.searchParams.set('ref', ref);
+        if (src) url.searchParams.set('utm_source', src);
+        a.href = url.toString();
+      });
+    }
+  })();
 </script>
 </body>
 </html>
