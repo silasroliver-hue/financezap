@@ -141,13 +141,16 @@
       return;
     }
 
-    // Salva celular e email no perfil após cadastro
+    // Salva celular, email e UTM no perfil após cadastro
     try {
       const headers = await getAuthHeader();
+      const p = new URLSearchParams(window.location.search);
+      const ref = p.get('ref') || localStorage.getItem('fz_ref') || null;
+      const src = p.get('utm_source') || localStorage.getItem('fz_utm_source') || null;
       await insightApiFetch('/profile', {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ whatsapp_phone: rawPhone, email }),
+        body: JSON.stringify({ whatsapp_phone: rawPhone, email, utm_slug: ref, utm_source: src }),
       });
     } catch (_) {}
   });

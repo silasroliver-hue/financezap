@@ -328,6 +328,15 @@
     document.getElementById("alert-success").classList.remove("visible");
   }
 
+  // Captura e persiste parâmetros UTM/ref no localStorage
+  (function captureUtm() {
+    const p = new URLSearchParams(window.location.search);
+    const ref = p.get('ref');
+    const source = p.get('utm_source');
+    if (ref) localStorage.setItem('fz_ref', ref);
+    if (source) localStorage.setItem('fz_utm_source', source);
+  })();
+
   async function submitCheckout() {
     clearAlerts();
     const name = document.getElementById("name").value.trim();
@@ -341,11 +350,14 @@
     btn.disabled = true;
     btn.textContent = "Enviando...";
 
+    const utm_slug   = localStorage.getItem('fz_ref') || null;
+    const utm_source = localStorage.getItem('fz_utm_source') || null;
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, whatsapp_phone: whatsapp, email: email || null }),
+        body: JSON.stringify({ name, whatsapp_phone: whatsapp, email: email || null, utm_slug, utm_source }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao enviar");

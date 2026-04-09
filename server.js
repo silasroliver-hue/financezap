@@ -610,6 +610,13 @@ api.patch(
         patch[key] = req.body[key] != null ? String(req.body[key]).trim().slice(0, 200) : null;
       }
     }
+    // Salva UTM somente se ainda não tem (primeira vez)
+    if (req.body?.utm_slug && !patch.utm_slug) {
+      patch.utm_slug = String(req.body.utm_slug).slice(0, 100);
+    }
+    if (req.body?.utm_source && !patch.utm_source) {
+      patch.utm_source = String(req.body.utm_source).slice(0, 100);
+    }
     if (!Object.keys(patch).length) {
       return res.status(400).json({ error: "Nenhum campo válido enviado" });
     }
@@ -1276,7 +1283,7 @@ api.post(
 api.post(
   "/checkout",
   asyncHandler(async (req, res) => {
-    const { name, whatsapp_phone, email, notes } = req.body || {};
+    const { name, whatsapp_phone, email, notes, utm_slug, utm_source } = req.body || {};
     if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "name obrigatório" });
     }
@@ -1294,6 +1301,8 @@ api.post(
         email: email ? String(email).trim().slice(0, 200) : null,
         amount: price,
         notes: notes ? String(notes).slice(0, 500) : null,
+        utm_slug: utm_slug ? String(utm_slug).slice(0, 100) : null,
+        utm_source: utm_source ? String(utm_source).slice(0, 100) : null,
       })
       .select("id, name, whatsapp_phone, amount, created_at")
       .single();
@@ -1729,7 +1738,7 @@ api.get(
 
     const { data: profiles, error } = await sb
       .from("user_profiles")
-      .select("id, full_name, whatsapp_phone, email, has_access, paid_at, created_at")
+      .select("id, full_name, whatsapp_phone, email, has_access, paid_at, created_at, utm_slug, utm_source")
       .order("created_at", { ascending: false });
     if (error) throw error;
 
@@ -1871,6 +1880,7 @@ app.get("/r/:slug", asyncHandler(async (req, res) => {
   if (data.utm_content) params.set("utm_content", data.utm_content);
   if (data.utm_term) params.set("utm_term", data.utm_term);
 
+  params.set("ref", data.slug);
   const destination = `${data.base_url}?${params.toString()}`;
   res.redirect(302, destination);
 }));
