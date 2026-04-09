@@ -91,6 +91,12 @@ body.dash-body {
   margin: 0;
 }
 
+.dash-sidebar-logo-img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
 .dash-sidebar-logo-icon {
   width: 34px; height: 34px;
   border-radius: 9px;

@@ -253,11 +253,11 @@ async function signUp(email, password, fullName) {
   return {};
 }
 
-/** Logout e redirect para landing. */
+/** Logout e redirect para login. */
 async function logout() {
   const sb = getSupabaseClient();
   await sb.auth.signOut();
-  window.location.href = "/";
+  window.location.href = "https://financezap.thesilasstudio.com.br/login";
 }
 
 /** Exibe paywall inline (substitui o conteúdo main). */

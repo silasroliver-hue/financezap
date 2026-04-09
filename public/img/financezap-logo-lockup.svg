@@ -1,0 +1,12 @@
+<svg width="372" height="122" viewBox="0 0 372 122" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="372" height="122" fill="#091739"/>
+  <rect x="40" y="20" width="68" height="68" rx="18" fill="url(#fzGrad)"/>
+  <text x="74" y="63" text-anchor="middle" dominant-baseline="middle" font-size="29">💰</text>
+  <text x="127" y="62" fill="#F8FAFC" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="48" font-weight="800">FinanceZap</text>
+  <defs>
+    <linearGradient id="fzGrad" x1="40" y1="20" x2="108" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+</svg>
