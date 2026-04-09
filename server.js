@@ -1761,14 +1761,38 @@ api.get(
       }
     }
 
-    const users = (profiles || []).map(p => ({
+    const activeUsers = (profiles || []).map(p => ({
       ...p,
       tx_count: txCountMap[p.id] || 0,
       last_activity: txLastMap[p.id] || null,
       influencer_name: p.utm_slug ? (slugToName[p.utm_slug] || p.utm_slug) : null,
     }));
 
-    res.json(users);
+    // Inclui pagamentos confirmados cuja conta ainda não foi ativada
+    const { data: confirmedPmts } = await sb
+      .from("pending_payments")
+      .select("id, name, whatsapp_phone, email, created_at, utm_slug, utm_source")
+      .eq("status", "confirmed");
+
+    const existingPhones = new Set((profiles || []).map(p => p.whatsapp_phone));
+    const unactivated = (confirmedPmts || [])
+      .filter(p => !existingPhones.has(p.whatsapp_phone))
+      .map(p => ({
+        id: p.id,
+        full_name: p.name,
+        whatsapp_phone: p.whatsapp_phone,
+        email: p.email,
+        has_access: false,
+        pending_activation: true,
+        created_at: p.created_at,
+        tx_count: 0,
+        last_activity: null,
+        utm_slug: p.utm_slug,
+        utm_source: p.utm_source,
+        influencer_name: p.utm_slug ? (slugToName[p.utm_slug] || p.utm_slug) : null,
+      }));
+
+    res.json([...activeUsers, ...unactivated]);
   })
 );
 
