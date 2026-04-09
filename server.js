@@ -1283,85 +1283,22 @@ api.post(
 api.post(
   "/checkout",
   asyncHandler(async (req, res) => {
-    const { name, whatsapp_phone, email, notes, utm_slug, utm_source } = req.body || {};
-    if (!name || typeof name !== "string" || !name.trim()) {
+    const { name, whatsapp_phone, email, password, notes, utm_slug, utm_source } = req.body || {};
+
+    // Validações
+    if (!name || typeof name !== "string" || !name.trim())
       return res.status(400).json({ error: "name obrigatório" });
-    }
     const rawPhone = String(whatsapp_phone || "").replace(/\D/g, "");
-    if (!rawPhone || rawPhone.length < 10) {
+    if (!rawPhone || rawPhone.length < 10)
       return res.status(400).json({ error: "whatsapp_phone inválido" });
-    }
-    const price = Number(process.env.PRICE || 97);
+    if (!email || !String(email).includes("@"))
+      return res.status(400).json({ error: "email inválido" });
+    if (!password || String(password).length < 6)
+      return res.status(400).json({ error: "senha deve ter ao menos 6 caracteres" });
+
     const sb = getSupabase();
-    const { data, error } = await sb
-      .from("pending_payments")
-      .insert({
-        name: name.trim().slice(0, 200),
-        whatsapp_phone: rawPhone,
-        email: email ? String(email).trim().slice(0, 200) : null,
-        amount: price,
-        notes: notes ? String(notes).slice(0, 500) : null,
-        utm_slug: utm_slug ? String(utm_slug).slice(0, 100) : null,
-        utm_source: utm_source ? String(utm_source).slice(0, 100) : null,
-      })
-      .select("id, name, whatsapp_phone, amount, created_at")
-      .single();
-    if (error) throw error;
-    res.status(201).json({ ok: true, payment: data });
-  })
-);
 
-// ─── Ativação: validar token e criar conta ─────────────────────────────────
-
-api.get(
-  "/activate",
-  asyncHandler(async (req, res) => {
-    const token = String(req.query.token || "").trim();
-    if (!token) return res.status(400).json({ error: "token obrigatório" });
-    const sb = getSupabase();
-    const { data, error } = await sb
-      .from("pending_payments")
-      .select("id, name, whatsapp_phone, email, status")
-      .eq("activation_token", token)
-      .single();
-    if (error || !data) return res.status(404).json({ error: "Token inválido ou expirado" });
-    if (data.status === "pending") return res.status(402).json({ error: "Pagamento ainda não confirmado" });
-    if (data.status === "cancelled") return res.status(410).json({ error: "Este link foi cancelado. Entre em contato com o suporte." });
-    // Aceita 'confirmed' e 'activated' (retry após falha parcial)
-    res.json({ ok: true, name: data.name, whatsapp_phone: data.whatsapp_phone, email: data.email });
-  })
-);
-
-api.post(
-  "/activate",
-  asyncHandler(async (req, res) => {
-    const { token, email: rawEmail, password } = req.body || {};
-    if (!token || !password) {
-      return res.status(400).json({ error: "token e password são obrigatórios" });
-    }
-    // Se email vazio, gera email interno a partir do telefone (preenchido após buscar payment)
-    let email = rawEmail ? String(rawEmail).trim() : "";
-    if (String(password).length < 6) {
-      return res.status(400).json({ error: "Senha deve ter ao menos 6 caracteres" });
-    }
-    const sb = getSupabase();
-    const { data: pmt, error: pErr } = await sb
-      .from("pending_payments")
-      .select("*")
-      .eq("activation_token", token)
-      .single();
-    if (pErr || !pmt) return res.status(404).json({ error: "Token inválido" });
-    if (pmt.status === "pending") return res.status(402).json({ error: "Pagamento não confirmado" });
-    if (pmt.status === "cancelled") return res.status(410).json({ error: "Pagamento cancelado. Entre em contato com o suporte." });
-    // Aceita 'confirmed' e 'activated' (retry após falha parcial)
-
-    // Se email vazio, gera email interno a partir do telefone
-    if (!email) {
-      const phone = String(pmt.whatsapp_phone).replace(/\D/g, "");
-      email = `fz_${phone}@users.financezap.app`;
-    }
-
-    // Cria usuário no Supabase Auth via admin API
+    // Cria conta no Supabase Auth (has_access = false por padrão)
     const authRes = await fetch(
       `${process.env.SUPABASE_URL}/auth/v1/admin/users`,
       {
@@ -1372,59 +1309,55 @@ api.post(
           "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
-          email,
-          password,
+          email: String(email).trim(),
+          password: String(password),
           email_confirm: true,
-          user_metadata: { full_name: pmt.name },
+          user_metadata: { full_name: name.trim() },
         }),
       }
     );
     const authData = await authRes.json();
-
-    let userId;
     if (!authRes.ok) {
-      const errMsg = String(authData?.msg || authData?.message || "");
-      // Se email já existe, recupera o usuário existente e continua
-      const emailTaken = /already registered|already been registered|email.*exist/i.test(errMsg);
-      if (!emailTaken) {
-        return res.status(400).json({ error: errMsg || JSON.stringify(authData) });
-      }
-      // Busca o userId pelo email via admin API
-      const listRes = await fetch(
-        `${process.env.SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
-        {
-          headers: {
-            "apikey": process.env.SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      const listData = await listRes.json();
-      const existing = (listData.users || []).find(u => u.email === email);
-      if (!existing) return res.status(400).json({ error: "Email já cadastrado. Use outro email ou faça login." });
-      userId = existing.id;
-    } else {
-      userId = authData.id;
+      const msg = authData?.msg || authData?.message || "";
+      if (/already registered|already been registered/i.test(msg))
+        return res.status(409).json({ error: "Este email já está cadastrado. Faça login em financezap.thesilasstudio.com.br/login" });
+      return res.status(400).json({ error: msg || "Erro ao criar conta" });
     }
+    const userId = authData.id;
 
-    // Cria/atualiza perfil com has_access = true (propaga UTM do pagamento)
+    // Cria user_profiles com has_access = false
     await sb.from("user_profiles").upsert({
       id: userId,
-      full_name: pmt.name,
-      whatsapp_phone: pmt.whatsapp_phone,
-      has_access: true,
-      paid_at: new Date().toISOString(),
-      payment_ref: pmt.id,
-      ...(pmt.utm_slug   && { utm_slug:   pmt.utm_slug }),
-      ...(pmt.utm_source && { utm_source: pmt.utm_source }),
+      full_name: name.trim().slice(0, 200),
+      whatsapp_phone: rawPhone,
+      email: String(email).trim().slice(0, 200),
+      has_access: false,
+      utm_slug: utm_slug ? String(utm_slug).slice(0, 100) : null,
+      utm_source: utm_source ? String(utm_source).slice(0, 100) : null,
     });
 
-    // Marca token como usado (activated = conta criada com sucesso)
-    await sb.from("pending_payments").update({ status: "activated" }).eq("id", pmt.id);
-
-    res.json({ ok: true, message: "Conta criada! Faça login para acessar o dashboard." });
+    // Registra pagamento pendente vinculado ao usuário
+    const price = Number(process.env.PRICE || 97);
+    const { data, error } = await sb
+      .from("pending_payments")
+      .insert({
+        name: name.trim().slice(0, 200),
+        whatsapp_phone: rawPhone,
+        email: String(email).trim().slice(0, 200),
+        amount: price,
+        notes: notes ? String(notes).slice(0, 500) : null,
+        utm_slug: utm_slug ? String(utm_slug).slice(0, 100) : null,
+        utm_source: utm_source ? String(utm_source).slice(0, 100) : null,
+        user_id: userId,
+      })
+      .select("id, name, whatsapp_phone, amount, created_at")
+      .single();
+    if (error) throw error;
+    res.status(201).json({ ok: true, payment: data });
   })
 );
+
+// Nota: rotas /activate removidas — conta é criada no checkout agora
 
 // ─── Admin: pagamentos pendentes e confirmação ─────────────────────────────
 
@@ -1466,6 +1399,7 @@ api.post(
     if (pErr || !pmt) return res.status(404).json({ error: "Pagamento não encontrado" });
     if (pmt.status !== "pending") return res.status(409).json({ error: "Pagamento já processado" });
 
+    // Marca pagamento como confirmado
     const { data, error } = await sb
       .from("pending_payments")
       .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
@@ -1474,17 +1408,23 @@ api.post(
       .single();
     if (error) throw error;
 
-    const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
-    const activationLink = `${appUrl}/ativar?token=${data.activation_token}`;
-    const guiaLink = `${appUrl}/guia`;
+    // Libera acesso do usuário (busca pelo telefone ou user_id)
+    const profileFilter = data.user_id
+      ? sb.from("user_profiles").update({ has_access: true, paid_at: new Date().toISOString(), payment_ref: data.id }).eq("id", data.user_id)
+      : sb.from("user_profiles").update({ has_access: true, paid_at: new Date().toISOString(), payment_ref: data.id }).eq("whatsapp_phone", data.whatsapp_phone);
+    await profileFilter;
 
-    // Garante código do país 55 no telefone
+    const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
+    const loginLink = `${appUrl}/login`;
+    const guiaLink  = `${appUrl}/guia`;
+
     let whatsappPhone = String(data.whatsapp_phone).replace(/\D/g, "");
     if (!whatsappPhone.startsWith("55")) whatsappPhone = "55" + whatsappPhone;
 
     const whatsappMsg =
       `🎉 Olá, ${data.name}! Seu pagamento foi confirmado!\n\n` +
-      `👉 Crie sua conta aqui:\n${activationLink}\n\n` +
+      `✅ Seu acesso está liberado!\n\n` +
+      `👉 Acesse agora:\n${loginLink}\n\n` +
       `📖 Guia de uso:\n${guiaLink}\n\n` +
       `Dúvidas? É só chamar aqui! 😊`;
 
@@ -1502,21 +1442,11 @@ api.post(
       }
     }
 
-    // Enviar email de ativação
-    let emailResult = { ok: false, reason: "no_email" };
-    if (data.email) {
-      const emailHtml = buildActivationEmail(data.name, activationLink, guiaLink);
-      emailResult = await sendEmail({ to: data.email, subject: "🎉 Seu acesso ao FinanceZap está pronto!", html: emailHtml });
-      console.log("📧 Email result for", data.email, ":", JSON.stringify(emailResult));
-    } else {
-      console.warn("⚠️ Sem email no pending_payment id:", req.params.id);
-    }
-
-    res.json({ ok: true, payment: data, emailResult });
+    res.json({ ok: true, payment: data });
   })
 );
 
-// ─── Admin: reenviar WhatsApp + Email de ativação ─────────────────────────
+// ─── Admin: reenviar mensagem de acesso ──────────────────────────────────
 
 api.post(
   "/admin/resend-activation/:id",
@@ -1532,20 +1462,19 @@ api.post(
     if (data.status !== "confirmed") return res.status(400).json({ error: "Pagamento não está confirmado" });
 
     const appUrl = process.env.APP_URL || "https://financezap.thesilasstudio.com.br";
-    const activationLink = `${appUrl}/ativar?token=${data.activation_token}`;
-    const guiaLink = `${appUrl}/guia`;
+    const loginLink = `${appUrl}/login`;
+    const guiaLink  = `${appUrl}/guia`;
 
     let whatsappPhone = String(data.whatsapp_phone).replace(/\D/g, "");
     if (!whatsappPhone.startsWith("55")) whatsappPhone = "55" + whatsappPhone;
 
     const results = { whatsapp: false, email: false };
 
-    // Reenviar WhatsApp
     const sendUrl = process.env.N8N_SEND_WHATSAPP_URL;
     if (sendUrl) {
       const whatsappMsg =
-        `🎉 Olá, ${data.name}! Reenviando seu link de ativação:\n\n` +
-        `👉 Crie sua conta aqui:\n${activationLink}\n\n` +
+        `🎉 Olá, ${data.name}! Seu acesso ao FinanceZap está liberado!\n\n` +
+        `👉 Acesse agora:\n${loginLink}\n\n` +
         `📖 Guia de uso:\n${guiaLink}\n\n` +
         `Dúvidas? É só chamar aqui! 😊`;
       try {
@@ -1558,13 +1487,6 @@ api.post(
       } catch (e) {
         console.warn("Resend WhatsApp error:", e.message);
       }
-    }
-
-    // Reenviar Email
-    if (data.email) {
-      const emailHtml = buildActivationEmail(data.name, activationLink, guiaLink);
-      const emailResult = await sendEmail({ to: data.email, subject: "🎉 Seu acesso ao FinanceZap está pronto!", html: emailHtml });
-      results.email = emailResult.ok;
     }
 
     res.json({ ok: true, results });
@@ -1788,38 +1710,14 @@ api.get(
       }
     }
 
-    const activeUsers = (profiles || []).map(p => ({
+    const users = (profiles || []).map(p => ({
       ...p,
       tx_count: txCountMap[p.id] || 0,
       last_activity: txLastMap[p.id] || null,
       influencer_name: p.utm_slug ? (slugToName[p.utm_slug] || p.utm_slug) : null,
     }));
 
-    // Inclui pagamentos confirmados cuja conta ainda não foi ativada
-    const { data: confirmedPmts } = await sb
-      .from("pending_payments")
-      .select("id, name, whatsapp_phone, email, created_at, utm_slug, utm_source")
-      .eq("status", "confirmed");
-
-    const existingPhones = new Set((profiles || []).map(p => p.whatsapp_phone));
-    const unactivated = (confirmedPmts || [])
-      .filter(p => !existingPhones.has(p.whatsapp_phone))
-      .map(p => ({
-        id: p.id,
-        full_name: p.name,
-        whatsapp_phone: p.whatsapp_phone,
-        email: p.email,
-        has_access: false,
-        pending_activation: true,
-        created_at: p.created_at,
-        tx_count: 0,
-        last_activity: null,
-        utm_slug: p.utm_slug,
-        utm_source: p.utm_source,
-        influencer_name: p.utm_slug ? (slugToName[p.utm_slug] || p.utm_slug) : null,
-      }));
-
-    res.json([...activeUsers, ...unactivated]);
+    res.json(users);
   })
 );
 

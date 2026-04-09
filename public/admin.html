@@ -292,8 +292,7 @@
       <div class="tabs">
         <button class="tab active" onclick="switchUserTab('all')"     id="utab-all">Todos</button>
         <button class="tab"        onclick="switchUserTab('active')"  id="utab-active">✓ Com acesso</button>
-        <button class="tab"        onclick="switchUserTab('waiting')" id="utab-waiting">⏳ Aguardando ativação</button>
-        <button class="tab"        onclick="switchUserTab('blocked')" id="utab-blocked">✕ Sem acesso</button>
+        <button class="tab"        onclick="switchUserTab('blocked')" id="utab-blocked">⏳ Aguardando confirmação</button>
       </div>
 
       <div class="card" style="padding:0">
@@ -328,7 +327,6 @@
       <div class="tabs">
         <button class="tab active" onclick="switchPayTab('pending')">⏳ Pendentes</button>
         <button class="tab"        onclick="switchPayTab('confirmed')">✓ Confirmados</button>
-        <button class="tab"        onclick="switchPayTab('activated')">🎉 Ativados</button>
         <button class="tab"        onclick="switchPayTab('cancelled')">✕ Cancelados</button>
       </div>
 
@@ -658,7 +656,7 @@ async function loadUsers() {
 
 function switchUserTab(tab) {
   currentUserTab = tab;
-  ['all','active','waiting','blocked'].forEach(t => {
+  ['all','active','blocked'].forEach(t => {
     document.getElementById(`utab-${t}`).classList.toggle('active', t === tab);
   });
   renderUsers();
@@ -669,9 +667,8 @@ function filterUsers() { renderUsers(); }
 function renderUsers() {
   const search = (document.getElementById('user-search').value || '').toLowerCase();
   let rows = allUsers;
-  if (currentUserTab === 'active')  rows = rows.filter(u => u.has_access && !u.pending_activation);
-  if (currentUserTab === 'blocked') rows = rows.filter(u => !u.has_access && !u.pending_activation);
-  if (currentUserTab === 'waiting') rows = rows.filter(u => u.pending_activation);
+  if (currentUserTab === 'active')  rows = rows.filter(u => u.has_access);
+  if (currentUserTab === 'blocked') rows = rows.filter(u => !u.has_access);
   if (search) {
     rows = rows.filter(u =>
       (u.full_name||'').toLowerCase().includes(search) ||
@@ -685,27 +682,22 @@ function renderUsers() {
     return;
   }
   tbody.innerHTML = rows.map(u => {
-    const isPendingActivation = !!u.pending_activation;
-    const badge = isPendingActivation
-      ? '<span class="badge-waiting">⏳ Aguardando ativação</span>'
-      : u.has_access
-        ? '<span class="badge badge-active">✓ Ativo</span>'
-        : '<span class="badge badge-blocked">✕ Bloqueado</span>';
-    const actions = isPendingActivation
-      ? `<button class="btn btn-blue btn-sm" onclick="resendActivation('${u.id}')">🔄 Reenviar link</button>`
-      : u.has_access
-        ? `<button class="btn btn-danger btn-sm" onclick="revokeAccess('${u.id}','${esc(u.full_name||'')}')">Revogar</button>`
-        : `<button class="btn btn-primary btn-sm" onclick="grantAccess('${u.id}','${esc(u.full_name||'')}')">Liberar</button>`;
+    const badge = u.has_access
+      ? '<span class="badge badge-active">✓ Ativo</span>'
+      : '<span class="badge badge-pending">⏳ Aguardando</span>';
+    const actions = u.has_access
+      ? `<button class="btn btn-danger btn-sm" onclick="revokeAccess('${u.id}','${esc(u.full_name||'')}')">Revogar</button>`
+      : `<button class="btn btn-primary btn-sm" onclick="grantAccess('${u.id}','${esc(u.full_name||'')}')">Liberar</button>`;
     const utmBadge = u.influencer_name
       ? `<span class="badge-utm" title="via ${esc(u.utm_source||u.utm_slug||'')}">🔗 ${esc(u.influencer_name)}</span>`
       : '<span style="color:var(--slate-light);font-size:.78rem;font-weight:600">FinanceZap</span>';
-    return `<tr style="${isPendingActivation ? 'opacity:.8' : ''}">
+    return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:.6rem">
-          <div class="avatar" style="${isPendingActivation ? 'background:rgba(245,158,11,.2);color:#FCD34D' : ''}">${(u.full_name||'?')[0].toUpperCase()}</div>
+          <div class="avatar">${(u.full_name||'?')[0].toUpperCase()}</div>
           <div>
             <div style="font-weight:600">${esc(u.full_name||'—')}</div>
-            <div class="user-meta">${isPendingActivation ? 'Pagamento confirmado · conta não criada' : `ID: ${u.id.slice(0,8)}…`}</div>
+            <div class="user-meta">ID: ${u.id.slice(0,8)}…</div>
           </div>
         </div>
       </td>
@@ -766,7 +758,7 @@ async function loadPayments() {
 function switchPayTab(tab) {
   currentPayTab = tab;
   document.querySelectorAll('#page-payments .tab').forEach((t, i) => {
-    t.classList.toggle('active', ['pending','confirmed','activated','cancelled'][i] === tab);
+    t.classList.toggle('active', ['pending','confirmed','cancelled'][i] === tab);
   });
   loadPayments();
 }
@@ -783,8 +775,6 @@ function renderPayments(rows) {
       ? '<span class="badge badge-pending">⏳ Pendente</span>'
       : r.status === 'confirmed'
       ? '<span class="badge badge-confirmed">✓ Confirmado</span>'
-      : r.status === 'activated'
-      ? '<span class="badge badge-active">🎉 Ativado</span>'
       : '<span class="badge badge-cancelled">✕ Cancelado</span>';
     const activationLink = r.activation_token ? `${appUrl}/ativar?token=${r.activation_token}` : null;
     let actions = '';
