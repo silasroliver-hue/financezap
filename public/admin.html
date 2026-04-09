@@ -533,7 +533,7 @@ function showPage(page) {
     const n = document.getElementById(`nav-${p}`);
     if (n) n.classList.toggle('active', p === page);
   });
-  if (page === 'users' && allUsers.length === 0) loadUsers();
+  if (page === 'users') loadUsers();
   if (page === 'payments') loadPayments();
   if (page === 'links') loadLinks();
 }

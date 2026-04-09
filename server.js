@@ -1407,7 +1407,7 @@ api.post(
       userId = authData.id;
     }
 
-    // Cria/atualiza perfil com has_access = true
+    // Cria/atualiza perfil com has_access = true (propaga UTM do pagamento)
     await sb.from("user_profiles").upsert({
       id: userId,
       full_name: pmt.name,
@@ -1415,6 +1415,8 @@ api.post(
       has_access: true,
       paid_at: new Date().toISOString(),
       payment_ref: pmt.id,
+      ...(pmt.utm_slug   && { utm_slug:   pmt.utm_slug }),
+      ...(pmt.utm_source && { utm_source: pmt.utm_source }),
     });
 
     // Marca token como usado (activated = conta criada com sucesso)
