@@ -66,7 +66,53 @@ function numCell(v) {
   return null;
 }
 
-async function importDadosMensais(sb, wb) {
+function normText(v) {
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+async function resolveTargetUserId(sb) {
+  const byId = (process.env.IMPORT_USER_ID || "").trim();
+  if (byId) return byId;
+
+  const byName = (process.env.IMPORT_USER_NAME || "").trim();
+  if (!byName) {
+    throw new Error("Defina IMPORT_USER_ID ou IMPORT_USER_NAME para importar no usuário correto.");
+  }
+
+  const { data, error } = await sb
+    .from("user_profiles")
+    .select("id, full_name")
+    .ilike("full_name", `%${byName}%`)
+    .limit(20);
+  if (error) throw new Error(`Falha ao buscar usuário em user_profiles: ${error.message}`);
+  if (!data?.length) throw new Error(`Usuário não encontrado por nome: "${byName}"`);
+
+  const wanted = normText(byName);
+  const exact = data.find((u) => normText(u.full_name) === wanted);
+  if (exact) return exact.id;
+
+  const wantedTokens = wanted.split(/\s+/).filter(Boolean);
+  const tokenMatch = data.find((u) => {
+    const full = normText(u.full_name);
+    return wantedTokens.every((t) => full.includes(t));
+  });
+  if (tokenMatch) return tokenMatch.id;
+
+  if (data.length > 1) {
+    const names = data.map((u) => `"${u.full_name || "(sem nome)"}"`).join(", ");
+    throw new Error(
+      `Mais de um usuário encontrado para "${byName}". Defina IMPORT_USER_ID para evitar ambiguidade. Candidatos: ${names}`
+    );
+  }
+
+  return data[0].id;
+}
+
+async function importDadosMensais(sb, wb, userId) {
   if (process.env.IMPORT_SKIP_DADOS_MENSAIS === "1") {
     console.log("DADOS MENSAIS: ignorado (IMPORT_SKIP_DADOS_MENSAIS=1).");
     return;
@@ -151,6 +197,7 @@ async function importDadosMensais(sb, wb) {
       if (amount < 0.005) continue;
       const dd = String(month).padStart(2, "0");
       transactions.push({
+        user_id: userId,
         kind,
         category: account.slice(0, 200),
         amount,
@@ -166,7 +213,11 @@ async function importDadosMensais(sb, wb) {
     return;
   }
 
-  const { error: delErr } = await sb.from("transactions").delete().eq("source", "import");
+  const { error: delErr } = await sb
+    .from("transactions")
+    .delete()
+    .eq("source", "import")
+    .eq("user_id", userId);
   if (delErr) {
     console.error("DADOS MENSAIS: ao limpar import anterior:", delErr.message);
     return;
@@ -192,6 +243,8 @@ async function main() {
     process.exit(1);
   }
   const sb = createClient(url, key, { auth: { persistSession: false } });
+  const userId = await resolveTargetUserId(sb);
+  console.log("Usuário alvo (user_id):", userId);
   console.log(
     "Dica: DADOS MENSAIS substitui lançamentos com source=import. Investimentos/contas/potes duplicam se você repetir o import completo em banco já preenchido.\n"
   );
@@ -199,7 +252,7 @@ async function main() {
   const wb = XLSX.readFile(xlsxPath, { cellDates: true });
   console.log("Abas:", wb.SheetNames.join(", "));
 
-  await importDadosMensais(sb, wb);
+  await importDadosMensais(sb, wb, userId);
 
   const invSheet = wb.Sheets["INVESTIMENTOS"];
   if (invSheet) {
@@ -215,9 +268,16 @@ async function main() {
       }
     }
     if (investments.length) {
-      const { error } = await sb.from("investments").insert(investments);
-      if (error) console.error("Investimentos:", error.message);
-      else console.log("Investimentos inseridos:", investments.length);
+      const { error: clearInvErr } = await sb.from("investments").delete().eq("user_id", userId);
+      if (clearInvErr) {
+        console.error("Investimentos (limpeza):", clearInvErr.message);
+      } else {
+        const { error } = await sb
+          .from("investments")
+          .insert(investments.map((i) => ({ ...i, user_id: userId })));
+        if (error) console.error("Investimentos:", error.message);
+        else console.log("Investimentos inseridos:", investments.length);
+      }
     }
   }
 
@@ -256,7 +316,19 @@ async function main() {
         templates.push({ name, default_amount, sort_order: templates.length });
       }
       if (templates.length) {
-        const { data: inserted, error: e1 } = await sb.from("recurring_bills").insert(templates).select();
+        const { error: clearPaymentsErr } = await sb.from("bill_payments").delete().eq("user_id", userId);
+        if (clearPaymentsErr) {
+          console.error("Pagamentos (limpeza):", clearPaymentsErr.message);
+        }
+        const { error: clearBillsErr } = await sb.from("recurring_bills").delete().eq("user_id", userId);
+        if (clearBillsErr) {
+          console.error("Contas (limpeza):", clearBillsErr.message);
+        }
+
+        const { data: inserted, error: e1 } = await sb
+          .from("recurring_bills")
+          .insert(templates.map((t) => ({ ...t, user_id: userId })))
+          .select();
         if (e1) console.error("Contas:", e1.message);
         else {
           console.log("Contas recorrentes:", inserted.length);
@@ -277,6 +349,7 @@ async function main() {
                 const val = row[colStart + 1];
                 const default_amount = typeof val === "number" ? val : Number(val) || 0;
                 payments.push({
+                  user_id: userId,
                   bill_id: billId,
                   year: y,
                   month: m,
@@ -322,7 +395,7 @@ async function main() {
       pots.push({ name: label, percent: pct, sort_order: pots.length });
     }
     if (pots.length) {
-      const { data: existing } = await sb.from("budget_pots").select("id");
+      const { data: existing } = await sb.from("budget_pots").select("id").eq("user_id", userId);
       if (existing?.length) {
         await sb.from("budget_pots").delete().in(
           "id",
@@ -331,6 +404,7 @@ async function main() {
       }
       const { error } = await sb.from("budget_pots").insert(
         pots.map((p, i) => ({
+          user_id: userId,
           name: p.name,
           percent: p.percent,
           sort_order: i,

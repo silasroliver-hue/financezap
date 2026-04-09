@@ -1143,6 +1143,33 @@ api.post(
   })
 );
 
+api.patch(
+  "/bills/template/:id",
+  authRequired,
+  asyncHandler(async (req, res) => {
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "id obrigatório" });
+
+    const { due_day } = req.body || {};
+    const due = due_day != null && due_day !== "" ? Number(due_day) : null;
+    if (due != null && (!Number.isInteger(due) || due < 1 || due > 31)) {
+      return res.status(400).json({ error: "due_day inválido (1-31)" });
+    }
+
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("recurring_bills")
+      .update({ due_day: due })
+      .eq("id", id)
+      .eq("user_id", req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Conta não encontrada" });
+    res.json(data);
+  })
+);
+
 api.get(
   "/bills/notifications/next-day",
   requireWebhookSecret,
