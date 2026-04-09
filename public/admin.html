@@ -687,9 +687,9 @@ function renderUsers() {
     const actions = u.has_access
       ? `<button class="btn btn-danger btn-sm" onclick="revokeAccess('${u.id}','${esc(u.full_name||'')}')">Revogar</button>`
       : `<button class="btn btn-primary btn-sm" onclick="grantAccess('${u.id}','${esc(u.full_name||'')}')">Liberar</button>`;
-    const utmBadge = u.utm_slug
-      ? `<span class="badge-utm" title="utm_source: ${esc(u.utm_source||'')}">🔗 ${esc(u.utm_slug)}</span>`
-      : '<span style="color:var(--slate);font-size:.75rem">—</span>';
+    const utmBadge = u.influencer_name
+      ? `<span class="badge-utm" title="via ${esc(u.utm_source||u.utm_slug||'')}">🔗 ${esc(u.influencer_name)}</span>`
+      : '<span style="color:var(--slate-light);font-size:.78rem;font-weight:600">FinanceZap</span>';
     return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:.6rem">
@@ -721,6 +721,11 @@ async function grantAccess(userId, name) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showMsg('success', `✓ Acesso liberado para ${name}`);
+    // Muda para aba "Todos" para o usuário não sumir da lista
+    currentUserTab = 'all';
+    ['all','active','blocked'].forEach(t => {
+      document.getElementById(`utab-${t}`).classList.toggle('active', t === 'all');
+    });
     loadUsers();
     loadAll();
   } catch(e) { showMsg('error', e.message); }

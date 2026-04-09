@@ -1742,6 +1742,11 @@ api.get(
       .order("created_at", { ascending: false });
     if (error) throw error;
 
+    // Mapa slug → nome do influenciador
+    const { data: utmLinks } = await sb.from("utm_links").select("slug, name");
+    const slugToName = {};
+    for (const l of utmLinks || []) slugToName[l.slug] = l.name;
+
     // Contagem de transações por usuário + última atividade
     const { data: txData } = await sb
       .from("transactions")
@@ -1760,6 +1765,7 @@ api.get(
       ...p,
       tx_count: txCountMap[p.id] || 0,
       last_activity: txLastMap[p.id] || null,
+      influencer_name: p.utm_slug ? (slugToName[p.utm_slug] || p.utm_slug) : null,
     }));
 
     res.json(users);
