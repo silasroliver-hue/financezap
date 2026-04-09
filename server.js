@@ -1646,11 +1646,11 @@ api.get(
       sb.from("pending_payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
 
-    // Receita total (pagamentos confirmados)
+    // Receita total (pagamentos confirmados + ativados = vendas efetivadas)
     const { data: revenueData } = await sb
       .from("pending_payments")
-      .select("amount")
-      .eq("status", "confirmed");
+      .select("amount, status")
+      .in("status", ["confirmed", "activated"]);
     const total_revenue = (revenueData || []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
     // Usuários ativos últimos 7 dias (transações recentes)
