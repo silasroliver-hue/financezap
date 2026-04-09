@@ -1325,7 +1325,9 @@ api.get(
       .eq("activation_token", token)
       .single();
     if (error || !data) return res.status(404).json({ error: "Token inválido ou expirado" });
-    if (data.status !== "confirmed") return res.status(402).json({ error: "Pagamento ainda não confirmado" });
+    if (data.status === "pending") return res.status(402).json({ error: "Pagamento ainda não confirmado" });
+    if (data.status === "cancelled") return res.status(410).json({ error: "Este link foi cancelado. Entre em contato com o suporte." });
+    // Aceita 'confirmed' e 'activated' (retry após falha parcial)
     res.json({ ok: true, name: data.name, whatsapp_phone: data.whatsapp_phone, email: data.email });
   })
 );
@@ -1349,7 +1351,9 @@ api.post(
       .eq("activation_token", token)
       .single();
     if (pErr || !pmt) return res.status(404).json({ error: "Token inválido" });
-    if (pmt.status !== "confirmed") return res.status(402).json({ error: "Pagamento não confirmado" });
+    if (pmt.status === "pending") return res.status(402).json({ error: "Pagamento não confirmado" });
+    if (pmt.status === "cancelled") return res.status(410).json({ error: "Pagamento cancelado. Entre em contato com o suporte." });
+    // Aceita 'confirmed' e 'activated' (retry após falha parcial)
 
     // Se email vazio, gera email interno a partir do telefone
     if (!email) {
@@ -1413,8 +1417,8 @@ api.post(
       payment_ref: pmt.id,
     });
 
-    // Marca token como usado (cancela para evitar reuso)
-    await sb.from("pending_payments").update({ status: "cancelled" }).eq("id", pmt.id);
+    // Marca token como usado (activated = conta criada com sucesso)
+    await sb.from("pending_payments").update({ status: "activated" }).eq("id", pmt.id);
 
     res.json({ ok: true, message: "Conta criada! Faça login para acessar o dashboard." });
   })
@@ -1593,11 +1597,11 @@ api.post(
       .from("pending_payments")
       .update({ status: "pending" })
       .eq("id", req.params.id)
-      .eq("status", "cancelled")
+      .in("status", ["cancelled", "activated"])
       .select()
       .single();
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: "Não encontrado ou não está cancelado" });
+    if (!data) return res.status(404).json({ error: "Não encontrado" });
     res.json({ ok: true, payment: data });
   })
 );

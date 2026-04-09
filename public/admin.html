@@ -328,6 +328,7 @@
       <div class="tabs">
         <button class="tab active" onclick="switchPayTab('pending')">⏳ Pendentes</button>
         <button class="tab"        onclick="switchPayTab('confirmed')">✓ Confirmados</button>
+        <button class="tab"        onclick="switchPayTab('activated')">🎉 Ativados</button>
         <button class="tab"        onclick="switchPayTab('cancelled')">✕ Cancelados</button>
       </div>
 
@@ -765,7 +766,7 @@ async function loadPayments() {
 function switchPayTab(tab) {
   currentPayTab = tab;
   document.querySelectorAll('#page-payments .tab').forEach((t, i) => {
-    t.classList.toggle('active', ['pending','confirmed','cancelled'][i] === tab);
+    t.classList.toggle('active', ['pending','confirmed','activated','cancelled'][i] === tab);
   });
   loadPayments();
 }
@@ -782,6 +783,8 @@ function renderPayments(rows) {
       ? '<span class="badge badge-pending">⏳ Pendente</span>'
       : r.status === 'confirmed'
       ? '<span class="badge badge-confirmed">✓ Confirmado</span>'
+      : r.status === 'activated'
+      ? '<span class="badge badge-active">🎉 Ativado</span>'
       : '<span class="badge badge-cancelled">✕ Cancelado</span>';
     const activationLink = r.activation_token ? `${appUrl}/ativar?token=${r.activation_token}` : null;
     let actions = '';
