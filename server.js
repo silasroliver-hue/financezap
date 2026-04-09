@@ -1757,6 +1757,124 @@ api.get(
   })
 );
 
+// ─── Admin: UTM Links ─────────────────────────────────────────────────────
+
+api.get(
+  "/admin/utm-links",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("utm_links")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  })
+);
+
+api.post(
+  "/admin/utm-links",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { name, slug, utm_source, utm_medium, utm_campaign, utm_content, utm_term, base_url, notes } = req.body;
+    if (!name || !slug || !utm_source) {
+      return res.status(400).json({ error: "name, slug e utm_source são obrigatórios" });
+    }
+    const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("utm_links")
+      .insert({
+        name: name.trim(),
+        slug: cleanSlug,
+        utm_source: utm_source.trim(),
+        utm_medium: (utm_medium || "influencer").trim(),
+        utm_campaign: (utm_campaign || "lancamento").trim(),
+        utm_content: utm_content?.trim() || null,
+        utm_term: utm_term?.trim() || null,
+        base_url: (base_url || "https://financezap.thesilasstudio.com.br").trim(),
+        notes: notes?.trim() || null,
+      })
+      .select()
+      .single();
+    if (error) {
+      if (error.code === "23505") return res.status(409).json({ error: "Slug já existe. Use outro identificador." });
+      throw error;
+    }
+    res.json(data);
+  })
+);
+
+api.patch(
+  "/admin/utm-links/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { name, slug, utm_source, utm_medium, utm_campaign, utm_content, utm_term, base_url, notes } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name.trim();
+    if (slug !== undefined) updates.slug = slug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+    if (utm_source !== undefined) updates.utm_source = utm_source.trim();
+    if (utm_medium !== undefined) updates.utm_medium = utm_medium.trim();
+    if (utm_campaign !== undefined) updates.utm_campaign = utm_campaign.trim();
+    if (utm_content !== undefined) updates.utm_content = utm_content?.trim() || null;
+    if (utm_term !== undefined) updates.utm_term = utm_term?.trim() || null;
+    if (base_url !== undefined) updates.base_url = base_url.trim();
+    if (notes !== undefined) updates.notes = notes?.trim() || null;
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("utm_links")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) {
+      if (error.code === "23505") return res.status(409).json({ error: "Slug já existe. Use outro identificador." });
+      throw error;
+    }
+    res.json(data);
+  })
+);
+
+api.delete(
+  "/admin/utm-links/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const sb = getSupabase();
+    const { error } = await sb.from("utm_links").delete().eq("id", id);
+    if (error) throw error;
+    res.json({ ok: true });
+  })
+);
+
+// ─── Redirect UTM: /r/:slug ────────────────────────────────────────────────
+
+app.get("/r/:slug", asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("utm_links")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+  if (error || !data) return res.redirect(302, "https://financezap.thesilasstudio.com.br");
+
+  // Incrementa click_count (fire-and-forget)
+  sb.from("utm_links").update({ click_count: (data.click_count || 0) + 1 }).eq("id", data.id).then(() => {});
+
+  const params = new URLSearchParams();
+  params.set("utm_source", data.utm_source);
+  params.set("utm_medium", data.utm_medium);
+  params.set("utm_campaign", data.utm_campaign);
+  if (data.utm_content) params.set("utm_content", data.utm_content);
+  if (data.utm_term) params.set("utm_term", data.utm_term);
+
+  const destination = `${data.base_url}?${params.toString()}`;
+  res.redirect(302, destination);
+}));
+
 // ─── Webhook: verificar usuário por telefone (para n8n) ───────────────────
 
 api.post(

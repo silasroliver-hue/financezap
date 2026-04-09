@@ -200,6 +200,12 @@
         <span class="icon">💳</span> Pagamentos
       </button>
     </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Marketing</div>
+      <button class="nav-item" onclick="showPage('links')" id="nav-links">
+        <span class="icon">🔗</span> Links UTM
+      </button>
+    </div>
   </nav>
 
   <!-- Content -->
@@ -343,7 +349,108 @@
       </div>
     </div>
 
+    <!-- ── PAGE: Links UTM ── -->
+    <div id="page-links" style="display:none">
+      <div class="section-head">
+        <div>
+          <div class="page-title">Links UTM</div>
+          <div class="page-sub">Gerencie links rastreados para cada influenciador</div>
+        </div>
+        <button class="btn btn-primary" onclick="openLinkModal()">+ Novo link</button>
+      </div>
+
+      <!-- Resumo de cliques -->
+      <div class="kpi-grid" id="utm-kpi-grid" style="margin-bottom:1.5rem"></div>
+
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Influenciador</th>
+                <th>Slug / Link curto</th>
+                <th>UTM Source</th>
+                <th>Campanha</th>
+                <th>Cliques</th>
+                <th>Criado em</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="links-tbody">
+              <tr><td colspan="7" class="empty">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
+</div>
+
+<!-- ── Modal: Link UTM ── -->
+<div id="link-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+  <div style="background:var(--navy-light);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:540px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div style="font-size:1rem;font-weight:800" id="modal-title">Novo Link UTM</div>
+      <button onclick="closeLinkModal()" style="background:none;border:none;color:var(--slate-light);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+
+    <input type="hidden" id="link-id" />
+
+    <div style="display:grid;gap:.75rem">
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">Nome / Influenciador *</label>
+        <input id="link-name" class="form-input" placeholder="Ex: João Silva" />
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">Slug (identificador curto) *</label>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.82rem;color:var(--slate-light);white-space:nowrap">/r/</span>
+          <input id="link-slug" class="form-input" placeholder="joao-silva" oninput="sanitizeSlug(this)" />
+        </div>
+        <div style="font-size:.72rem;color:var(--slate);margin-top:.3rem">Apenas letras, números e hífens. Será usado na URL curta.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">UTM Source *</label>
+          <input id="link-source" class="form-input" placeholder="instagram" />
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">UTM Medium</label>
+          <input id="link-medium" class="form-input" value="influencer" placeholder="influencer" />
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">UTM Campaign</label>
+          <input id="link-campaign" class="form-input" value="lancamento" placeholder="lancamento" />
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">UTM Content</label>
+          <input id="link-content" class="form-input" placeholder="stories, reels, feed…" />
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">URL Base</label>
+        <input id="link-baseurl" class="form-input" value="https://financezap.thesilasstudio.com.br" />
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">Observações internas</label>
+        <input id="link-notes" class="form-input" placeholder="Ex: parceria paga, 10% comissão…" />
+      </div>
+
+      <!-- Preview da URL -->
+      <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:.75rem 1rem">
+        <div style="font-size:.68rem;font-weight:700;color:var(--emerald);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem">Preview da URL final</div>
+        <div id="url-preview" style="font-size:.75rem;color:#94A3B8;word-break:break-all;line-height:1.5">—</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeLinkModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLink()" id="save-link-btn">Salvar link</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -351,6 +458,7 @@ let ADMIN_SECRET = "";
 let currentPayTab = "pending";
 let currentUserTab = "all";
 let allUsers = [];
+let allLinks = [];
 let signupChart = null;
 let txChart = null;
 
@@ -414,13 +522,14 @@ function handleUnauth() {
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function showPage(page) {
-  ['dashboard','users','payments'].forEach(p => {
+  ['dashboard','users','payments','links'].forEach(p => {
     document.getElementById(`page-${p}`).style.display = p === page ? 'block' : 'none';
     const n = document.getElementById(`nav-${p}`);
     if (n) n.classList.toggle('active', p === page);
   });
   if (page === 'users' && allUsers.length === 0) loadUsers();
   if (page === 'payments') loadPayments();
+  if (page === 'links') loadLinks();
 }
 
 // ── Load All ───────────────────────────────────────────────────────────────
@@ -445,6 +554,7 @@ function refreshAll() {
   loadAll();
   if (document.getElementById('page-users').style.display !== 'none') loadUsers();
   if (document.getElementById('page-payments').style.display !== 'none') loadPayments();
+  if (document.getElementById('page-links').style.display !== 'none') loadLinks();
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────────
@@ -735,6 +845,202 @@ async function resendActivation(id) {
     showMsg('success', msgs.length ? `✓ Reenviado via ${msgs.join(' e ')}!` : '⚠️ Nenhum canal enviou (verifique configs).');
   } catch(e) { showMsg('error', e.message); }
 }
+
+// ── UTM Links ──────────────────────────────────────────────────────────────
+
+async function loadLinks() {
+  document.getElementById('links-tbody').innerHTML = '<tr><td colspan="7" class="empty">Carregando...</td></tr>';
+  try {
+    const res = await apiAdmin('/admin/utm-links');
+    if (res.status === 401) { handleUnauth(); return; }
+    allLinks = await res.json();
+    renderLinks();
+    renderLinksKPIs();
+  } catch(e) { showMsg('error', e.message); }
+}
+
+function buildUtmUrl(link) {
+  const base = link.base_url || 'https://financezap.thesilasstudio.com.br';
+  const p = new URLSearchParams();
+  p.set('utm_source', link.utm_source);
+  p.set('utm_medium', link.utm_medium || 'influencer');
+  p.set('utm_campaign', link.utm_campaign || 'lancamento');
+  if (link.utm_content) p.set('utm_content', link.utm_content);
+  if (link.utm_term) p.set('utm_term', link.utm_term);
+  return `${base}?${p.toString()}`;
+}
+
+function shortUrl(slug) {
+  return `${window.location.origin}/r/${slug}`;
+}
+
+function renderLinksKPIs() {
+  const total = allLinks.length;
+  const totalClicks = allLinks.reduce((s, l) => s + (l.click_count || 0), 0);
+  const topLink = allLinks.slice().sort((a, b) => (b.click_count || 0) - (a.click_count || 0))[0];
+  document.getElementById('utm-kpi-grid').innerHTML = `
+    <div class="kpi-card blue">
+      <div class="kpi-label">Links criados</div>
+      <div class="kpi-value">${total}</div>
+      <div class="kpi-sub">influenciadores / campanhas</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Total de cliques</div>
+      <div class="kpi-value">${totalClicks}</div>
+      <div class="kpi-sub">em todos os links</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Link mais clicado</div>
+      <div class="kpi-value">${topLink ? (topLink.click_count || 0) : '—'}</div>
+      <div class="kpi-sub">${topLink ? esc(topLink.name) : 'nenhum ainda'}</div>
+    </div>`;
+}
+
+function renderLinks() {
+  const tbody = document.getElementById('links-tbody');
+  if (!allLinks.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum link criado ainda. Clique em "+ Novo link" para começar.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allLinks.map(l => {
+    const short = shortUrl(l.slug);
+    const full  = buildUtmUrl(l);
+    return `<tr>
+      <td>
+        <div style="font-weight:600">${esc(l.name)}</div>
+        ${l.notes ? `<div style="font-size:.72rem;color:var(--slate)">${esc(l.notes)}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-size:.78rem;color:var(--emerald);font-weight:600">${esc(short)}</div>
+        <div class="actions" style="margin-top:.35rem">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('${short}')">📋 Curto</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('${esc(full)}')">📋 UTM</button>
+        </div>
+      </td>
+      <td><span class="badge badge-active">${esc(l.utm_source)}</span></td>
+      <td style="font-size:.8rem;color:var(--slate-light)">${esc(l.utm_campaign)}${l.utm_content ? ` / ${esc(l.utm_content)}` : ''}</td>
+      <td><span style="font-weight:700;color:var(--blue);font-size:.95rem">${l.click_count || 0}</span></td>
+      <td style="color:var(--slate-light);font-size:.78rem">${fmtDateShort(l.created_at)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" onclick="openLinkModal(${JSON.stringify(l).split('"').join('&quot;')})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteLink('${l.id}','${esc(l.name)}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal UTM ──────────────────────────────────────────────────────────────
+
+function openLinkModal(link) {
+  document.getElementById('link-modal').style.display = 'flex';
+  if (link) {
+    document.getElementById('modal-title').textContent = 'Editar Link UTM';
+    document.getElementById('link-id').value      = link.id;
+    document.getElementById('link-name').value    = link.name;
+    document.getElementById('link-slug').value    = link.slug;
+    document.getElementById('link-source').value  = link.utm_source;
+    document.getElementById('link-medium').value  = link.utm_medium || 'influencer';
+    document.getElementById('link-campaign').value= link.utm_campaign || 'lancamento';
+    document.getElementById('link-content').value = link.utm_content || '';
+    document.getElementById('link-baseurl').value = link.base_url || 'https://financezap.thesilasstudio.com.br';
+    document.getElementById('link-notes').value   = link.notes || '';
+  } else {
+    document.getElementById('modal-title').textContent = 'Novo Link UTM';
+    document.getElementById('link-id').value      = '';
+    document.getElementById('link-name').value    = '';
+    document.getElementById('link-slug').value    = '';
+    document.getElementById('link-source').value  = '';
+    document.getElementById('link-medium').value  = 'influencer';
+    document.getElementById('link-campaign').value= 'lancamento';
+    document.getElementById('link-content').value = '';
+    document.getElementById('link-baseurl').value = 'https://financezap.thesilasstudio.com.br';
+    document.getElementById('link-notes').value   = '';
+  }
+  updateUrlPreview();
+  // auto-gerar slug ao digitar nome
+  document.getElementById('link-name').oninput = function() {
+    if (!document.getElementById('link-id').value) {
+      document.getElementById('link-slug').value = this.value.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    }
+    updateUrlPreview();
+  };
+  ['link-slug','link-source','link-medium','link-campaign','link-content','link-baseurl'].forEach(id => {
+    document.getElementById(id).oninput = updateUrlPreview;
+  });
+}
+
+function closeLinkModal() {
+  document.getElementById('link-modal').style.display = 'none';
+}
+
+function sanitizeSlug(el) {
+  el.value = el.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+  updateUrlPreview();
+}
+
+function updateUrlPreview() {
+  const base     = document.getElementById('link-baseurl').value || 'https://financezap.thesilasstudio.com.br';
+  const source   = document.getElementById('link-source').value;
+  const medium   = document.getElementById('link-medium').value || 'influencer';
+  const campaign = document.getElementById('link-campaign').value || 'lancamento';
+  const content  = document.getElementById('link-content').value;
+  if (!source) { document.getElementById('url-preview').textContent = 'Preencha o UTM Source para ver a prévia.'; return; }
+  const p = new URLSearchParams();
+  p.set('utm_source', source);
+  p.set('utm_medium', medium);
+  p.set('utm_campaign', campaign);
+  if (content) p.set('utm_content', content);
+  document.getElementById('url-preview').textContent = `${base}?${p.toString()}`;
+}
+
+async function saveLink() {
+  const id       = document.getElementById('link-id').value;
+  const name     = document.getElementById('link-name').value.trim();
+  const slug     = document.getElementById('link-slug').value.trim();
+  const source   = document.getElementById('link-source').value.trim();
+  const medium   = document.getElementById('link-medium').value.trim();
+  const campaign = document.getElementById('link-campaign').value.trim();
+  const content  = document.getElementById('link-content').value.trim();
+  const baseurl  = document.getElementById('link-baseurl').value.trim();
+  const notes    = document.getElementById('link-notes').value.trim();
+  if (!name || !slug || !source) { showMsg('error', 'Preencha: Nome, Slug e UTM Source.'); return; }
+  const btn = document.getElementById('save-link-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+  try {
+    const body = { name, slug, utm_source: source, utm_medium: medium,
+                   utm_campaign: campaign, utm_content: content || null,
+                   base_url: baseurl, notes: notes || null };
+    const res = id
+      ? await apiAdmin(`/admin/utm-links/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+      : await apiAdmin('/admin/utm-links', { method: 'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    closeLinkModal();
+    showMsg('success', id ? '✓ Link atualizado!' : '✓ Link criado!');
+    loadLinks();
+  } catch(e) { showMsg('error', e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Salvar link'; }
+}
+
+async function deleteLink(id, name) {
+  if (!confirm(`Excluir o link de "${name}"? Esta ação não pode ser desfeita.`)) return;
+  try {
+    const res = await apiAdmin(`/admin/utm-links/${id}`, { method: 'DELETE' });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+    showMsg('success', 'Link excluído.');
+    loadLinks();
+  } catch(e) { showMsg('error', e.message); }
+}
+
+// Fechar modal clicando fora
+document.getElementById('link-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeLinkModal();
+});
 </script>
 </body>
 </html>
