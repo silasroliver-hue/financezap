@@ -1376,12 +1376,33 @@ api.post(
       }
     );
     const authData = await authRes.json();
+
+    let userId;
     if (!authRes.ok) {
-      const msg = authData?.msg || authData?.message || JSON.stringify(authData);
-      return res.status(400).json({ error: msg });
+      const errMsg = String(authData?.msg || authData?.message || "");
+      // Se email já existe, recupera o usuário existente e continua
+      const emailTaken = /already registered|already been registered|email.*exist/i.test(errMsg);
+      if (!emailTaken) {
+        return res.status(400).json({ error: errMsg || JSON.stringify(authData) });
+      }
+      // Busca o userId pelo email via admin API
+      const listRes = await fetch(
+        `${process.env.SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
+        {
+          headers: {
+            "apikey": process.env.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        }
+      );
+      const listData = await listRes.json();
+      const existing = (listData.users || []).find(u => u.email === email);
+      if (!existing) return res.status(400).json({ error: "Email já cadastrado. Use outro email ou faça login." });
+      userId = existing.id;
+    } else {
+      userId = authData.id;
     }
 
-    const userId = authData.id;
     // Cria/atualiza perfil com has_access = true
     await sb.from("user_profiles").upsert({
       id: userId,
