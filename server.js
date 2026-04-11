@@ -838,6 +838,8 @@ api.get(
       .select("*")
       .eq("user_id", req.userId)
       .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(limit);
     if (from) q = q.gte("occurred_on", from);
     if (to) q = q.lte("occurred_on", to);
