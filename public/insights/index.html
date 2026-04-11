@@ -77,15 +77,6 @@
 
     .summary-card strong.inc { color: var(--dash-income); }
     .summary-card strong.exp { color: var(--dash-expense); }
-    .summary-card strong.neu { color: var(--dash-accent); }
-
-    .summary-card small {
-      display: block;
-      margin-top: .28rem;
-      color: var(--dash-muted);
-      font-size: .74rem;
-      font-weight: 600;
-    }
 
     .dash-grid {
       display: grid;
@@ -336,44 +327,6 @@
         <article class="summary-card">
           <label>Resultado do mes</label>
           <strong id="balance-month">R$ 0,00</strong>
-        </article>
-      </section>
-
-      <section class="cards-grid" style="margin-top:-.25rem">
-        <article class="summary-card">
-          <label>Lancamentos no periodo</label>
-          <strong id="tx-count" class="neu">0</strong>
-          <small id="tx-count-split">Entradas 0 · Saidas 0</small>
-        </article>
-        <article class="summary-card">
-          <label>Dias com movimentacao</label>
-          <strong id="active-days" class="neu">0</strong>
-          <small id="active-days-note">No período selecionado</small>
-        </article>
-        <article class="summary-card">
-          <label>Ticket medio receita</label>
-          <strong id="avg-income-ticket" class="inc">R$ 0,00</strong>
-          <small id="avg-income-note">Média por entrada</small>
-        </article>
-        <article class="summary-card">
-          <label>Ticket medio despesa</label>
-          <strong id="avg-expense-ticket" class="exp">R$ 0,00</strong>
-          <small id="avg-expense-note">Média por saída</small>
-        </article>
-        <article class="summary-card">
-          <label>Maior categoria de receita</label>
-          <strong id="top-income-cat" class="inc">-</strong>
-          <small id="top-income-amount">R$ 0,00</small>
-        </article>
-        <article class="summary-card">
-          <label>Maior categoria de gasto</label>
-          <strong id="top-expense-cat" class="exp">-</strong>
-          <small id="top-expense-amount">R$ 0,00</small>
-        </article>
-        <article class="summary-card">
-          <label>% gasto da renda</label>
-          <strong id="expense-ratio" class="neu">0%</strong>
-          <small id="expense-ratio-note">No período selecionado</small>
         </article>
       </section>
 
@@ -694,39 +647,6 @@
       const monthEl = document.getElementById("balance-month");
       monthEl.textContent = fmtBRL(monthBalance);
       monthEl.className = monthBalance < 0 ? "exp" : "inc";
-
-      const txCount = Number(d.transactionCount || 0);
-      const incomeCount = Number(d.incomeCount || 0);
-      const expenseCount = Number(d.expenseCount || 0);
-      document.getElementById("tx-count").textContent = String(txCount);
-      document.getElementById("tx-count-split").textContent = `Entradas ${incomeCount} · Saidas ${expenseCount}`;
-
-      document.getElementById("active-days").textContent = String(Number(d.activeDays || 0));
-
-      const avgIncome = Number(d.averageIncomeTicket || 0);
-      const avgExpense = Number(d.averageExpenseTicket || 0);
-      document.getElementById("avg-income-ticket").textContent = fmtBRL(avgIncome);
-      document.getElementById("avg-expense-ticket").textContent = fmtBRL(avgExpense);
-
-      const topIncome = d.topIncomeCategory || null;
-      const topExpense = d.topExpenseCategory || null;
-      document.getElementById("top-income-cat").textContent = topIncome?.category || "-";
-      document.getElementById("top-income-amount").textContent = fmtBRL(topIncome?.amount || 0);
-      document.getElementById("top-expense-cat").textContent = topExpense?.category || "-";
-      document.getElementById("top-expense-amount").textContent = fmtBRL(topExpense?.amount || 0);
-
-      const ratio = Number(d.expensePercentOfIncome);
-      const ratioEl = document.getElementById("expense-ratio");
-      const ratioNoteEl = document.getElementById("expense-ratio-note");
-      if (Number.isFinite(ratio)) {
-        ratioEl.textContent = `${ratio.toFixed(1)}%`;
-        ratioNoteEl.textContent = ratio > 100
-          ? "Atenção: saídas acima das entradas"
-          : "Saídas em relação às entradas";
-      } else {
-        ratioEl.textContent = "-";
-        ratioNoteEl.textContent = "Sem receitas no período";
-      }
     }
 
     function renderRecent(d) {
