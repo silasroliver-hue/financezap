@@ -216,12 +216,16 @@
   <script>
     renderSidebarNav("gastos");
 
+    function toYmd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 2);
-    document.getElementById("from").value = start.toISOString().slice(0, 10);
-    document.getElementById("to").value = end.toISOString().slice(0, 10);
-    document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("from").value = toYmd(start);
+    document.getElementById("to").value = toYmd(end);
+    document.getElementById("m-date").value = toYmd(new Date());
 
     const kindEl = document.getElementById("m-kind");
     const normalFields = document.getElementById("normal-fields");
@@ -259,7 +263,7 @@
       document.getElementById("m-amount").value = "";
       document.getElementById("m-description").value = "";
       document.getElementById("m-installments").value = "1";
-      document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+      document.getElementById("m-date").value = toYmd(new Date());
       document.getElementById("m-payment").value = "";
       onModalKindChange();
       document.getElementById("modal-lancamento").classList.add("open");
@@ -453,7 +457,7 @@
         document.getElementById("m-amount").value = "";
         document.getElementById("m-description").value = "";
         document.getElementById("m-installments").value = "1";
-        document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+        document.getElementById("m-date").value = toYmd(new Date());
 
         closeModal();
         await load();
@@ -481,7 +485,7 @@
         await onModalKindChange();
         document.getElementById("m-category").value = row.category || "";
         document.getElementById("m-amount").value = Number(row.amount || 0);
-        document.getElementById("m-date").value = row.occurred_on || new Date().toISOString().slice(0, 10);
+        document.getElementById("m-date").value = row.occurred_on || toYmd(new Date());
         document.getElementById("m-description").value = row.description || "";
         document.getElementById("m-payment").value = row.payment_method || "";
         document.getElementById("modal-lancamento").classList.add("open");

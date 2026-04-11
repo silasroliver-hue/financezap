@@ -422,6 +422,10 @@
     renderSidebarNav("cartoes");
 
     const MONTHS_PT = ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    function todayYmdLocal() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
 
     let cards = [];
     let forecast = [];
@@ -594,7 +598,7 @@
       const description = document.getElementById("purchase-description").value.trim();
       const amount = Number(document.getElementById("purchase-amount").value);
       const installments = Math.max(1, parseInt(String(document.getElementById("purchase-installments").value || 1), 10) || 1);
-      const purchaseDate = new Date().toISOString().slice(0, 10);
+      const purchaseDate = todayYmdLocal();
 
       if (!cardId) {
         showAlert("Selecione um cartao.");

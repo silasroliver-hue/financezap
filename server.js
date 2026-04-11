@@ -896,7 +896,7 @@ api.post(
       category: normalizedCategory,
       amount: amt,
       description: normalizeDescriptionForKind(kind, normalizedCategory, description),
-      occurred_on: occurred_on || new Date().toISOString().slice(0, 10),
+      occurred_on: occurred_on || accumulatedThroughYMD(),
       source: source === "whatsapp" || source === "import" || source === "api" ? source : "manual",
       payment_method: VALID_PAYMENT_METHODS.includes(payment_method) ? payment_method : null,
     };
@@ -943,7 +943,7 @@ api.patch(
       patch.description = String(description).slice(0, 500) || null;
     }
     if (occurred_on != null) {
-      patch.occurred_on = occurred_on || new Date().toISOString().slice(0, 10);
+      patch.occurred_on = occurred_on || accumulatedThroughYMD();
     }
     if (payment_method !== undefined) {
       patch.payment_method = VALID_PAYMENT_METHODS.includes(payment_method) ? payment_method : null;

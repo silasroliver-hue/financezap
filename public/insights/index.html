@@ -513,7 +513,7 @@
       document.getElementById("m-amount").value = "";
       document.getElementById("m-description").value = "";
       document.getElementById("m-installments").value = "1";
-      document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+      document.getElementById("m-date").value = toYmd(new Date());
       document.getElementById("m-payment").value = "";
       onKindChange();
       document.getElementById("modal-lancamento").classList.add("open");
@@ -929,7 +929,7 @@
         await renderSidebarUser();
         document.getElementById("dash-from").value = rangeFrom;
         document.getElementById("dash-to").value = rangeTo;
-        document.getElementById("m-date").value = new Date().toISOString().slice(0, 10);
+        document.getElementById("m-date").value = toYmd(new Date());
         await onKindChange();
         await loadDashboard();
         await maybeAskInitialBalance();
