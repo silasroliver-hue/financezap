@@ -310,12 +310,17 @@ function drawPost(cv, post, accent, abg, size) {
     c.font = `500 22px 'DM Sans'`;
     c.fillText(post.tag, 104, 139);
 
-    // Headline
+    // Headline — auto-size para a linha mais larga caber no canvas
     c.fillStyle = '#f5f5f0';
-    const hSize = post.headline.split('\n').length > 4 ? 96 : 112;
-    c.font = `800 ${hSize}px 'Syne'`;
-    c.textBaseline = 'top';
     const lines = post.headline.split('\n');
+    let hSize = lines.length > 4 ? 96 : 112;
+    const maxHeadW = s - 84 - 60; // margem direita de 60px
+    c.font = `800 ${hSize}px 'Syne'`;
+    while (Math.max(...lines.map(l => c.measureText(l).width)) > maxHeadW && hSize > 48) {
+      hSize -= 2;
+      c.font = `800 ${hSize}px 'Syne'`;
+    }
+    c.textBaseline = 'top';
     lines.forEach((line, i) => {
       // First word accent on first line
       if (i === 0 && layout !== 'edu') {
