@@ -207,6 +207,9 @@
       <button class="nav-item" onclick="showPage('links')" id="nav-links">
         <span class="icon">🔗</span> Links UTM
       </button>
+      <button class="nav-item" onclick="showPage('instagram')" id="nav-instagram">
+        <span class="icon">📸</span> Instagram
+      </button>
     </div>
   </nav>
 
@@ -388,7 +391,157 @@
       </div>
     </div>
 
+    <!-- ── PAGE: Instagram Posts ── -->
+    <div id="page-instagram" style="display:none">
+      <div class="section-head">
+        <div>
+          <div class="page-title">Instagram Posts</div>
+          <div class="page-sub">Agende publicações automáticas — Story e Feed — às 12h</div>
+        </div>
+        <button class="btn btn-primary" onclick="openIgModal()">+ Novo post</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="margin-bottom:1.5rem">
+        <div class="kpi-card amber">
+          <div class="kpi-label">Pendentes</div>
+          <div class="kpi-value" id="ig-kpi-pending">—</div>
+          <div class="kpi-sub">aguardando publicação</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Publicados</div>
+          <div class="kpi-value" id="ig-kpi-published">—</div>
+          <div class="kpi-sub">publicados com sucesso</div>
+        </div>
+        <div class="kpi-card" style="">
+          <div class="kpi-label" style="color:var(--slate)">Com Erro</div>
+          <div class="kpi-value" id="ig-kpi-error" style="color:var(--red)">—</div>
+          <div class="kpi-sub">falha na publicação</div>
+        </div>
+      </div>
+
+      <!-- Filtro de tipo -->
+      <div class="tabs" style="margin-bottom:1.25rem">
+        <button class="tab active" onclick="filterIgPosts('todos')"    id="ig-tab-todos">Todos</button>
+        <button class="tab"        onclick="filterIgPosts('pendente')" id="ig-tab-pendente">⏳ Pendentes</button>
+        <button class="tab"        onclick="filterIgPosts('feed')"     id="ig-tab-feed">🖼️ Feed</button>
+        <button class="tab"        onclick="filterIgPosts('story')"    id="ig-tab-story">🎬 Story</button>
+        <button class="tab"        onclick="filterIgPosts('publicado')" id="ig-tab-publicado">✅ Publicados</button>
+      </div>
+
+      <!-- Tabela -->
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Imagem</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Legenda</th>
+                <th>Agendado para</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ig-posts-tbody">
+              <tr><td colspan="7" class="empty">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
+</div>
+
+<!-- ── Modal: Instagram Post ── -->
+<div id="ig-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);align-items:center;justify-content:center">
+  <div style="background:var(--navy-light);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:580px;max-height:92vh;overflow-y:auto">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div style="font-size:1rem;font-weight:800" id="ig-modal-title">Novo Post</div>
+      <button onclick="closeIgModal()" style="background:none;border:none;color:var(--slate-light);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+
+    <input type="hidden" id="ig-post-id" />
+
+    <div style="display:grid;gap:.85rem">
+
+      <!-- Tipo toggle -->
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.5rem">Tipo de publicação</label>
+        <div style="display:flex;gap:.5rem">
+          <button id="ig-tipo-feed"  onclick="setIgTipo('feed')"
+            style="flex:1;padding:.65rem;border-radius:10px;border:2px solid var(--emerald);background:rgba(16,185,129,.12);color:var(--emerald);font-weight:700;font-size:.85rem;cursor:pointer;transition:all .15s">
+            🖼️ Feed / Timeline
+          </button>
+          <button id="ig-tipo-story" onclick="setIgTipo('story')"
+            style="flex:1;padding:.65rem;border-radius:10px;border:2px solid var(--border);background:transparent;color:var(--slate-light);font-weight:700;font-size:.85rem;cursor:pointer;transition:all .15s">
+            🎬 Story
+          </button>
+        </div>
+        <input type="hidden" id="ig-tipo-val" value="feed" />
+      </div>
+
+      <!-- Título -->
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">Título interno *</label>
+        <input id="ig-titulo" class="form-input" placeholder="Ex: Post semana 3 — Organização financeira" />
+      </div>
+
+      <!-- Imagem -->
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">URL da imagem *</label>
+        <div style="display:flex;gap:.5rem">
+          <input id="ig-image-url" class="form-input" placeholder="https://..." oninput="previewIgImage()" style="flex:1" />
+          <button class="btn btn-ghost btn-sm" onclick="previewIgImage()" style="white-space:nowrap">👁 Ver</button>
+        </div>
+        <div id="ig-image-preview" style="margin-top:.5rem;display:none">
+          <img id="ig-preview-img" style="max-height:140px;border-radius:10px;border:1px solid var(--border);object-fit:cover" />
+        </div>
+      </div>
+
+      <!-- Legenda (feed only) -->
+      <div id="ig-legenda-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
+          <label style="font-size:.75rem;font-weight:600;color:var(--slate)">Legenda (feed)</label>
+          <button class="btn btn-ghost btn-sm" onclick="openIgAI()" style="font-size:.7rem">✨ Gerar com IA</button>
+        </div>
+        <textarea id="ig-legenda" class="form-input" rows="4"
+          placeholder="Escreva a legenda do post ou use IA para gerar automaticamente..."></textarea>
+        <div id="ig-hashtags-wrap" style="display:none;margin-top:.5rem">
+          <div style="font-size:.7rem;font-weight:600;color:var(--slate);margin-bottom:.3rem">Hashtags sugeridas pela IA</div>
+          <div id="ig-hashtags-list" style="display:flex;flex-wrap:wrap;gap:.3rem"></div>
+        </div>
+      </div>
+
+      <!-- Agendamento -->
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--slate);display:block;margin-bottom:.3rem">Agendado para *</label>
+        <input id="ig-agendado-para" class="form-input" type="datetime-local" />
+        <div style="font-size:.7rem;color:var(--slate);margin-top:.25rem">O n8n verifica a cada hora — publique dentro da janela de ±15 min</div>
+      </div>
+
+    </div>
+
+    <!-- Painel IA -->
+    <div id="ig-ai-panel" style="display:none;margin-top:1rem;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:1rem">
+      <div style="font-size:.75rem;font-weight:700;color:var(--emerald);margin-bottom:.6rem">✨ Gerador de Conteúdo com IA</div>
+      <textarea id="ig-ai-prompt" class="form-input" rows="2"
+        placeholder="Descreva o tema do post. Ex: 'dicas para economizar no supermercado'"></textarea>
+      <div style="display:flex;gap:.5rem;margin-top:.6rem;align-items:center">
+        <button class="btn btn-primary btn-sm" onclick="generateIgContent()" id="ig-ai-btn">Gerar conteúdo</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeIgAI()">Cancelar</button>
+        <span id="ig-ai-loading" style="display:none;font-size:.75rem;color:var(--slate-light)">⏳ Gerando...</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeIgModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIgPost()" id="ig-save-btn">Salvar post</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Modal: Link UTM ── -->
@@ -526,14 +679,15 @@ function handleUnauth() {
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function showPage(page) {
-  ['dashboard','users','payments','links'].forEach(p => {
+  ['dashboard','users','payments','links','instagram'].forEach(p => {
     document.getElementById(`page-${p}`).style.display = p === page ? 'block' : 'none';
     const n = document.getElementById(`nav-${p}`);
     if (n) n.classList.toggle('active', p === page);
   });
-  if (page === 'users') loadUsers();
-  if (page === 'payments') loadPayments();
-  if (page === 'links') loadLinks();
+  if (page === 'users')     loadUsers();
+  if (page === 'payments')  loadPayments();
+  if (page === 'links')     loadLinks();
+  if (page === 'instagram') loadIgPosts();
 }
 
 // ── Load All ───────────────────────────────────────────────────────────────
@@ -556,9 +710,10 @@ async function loadAll() {
 
 function refreshAll() {
   loadAll();
-  if (document.getElementById('page-users').style.display !== 'none') loadUsers();
-  if (document.getElementById('page-payments').style.display !== 'none') loadPayments();
-  if (document.getElementById('page-links').style.display !== 'none') loadLinks();
+  if (document.getElementById('page-users').style.display     !== 'none') loadUsers();
+  if (document.getElementById('page-payments').style.display  !== 'none') loadPayments();
+  if (document.getElementById('page-links').style.display     !== 'none') loadLinks();
+  if (document.getElementById('page-instagram').style.display !== 'none') loadIgPosts();
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────────
@@ -1057,6 +1212,223 @@ async function deleteLink(id, name) {
 // Fechar modal clicando fora
 document.getElementById('link-modal').addEventListener('click', function(e) {
   if (e.target === this) closeLinkModal();
+});
+
+// ─── Instagram Posts ────────────────────────────────────────────────────────
+
+let allIgPosts = [];
+let currentIgFilter = 'todos';
+
+async function loadIgPosts() {
+  try {
+    const res = await apiAdmin('/admin/instagram-posts');
+    if (res.status === 401) { handleUnauth(); return; }
+    allIgPosts = await res.json();
+    renderIgKPIs();
+    renderIgTable(allIgPosts);
+  } catch(e) { showMsg('error', e.message); }
+}
+
+function renderIgKPIs() {
+  document.getElementById('ig-kpi-pending').textContent =
+    allIgPosts.filter(p => p.status === 'pendente').length;
+  document.getElementById('ig-kpi-published').textContent =
+    allIgPosts.filter(p => p.status === 'publicado').length;
+  document.getElementById('ig-kpi-error').textContent =
+    allIgPosts.filter(p => p.status === 'erro').length;
+}
+
+function filterIgPosts(filter) {
+  currentIgFilter = filter;
+  ['todos','pendente','feed','story','publicado'].forEach(f => {
+    document.getElementById(`ig-tab-${f}`)?.classList.toggle('active', f === filter);
+  });
+  let posts = allIgPosts;
+  if (filter === 'pendente')  posts = allIgPosts.filter(p => p.status === 'pendente');
+  if (filter === 'publicado') posts = allIgPosts.filter(p => p.status === 'publicado');
+  if (filter === 'feed')      posts = allIgPosts.filter(p => p.tipo === 'feed');
+  if (filter === 'story')     posts = allIgPosts.filter(p => p.tipo === 'story');
+  renderIgTable(posts);
+}
+
+function renderIgTable(posts) {
+  const tbody = document.getElementById('ig-posts-tbody');
+  if (!posts.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum post encontrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = posts.map(p => {
+    const tipoBadge = p.tipo === 'story'
+      ? '<span class="badge" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#C4B5FD">🎬 Story</span>'
+      : '<span class="badge" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93C5FD">🖼️ Feed</span>';
+    const statusBadge = {
+      pendente:  '<span class="badge badge-pending">⏳ Pendente</span>',
+      publicado: '<span class="badge badge-confirmed">✅ Publicado</span>',
+      erro:      '<span class="badge badge-blocked">❌ Erro</span>',
+    }[p.status] || '';
+    const thumb = p.image_url
+      ? `<img src="${esc(p.image_url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--border)" onerror="this.style.display='none'" />`
+      : '<div style="width:44px;height:44px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem">📷</div>';
+    const legenda = p.legenda ? esc(p.legenda).substring(0, 60) + (p.legenda.length > 60 ? '…' : '') : '<span style="color:var(--slate)">—</span>';
+    return `<tr>
+      <td>${thumb}</td>
+      <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.titulo)}</td>
+      <td>${tipoBadge}</td>
+      <td style="max-width:200px;color:var(--slate-light);font-size:.8rem">${legenda}</td>
+      <td style="white-space:nowrap;font-size:.82rem">${fmtDate(p.agendado_para)}</td>
+      <td>${statusBadge}</td>
+      <td><div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="editIgPost('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteIgPost('${p.id}')">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openIgModal(post = null) {
+  document.getElementById('ig-modal-title').textContent = post ? 'Editar Post' : 'Novo Post';
+  document.getElementById('ig-post-id').value     = post?.id || '';
+  document.getElementById('ig-titulo').value       = post?.titulo || '';
+  document.getElementById('ig-image-url').value    = post?.image_url || '';
+  document.getElementById('ig-legenda').value      = post?.legenda || '';
+  document.getElementById('ig-hashtags-wrap').style.display = 'none';
+  document.getElementById('ig-ai-panel').style.display      = 'none';
+
+  // Default: amanhã às 12:00
+  const defaultDt = post?.agendado_para
+    ? new Date(post.agendado_para)
+    : (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0); return d; })();
+  document.getElementById('ig-agendado-para').value =
+    defaultDt.toISOString().slice(0, 16);
+
+  setIgTipo(post?.tipo || 'feed');
+  previewIgImage();
+
+  document.getElementById('ig-modal').style.display = 'flex';
+}
+
+function editIgPost(id) {
+  const post = allIgPosts.find(p => p.id === id);
+  if (post) openIgModal(post);
+}
+
+function closeIgModal() {
+  document.getElementById('ig-modal').style.display = 'none';
+}
+
+function setIgTipo(tipo) {
+  document.getElementById('ig-tipo-val').value = tipo;
+  const feedBtn  = document.getElementById('ig-tipo-feed');
+  const storyBtn = document.getElementById('ig-tipo-story');
+  const legendaWrap = document.getElementById('ig-legenda-wrap');
+
+  if (tipo === 'feed') {
+    feedBtn.style.border  = '2px solid var(--emerald)';
+    feedBtn.style.background = 'rgba(16,185,129,.12)';
+    feedBtn.style.color   = 'var(--emerald)';
+    storyBtn.style.border = '2px solid var(--border)';
+    storyBtn.style.background = 'transparent';
+    storyBtn.style.color  = 'var(--slate-light)';
+    legendaWrap.style.display = 'block';
+  } else {
+    storyBtn.style.border = '2px solid rgba(139,92,246,.6)';
+    storyBtn.style.background = 'rgba(139,92,246,.12)';
+    storyBtn.style.color  = '#C4B5FD';
+    feedBtn.style.border  = '2px solid var(--border)';
+    feedBtn.style.background = 'transparent';
+    feedBtn.style.color   = 'var(--slate-light)';
+    legendaWrap.style.display = 'none';
+  }
+}
+
+function previewIgImage() {
+  const url = document.getElementById('ig-image-url').value.trim();
+  const wrap = document.getElementById('ig-image-preview');
+  const img  = document.getElementById('ig-preview-img');
+  if (url) { img.src = url; wrap.style.display = 'block'; }
+  else      { wrap.style.display = 'none'; }
+}
+
+function openIgAI()  { document.getElementById('ig-ai-panel').style.display = 'block'; }
+function closeIgAI() { document.getElementById('ig-ai-panel').style.display = 'none'; }
+
+async function generateIgContent() {
+  const prompt = document.getElementById('ig-ai-prompt').value.trim();
+  if (!prompt) return;
+  const tipo = document.getElementById('ig-tipo-val').value;
+  const btn  = document.getElementById('ig-ai-btn');
+  const load = document.getElementById('ig-ai-loading');
+  btn.disabled = true; load.style.display = 'inline';
+  try {
+    const res = await apiAdmin('/admin/instagram-posts/generate-content', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, tipo }),
+    });
+    const data = await res.json();
+    if (data.titulo)  document.getElementById('ig-titulo').value  = data.titulo;
+    if (data.legenda) document.getElementById('ig-legenda').value = data.legenda;
+    if (data.hashtags?.length) {
+      const wrap = document.getElementById('ig-hashtags-wrap');
+      const list = document.getElementById('ig-hashtags-list');
+      list.innerHTML = data.hashtags.map(h =>
+        `<span onclick="appendHashtag('${h}')" style="cursor:pointer;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--emerald);font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:6px">${h}</span>`
+      ).join('');
+      wrap.style.display = 'block';
+    }
+    closeIgAI();
+  } catch(e) { showMsg('error', 'Erro ao gerar conteúdo: ' + e.message); }
+  finally { btn.disabled = false; load.style.display = 'none'; }
+}
+
+function appendHashtag(tag) {
+  const el = document.getElementById('ig-legenda');
+  el.value = (el.value.trimEnd() + ' ' + tag).trimStart();
+}
+
+async function saveIgPost() {
+  const id    = document.getElementById('ig-post-id').value;
+  const titulo = document.getElementById('ig-titulo').value.trim();
+  const imageUrl = document.getElementById('ig-image-url').value.trim();
+  const tipo  = document.getElementById('ig-tipo-val').value;
+  const legenda = document.getElementById('ig-legenda').value.trim();
+  const agendadoPara = document.getElementById('ig-agendado-para').value;
+
+  if (!titulo || !imageUrl || !agendadoPara) {
+    return showMsg('error', 'Preencha título, URL da imagem e data de agendamento.');
+  }
+
+  const body = { titulo, image_url: imageUrl, tipo, legenda: tipo === 'feed' ? legenda : null,
+    agendado_para: new Date(agendadoPara).toISOString() };
+
+  const btn = document.getElementById('ig-save-btn');
+  btn.disabled = true;
+  try {
+    const res = await apiAdmin(id ? `/admin/instagram-posts/${id}` : '/admin/instagram-posts', {
+      method: id ? 'PATCH' : 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+    closeIgModal();
+    showMsg('success', id ? 'Post atualizado!' : 'Post criado e agendado!');
+    await loadIgPosts();
+    filterIgPosts(currentIgFilter);
+  } catch(e) { showMsg('error', e.message); }
+  finally { btn.disabled = false; }
+}
+
+async function deleteIgPost(id) {
+  if (!confirm('Excluir este post?')) return;
+  try {
+    const res = await apiAdmin(`/admin/instagram-posts/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erro ao excluir');
+    showMsg('success', 'Post excluído.');
+    await loadIgPosts();
+    filterIgPosts(currentIgFilter);
+  } catch(e) { showMsg('error', e.message); }
+}
+
+document.getElementById('ig-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeIgModal();
 });
 </script>
 </body>

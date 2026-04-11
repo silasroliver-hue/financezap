@@ -1919,6 +1919,211 @@ api.delete(
   })
 );
 
+// ─── Admin: Instagram Posts ────────────────────────────────────────────────
+
+api.get(
+  "/admin/instagram-posts",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("instagram_posts")
+      .select("*")
+      .order("agendado_para", { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  })
+);
+
+api.post(
+  "/admin/instagram-posts",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { titulo, legenda, image_url, tipo, agendado_para } = req.body;
+    if (!titulo || !image_url) {
+      return res.status(400).json({ error: "titulo e image_url são obrigatórios" });
+    }
+    if (!["feed", "story"].includes(tipo)) {
+      return res.status(400).json({ error: "tipo deve ser 'feed' ou 'story'" });
+    }
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("instagram_posts")
+      .insert({
+        titulo: titulo.trim(),
+        legenda: tipo === "feed" ? (legenda?.trim() || null) : null,
+        image_url: image_url.trim(),
+        tipo,
+        agendado_para: agendado_para || new Date(Date.now() + 86400000).toISOString(),
+        status: "pendente",
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  })
+);
+
+api.patch(
+  "/admin/instagram-posts/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { titulo, legenda, image_url, tipo, agendado_para, status } = req.body;
+    const updates = {};
+    if (titulo !== undefined)        updates.titulo        = titulo.trim();
+    if (image_url !== undefined)     updates.image_url     = image_url.trim();
+    if (tipo !== undefined)          updates.tipo          = tipo;
+    if (agendado_para !== undefined) updates.agendado_para = agendado_para;
+    if (status !== undefined)        updates.status        = status;
+    // legenda só para feed
+    if (legenda !== undefined)       updates.legenda       = tipo === "story" ? null : legenda?.trim() || null;
+    if (Object.keys(updates).length === 0) return res.status(400).json({ error: "Nenhum campo para atualizar" });
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from("instagram_posts")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Post não encontrado" });
+    res.json(data);
+  })
+);
+
+api.delete(
+  "/admin/instagram-posts/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const sb = getSupabase();
+    const { error } = await sb.from("instagram_posts").delete().eq("id", id);
+    if (error) throw error;
+    res.json({ ok: true });
+  })
+);
+
+// Webhook para n8n: busca próximo post pendente agendado para agora (±15 min)
+api.get(
+  "/webhook/instagram-next-post",
+  requireWebhookSecret,
+  asyncHandler(async (req, res) => {
+    const sb = getSupabase();
+    const now = new Date();
+    const from = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+    const to   = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+    const { data, error } = await sb
+      .from("instagram_posts")
+      .select("*")
+      .eq("status", "pendente")
+      .gte("agendado_para", from)
+      .lte("agendado_para", to)
+      .order("agendado_para", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    res.json(data || null);
+  })
+);
+
+// Webhook para n8n: marcar post como publicado ou com erro
+api.post(
+  "/webhook/instagram-post-result",
+  requireWebhookSecret,
+  asyncHandler(async (req, res) => {
+    const { id, ig_post_id, status, erro_msg } = req.body;
+    if (!id || !status) return res.status(400).json({ error: "id e status obrigatórios" });
+    const sb = getSupabase();
+    const updates = { status };
+    if (ig_post_id)  updates.ig_post_id   = ig_post_id;
+    if (erro_msg)    updates.erro_msg      = erro_msg;
+    if (status === "publicado") updates.publicado_em = new Date().toISOString();
+    const { data, error } = await sb
+      .from("instagram_posts")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  })
+);
+
+// Geração de conteúdo com IA (Gemini 2.5 Flash ou DeepSeek)
+// Configure AI_PROVIDER=gemini (padrão) ou AI_PROVIDER=deepseek no .env
+api.post(
+  "/admin/instagram-posts/generate-content",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { prompt, tipo } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt é obrigatório" });
+
+    const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+
+    const systemPrompt = tipo === "story"
+      ? `Você é copywriter especialista em Instagram Stories para um app de gestão financeira pessoal chamado FinanceZap.
+Crie um texto curto e impactante (máx 80 caracteres) para um story sobre o tema fornecido.
+Responda SOMENTE com JSON válido: { "titulo": "...", "hashtags": ["#tag1", "#tag2"] }`
+      : `Você é copywriter especialista em Instagram para um app de gestão financeira pessoal chamado FinanceZap.
+Crie uma legenda envolvente para um post de feed sobre o tema fornecido.
+Use emojis estrategicamente, inclua CTA no final e 5-8 hashtags relevantes.
+Responda SOMENTE com JSON válido: { "titulo": "...", "legenda": "...", "hashtags": ["#tag1", "#tag2"] }`;
+
+    let raw;
+
+    if (provider === "deepseek") {
+      const key = process.env.DEEPSEEK_API_KEY;
+      if (!key) return res.status(503).json({ error: "DEEPSEEK_API_KEY não configurada" });
+      const r = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          max_tokens: 512,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+      if (!r.ok) throw new Error(`DeepSeek API error: ${await r.text()}`);
+      const d = await r.json();
+      raw = d.choices?.[0]?.message?.content || "{}";
+    } else {
+      // Gemini 2.5 Flash (padrão)
+      const key = process.env.GOOGLE_AI_API_KEY;
+      if (!key) return res.status(503).json({ error: "GOOGLE_AI_API_KEY não configurada" });
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
+          }),
+        }
+      );
+      if (!r.ok) throw new Error(`Gemini API error: ${await r.text()}`);
+      const d = await r.json();
+      raw = d.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    }
+
+    // Remove markdown code block se vier ```json ... ```
+    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = { titulo: prompt, legenda: raw, hashtags: [] };
+    }
+    res.json(parsed);
+  })
+);
+
 // ─── Redirect UTM: /r/:slug ────────────────────────────────────────────────
 
 app.get("/r/:slug", asyncHandler(async (req, res) => {

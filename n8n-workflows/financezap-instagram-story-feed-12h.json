@@ -1,0 +1,449 @@
+{
+  "name": "FinanceZap — Instagram Story + Feed (12h Diário)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-12h",
+      "name": "⏰ Trigger 12h Diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "notes": "Dispara todos os dias ao meio-dia (12:00). Configure o fuso horário nas Settings do n8n para America/Sao_Paulo."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.APP_URL }}/api/webhook/instagram-next-post",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $env.N8N_WEBHOOK_SECRET }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "id": "fetch-next-post",
+      "name": "📋 Buscar Próximo Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "notes": "Busca o próximo post pendente agendado para ±15 min do horário atual. Retorna null se não houver."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-post",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-has-post",
+      "name": "🔍 Tem Post Pendente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "is-story",
+              "leftValue": "={{ $json.tipo }}",
+              "rightValue": "story",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-tipo",
+      "name": "🔀 É Story ou Feed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 200],
+      "notes": "true → Story | false → Feed/Timeline"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.IG_BUSINESS_ID }}/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $('📋 Buscar Próximo Post').first().json.image_url }}"
+            },
+            {
+              "name": "media_type",
+              "value": "STORIES"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": { "response": { "fullResponse": false } }
+        }
+      },
+      "id": "create-story-container",
+      "name": "🎬 Criar Container Story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Stories: media_type=STORIES, sem caption"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.IG_BUSINESS_ID }}/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $('📋 Buscar Próximo Post').first().json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('📋 Buscar Próximo Post').first().json.legenda }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.IG_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": { "response": { "fullResponse": false } }
+        }
+      },
+      "id": "create-feed-container",
+      "name": "🖼️ Criar Container Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 320],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Feed/Timeline: inclui caption"
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "merge-branches",
+      "name": "🔗 Unir Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "amount": 8,
+        "unit": "seconds"
+      },
+      "id": "wait-processing",
+      "name": "⏳ Aguardar Processamento",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "fields", "value": "status_code" },
+            { "name": "access_token", "value": "={{ $env.IG_ACCESS_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-container-status",
+      "name": "🔎 Verificar Status Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "status-finished",
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "FINISHED",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-container-ready",
+      "name": "✅ Container Pronto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.IG_BUSINESS_ID }}/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $('🔎 Verificar Status Container').first().json.id }}"
+            },
+            { "name": "access_token", "value": "={{ $env.IG_ACCESS_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish-instagram",
+      "name": "🚀 Publicar no Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 100],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/webhook/instagram-post-result",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $('📋 Buscar Próximo Post').first().json.id }}\",\n  \"ig_post_id\": \"{{ $('🚀 Publicar no Instagram').first().json.id }}\",\n  \"status\": \"publicado\"\n}",
+        "options": {}
+      },
+      "id": "mark-published",
+      "name": "✏️ Marcar como Publicado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 100],
+      "notes": "Atualiza status no painel admin via webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_BASE_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $env.ADMIN_WHATSAPP_PHONE }}" },
+            { "name": "text", "value": "=✅ Post publicado no Instagram!\n\n📝 Título: {{ $('📋 Buscar Próximo Post').first().json.titulo }}\n📌 Tipo: {{ $('📋 Buscar Próximo Post').first().json.tipo == 'story' ? '🎬 Story' : '🖼️ Feed' }}\n🕐 Horário: {{ $now.toFormat('dd/MM HH:mm') }}\n🔗 Post ID: {{ $('🚀 Publicar no Instagram').first().json.id }}\n\n_FinanceZap Auto-Post_" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "notify-success",
+      "name": "📱 Notificar WhatsApp (Sucesso)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2660, 100],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait-retry",
+      "name": "⏳ Aguardar e Tentar Novamente",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2220, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/webhook/instagram-post-result",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $('📋 Buscar Próximo Post').first().json.id }}\",\n  \"status\": \"erro\",\n  \"erro_msg\": \"Sem post pendente na janela de publicação\"\n}",
+        "options": {}
+      },
+      "id": "mark-no-post",
+      "name": "⚠️ Sem Post Pendente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 440],
+      "notes": "Só loga — não marca erro pois não há post"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_BASE_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $env.ADMIN_WHATSAPP_PHONE }}" },
+            { "name": "text", "value": "=⚠️ Nenhum post agendado para agora!\n\n🕐 Horário: {{ $now.toFormat('dd/MM HH:mm') }}\n\nAdicione um post no painel admin → Instagram.\n\n_FinanceZap Auto-Post_" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "notify-no-post",
+      "name": "📱 Notificar WhatsApp (Sem Post)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 440],
+      "credentials": {
+        "telegramApi": { "id": "COLOQUE_SUA_CREDENTIAL_ID", "name": "Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "⏰ Trigger 12h Diário": {
+      "main": [[{ "node": "📋 Buscar Próximo Post", "type": "main", "index": 0 }]]
+    },
+    "📋 Buscar Próximo Post": {
+      "main": [[{ "node": "🔍 Tem Post Pendente?", "type": "main", "index": 0 }]]
+    },
+    "🔍 Tem Post Pendente?": {
+      "main": [
+        [{ "node": "🔀 É Story ou Feed?", "type": "main", "index": 0 }],
+        [{ "node": "⚠️ Sem Post Pendente", "type": "main", "index": 0 }]
+      ]
+    },
+    "⚠️ Sem Post Pendente": {
+      "main": [[{ "node": "📱 Notificar WhatsApp (Sem Post)", "type": "main", "index": 0 }]]
+    },
+    "🔀 É Story ou Feed?": {
+      "main": [
+        [{ "node": "🎬 Criar Container Story", "type": "main", "index": 0 }],
+        [{ "node": "🖼️ Criar Container Feed",  "type": "main", "index": 0 }]
+      ]
+    },
+    "🎬 Criar Container Story": {
+      "main": [[{ "node": "🔗 Unir Branches", "type": "main", "index": 0 }]]
+    },
+    "🖼️ Criar Container Feed": {
+      "main": [[{ "node": "🔗 Unir Branches", "type": "main", "index": 1 }]]
+    },
+    "🔗 Unir Branches": {
+      "main": [[{ "node": "⏳ Aguardar Processamento", "type": "main", "index": 0 }]]
+    },
+    "⏳ Aguardar Processamento": {
+      "main": [[{ "node": "🔎 Verificar Status Container", "type": "main", "index": 0 }]]
+    },
+    "🔎 Verificar Status Container": {
+      "main": [[{ "node": "✅ Container Pronto?", "type": "main", "index": 0 }]]
+    },
+    "✅ Container Pronto?": {
+      "main": [
+        [{ "node": "🚀 Publicar no Instagram",       "type": "main", "index": 0 }],
+        [{ "node": "⏳ Aguardar e Tentar Novamente", "type": "main", "index": 0 }]
+      ]
+    },
+    "🚀 Publicar no Instagram": {
+      "main": [[{ "node": "✏️ Marcar como Publicado", "type": "main", "index": 0 }]]
+    },
+    "✏️ Marcar como Publicado": {
+      "main": [[{ "node": "📱 Notificar WhatsApp (Sucesso)", "type": "main", "index": 0 }]]
+    },
+    "⏳ Aguardar e Tentar Novamente": {
+      "main": [[{ "node": "🔎 Verificar Status Container", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false, "instanceId": "financezap" },
+  "tags": [
+    { "name": "instagram", "createdAt": "2025-01-01T00:00:00.000Z", "updatedAt": "2025-01-01T00:00:00.000Z" },
+    { "name": "financezap", "createdAt": "2025-01-01T00:00:00.000Z", "updatedAt": "2025-01-01T00:00:00.000Z" }
+  ]
+}
