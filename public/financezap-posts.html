@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinanceZap — Gerador de Posts</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1DB954;
+    --green-dark: #0f6e30;
+    --green-mid: #14a045;
+    --green-dim: rgba(29,185,84,0.12);
+    --bg: #0a0a0a;
+    --bg2: #111;
+    --bg3: #161616;
+    --surface: #1a1a1a;
+    --border: rgba(255,255,255,0.07);
+    --text: #f5f5f0;
+    --muted: rgba(245,245,240,0.45);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+  .logo-name { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: var(--green); }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .nav-section { padding: 20px 20px 8px; font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font-size: 13px; color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active { color: var(--green); border-left-color: var(--green); background: var(--green-dim); }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  /* MAIN */
+  .main { padding: 32px; overflow-y: auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--text); }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* POST CANVAS AREA */
+  .canvas-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+  .canvas-outer { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .canvas-container { position: relative; width: 100%; max-width: 480px; }
+  canvas { border-radius: 12px; display: block; width: 100%; height: auto; cursor: pointer; }
+
+  /* CONTROLS */
+  .controls { background: var(--bg2); border-radius: 16px; border: 1px solid var(--border); padding: 20px; }
+  .ctrl-section { margin-bottom: 20px; }
+  .ctrl-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+  .post-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .post-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 11px; color: var(--muted); text-align: left; transition: all 0.15s; line-height: 1.4; }
+  .post-btn:hover { border-color: rgba(29,185,84,0.3); color: var(--text); }
+  .post-btn.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  .post-btn .btn-type { font-size: 9px; opacity: 0.6; display: block; margin-bottom: 2px; }
+
+  .color-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+  .color-swatch.active { border-color: white; transform: scale(1.15); }
+
+  .download-btn { width: 100%; background: var(--green); color: #000; border: none; border-radius: 10px; padding: 13px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.05em; }
+  .download-btn:hover { background: #22d460; transform: translateY(-1px); }
+  .download-btn:active { transform: scale(0.98); }
+
+  .prev-next { display: flex; gap: 8px; }
+  .prev-next button { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .prev-next button:hover { border-color: rgba(29,185,84,0.4); color: var(--green); }
+
+  .tip { background: var(--green-dim); border: 1px solid rgba(29,185,84,0.2); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: rgba(29,185,84,0.9); line-height: 1.5; margin-top: 16px; }
+
+  /* GALLERY */
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .gallery-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+  .gallery-item:hover { border-color: rgba(29,185,84,0.4); transform: translateY(-2px); }
+  .gallery-item canvas { width: 100%; display: block; }
+  .gallery-info { padding: 10px 12px; }
+  .gallery-type { font-size: 10px; color: var(--green); letter-spacing: 0.08em; text-transform: uppercase; }
+  .gallery-name { font-size: 13px; color: var(--text); font-weight: 500; margin-top: 2px; }
+  .gallery-dl { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 7px; font-size: 11px; color: var(--muted); cursor: pointer; margin-top: 8px; transition: all 0.15s; }
+  .gallery-dl:hover { background: var(--green-dim); color: var(--green); border-color: rgba(29,185,84,0.3); }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .canvas-wrap { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-name">FinanceZap</div>
+      <div class="logo-sub">Gerador de Posts Instagram</div>
+    </div>
+    <div class="nav-section">Posts</div>
+    <div class="nav-item active" onclick="showPage('editor', this)"><div class="nav-dot"></div> Editor de arte</div>
+    <div class="nav-item" onclick="showPage('gallery', this)"><div class="nav-dot"></div> Galeria completa</div>
+    <div class="nav-section">Tipos</div>
+    <div class="nav-item" onclick="selectPost(0); showPage('editor', document.querySelector('.nav-item.active'))"><div class="nav-dot" style="background:#f0997b"></div> Dor / Problema</div>
+    <div class="nav-item" onclick="selectPost(5); showPage('editor', document.querySelector('.nav-item.active'))"><div class="nav-dot" style="background:#85b7eb"></div> Educacional</div>
+    <div class="nav-item" onclick="selectPost(2); showPage('editor', document.querySelector('.nav-item.active'))"><div class="nav-dot" style="background:#ef9f27"></div> CTA / Oferta</div>
+    <div class="nav-item" onclick="selectPost(7); showPage('editor', document.querySelector('.nav-item.active'))"><div class="nav-dot" style="background:#5dcaa5"></div> Prova Social</div>
+    <div class="nav-item" onclick="selectPost(4); showPage('editor', document.querySelector('.nav-item.active'))"><div class="nav-dot" style="background:#ed93b1"></div> Bastidores</div>
+  </aside>
+
+  <main class="main">
+    <!-- EDITOR PAGE -->
+    <div class="page active" id="page-editor">
+      <div class="page-header">
+        <div class="page-title">Editor de Arte</div>
+        <div class="page-sub">Clique em um post para visualizar e baixar em 1080×1080px</div>
+      </div>
+      <div class="canvas-wrap">
+        <div class="canvas-outer">
+          <canvas id="mainCanvas" width="1080" height="1080"></canvas>
+          <div style="font-size:11px; color:var(--muted);">1080 × 1080 px — formato quadrado Instagram</div>
+        </div>
+        <div class="controls">
+          <div class="ctrl-section">
+            <div class="ctrl-label">Selecionar post</div>
+            <div class="post-selector" id="postSelector"></div>
+          </div>
+          <div class="ctrl-section">
+            <div class="ctrl-label">Variação de cor</div>
+            <div class="color-opts" id="colorOpts">
+              <div class="color-swatch active" style="background:#1DB954" onclick="setAccent('#1DB954','#0a2e15',this)" title="Verde"></div>
+              <div class="color-swatch" style="background:#00b4d8" onclick="setAccent('#00b4d8','#001a22',this)" title="Azul"></div>
+              <div class="color-swatch" style="background:#ff6b35" onclick="setAccent('#ff6b35','#2a0e05',this)" title="Laranja"></div>
+              <div class="color-swatch" style="background:#c77dff" onclick="setAccent('#c77dff','#1a0a2e',this)" title="Roxo"></div>
+              <div class="color-swatch" style="background:#f5c518" onclick="setAccent('#f5c518','#231c00',this)" title="Amarelo"></div>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <div class="ctrl-label">Navegação</div>
+            <div class="prev-next">
+              <button onclick="navigate(-1)">← Anterior</button>
+              <button onclick="navigate(1)">Próximo →</button>
+            </div>
+          </div>
+          <button class="download-btn" onclick="downloadCurrent()">⬇ Baixar PNG (1080px)</button>
+          <div class="tip">💡 Clique em qualquer thumbnail na galeria para abrir no editor e baixar em alta resolução.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GALLERY PAGE -->
+    <div class="page" id="page-gallery">
+      <div class="page-header">
+        <div class="page-title">Galeria — 9 Posts</div>
+        <div class="page-sub">Todos os posts do lançamento, prontos para baixar</div>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const posts = [
+  {
+    id: 0, type: "Dor / Problema",
+    headline: "Você some\no dinheiro\nsem saber\npara onde foi.",
+    sub: "8 em cada 10 brasileiros terminam\no mês sem saber onde gastaram.",
+    tag: "VOCÊ SE IDENTIFICA?",
+    bg: "#0a0a0a", layout: "impact"
+  },
+  {
+    id: 1, type: "Dor / Problema",
+    headline: "Por que você\nfica no\nvermelho\nmesmo\nganhando\nbem?",
+    sub: "O problema não é o salário.\nSão os gastos invisíveis.",
+    tag: "REFLEXÃO",
+    bg: "#0d0a0a", layout: "split"
+  },
+  {
+    id: 2, type: "CTA / Oferta",
+    headline: "Controle\nseus gastos\npelo\nWhatsApp.",
+    sub: "Sem planilha. Sem app novo.\nSó o WhatsApp que você já usa.",
+    tag: "FINANCEZAP",
+    bg: "#0a0d0a", layout: "product"
+  },
+  {
+    id: 3, type: "CTA / Oferta",
+    headline: "R$49,90\nvitalício.",
+    sub: "Enquanto as vagas não acabam.\nMenos que um jantar fora.",
+    tag: "OFERTA LIMITADA",
+    bg: "#0a0a08", layout: "pricing"
+  },
+  {
+    id: 4, type: "Bastidores",
+    headline: "Criei porque\neu mesmo\nperdi o\ncontrole.",
+    sub: "A história real por trás\ndo FinanceZap.",
+    tag: "BASTIDORES",
+    bg: "#0a080d", layout: "story"
+  },
+  {
+    id: 5, type: "Educacional",
+    headline: "A regra\n50/30/20\nque ninguém\nte ensinou.",
+    sub: "50% necessidades · 30% desejos\n20% reserva",
+    tag: "DICA DE FINANÇAS",
+    bg: "#080a0d", layout: "edu"
+  },
+  {
+    id: 6, type: "Educacional",
+    headline: "5 gastos\ninvisíveis que\ndrenam sua\nconta todo\nmês.",
+    sub: "Streaming · Taxas · Assinaturas\nLanches · Entregas",
+    tag: "VOCÊ SABIA?",
+    bg: "#080a0a", layout: "list"
+  },
+  {
+    id: 7, type: "Prova Social",
+    headline: "\"Descobri que\ngastava R$800\na mais por mês\nsem perceber.\"",
+    sub: "— Usuário FinanceZap, após 15 dias de uso.",
+    tag: "RESULTADO REAL",
+    bg: "#080d0a", layout: "quote"
+  },
+  {
+    id: 8, type: "Prova Social",
+    headline: "R$3.200\necono-\nmizados\nem 2 meses.",
+    sub: "Não é magia. É só saber\npara onde o dinheiro vai.",
+    tag: "CASO REAL",
+    bg: "#090d09", layout: "result"
+  }
+];
+
+let currentPost = 0;
+let accentColor = '#1DB954';
+let accentBg = '#0a2e15';
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+function buildSelector() {
+  const sel = document.getElementById('postSelector');
+  sel.innerHTML = posts.map((p, i) => `
+    <button class="post-btn ${i === 0 ? 'active' : ''}" onclick="selectPost(${i})">
+      <span class="btn-type">${p.type}</span>
+      Post ${i + 1}
+    </button>`).join('');
+}
+
+function selectPost(i) {
+  currentPost = i;
+  document.querySelectorAll('.post-btn').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  drawPost(canvas, posts[i], accentColor, accentBg, 1080);
+}
+
+function navigate(dir) {
+  selectPost((currentPost + dir + posts.length) % posts.length);
+}
+
+function setAccent(color, bg, el) {
+  accentColor = color; accentBg = bg;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  selectPost(currentPost);
+}
+
+function wrapText(ctx, text, x, y, maxW, lineH) {
+  const lines = text.split('\n');
+  lines.forEach((line, i) => {
+    ctx.fillText(line, x, y + i * lineH);
+  });
+  return lines.length;
+}
+
+function drawPost(cv, post, accent, abg, size) {
+  const c = cv.getContext('2d');
+  const sc = size / 1080;
+  const s = 1080; // sempre desenha em 1080 — scale cuida do tamanho final
+  c.clearRect(0, 0, cv.width, cv.height);
+  c.save();
+  c.scale(sc, sc);
+
+  // Background
+  c.fillStyle = post.bg || '#0a0a0a';
+  c.fillRect(0, 0, s, s);
+
+  // Subtle grid texture
+  c.strokeStyle = 'rgba(255,255,255,0.025)';
+  c.lineWidth = 1;
+  for (let x = 0; x < s; x += 60) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, s); c.stroke(); }
+  for (let y = 0; y < s; y += 60) { c.beginPath(); c.moveTo(0, y); c.lineTo(s, y); c.stroke(); }
+
+  const layout = post.layout;
+
+  if (layout === 'impact' || layout === 'split' || layout === 'story' || layout === 'edu' || layout === 'list') {
+    // Left accent bar
+    c.fillStyle = accent;
+    c.fillRect(60, 120, 8, s - 240);
+
+    // Tag pill
+    c.fillStyle = accent + '22';
+    const tagW = 280, tagH = 44;
+    roundRect(c, 80, 110, tagW, tagH, 22);
+    c.fill();
+    c.fillStyle = accent;
+    c.font = `500 22px 'DM Sans'`;
+    c.fillText(post.tag, 104, 139);
+
+    // Headline
+    c.fillStyle = '#f5f5f0';
+    const hSize = post.headline.split('\n').length > 4 ? 96 : 112;
+    c.font = `800 ${hSize}px 'Syne'`;
+    c.textBaseline = 'top';
+    const lines = post.headline.split('\n');
+    lines.forEach((line, i) => {
+      // First word accent on first line
+      if (i === 0 && layout !== 'edu') {
+        c.fillStyle = accent;
+        c.fillText(line, 84, 188 + i * (hSize + 6));
+      } else {
+        c.fillStyle = '#f5f5f0';
+        c.fillText(line, 84, 188 + i * (hSize + 6));
+      }
+    });
+
+    // Subtext
+    const subY = 188 + lines.length * (hSize + 6) + 36;
+    c.fillStyle = 'rgba(245,245,240,0.55)';
+    c.font = `300 34px 'DM Sans'`;
+    post.sub.split('\n').forEach((line, i) => c.fillText(line, 84, subY + i * 52));
+  }
+
+  if (layout === 'product') {
+    // Large WhatsApp-style chat mockup
+    c.fillStyle = '#111';
+    roundRect(c, 60, 60, s - 120, s - 120, 24); c.fill();
+
+    // Header bar
+    c.fillStyle = accent;
+    c.fillRect(60, 60, s - 120, 100);
+    c.fillStyle = '#000';
+    c.font = `700 32px 'Syne'`;
+    c.textBaseline = 'middle';
+    c.fillText('FinanceZap', 110, 110);
+    c.font = `400 22px 'DM Sans'`;
+    c.fillStyle = 'rgba(0,0,0,0.7)';
+    c.fillText('online agora', 110, 148);
+
+    // Chat bubbles
+    const bubbles = [
+      { text: 'gastei R$28 no almoço', mine: true, y: 210 },
+      { text: '✅ Registrado!\n💰 Alimentação: R$28,00\n📊 Mês: R$1.240 gastos', mine: false, y: 320 },
+      { text: 'gastei R$150 no mercado', mine: true, y: 500 },
+      { text: '✅ Registrado!\n📊 Total do mês: R$1.390', mine: false, y: 600 },
+    ];
+    bubbles.forEach(b => {
+      const bx = b.mine ? s - 80 : 120;
+      const blines = b.text.split('\n');
+      const bw = 380, bh = blines.length * 40 + 30;
+      c.fillStyle = b.mine ? accent + 'dd' : '#1e1e1e';
+      if (b.mine) {
+        roundRect(c, bx - bw, b.y, bw, bh, 14); c.fill();
+        c.fillStyle = '#000';
+      } else {
+        roundRect(c, bx - 20, b.y, bw, bh, 14); c.fill();
+        c.fillStyle = '#f5f5f0';
+      }
+      c.font = `400 24px 'DM Sans'`;
+      c.textBaseline = 'top';
+      blines.forEach((line, i) => c.fillText(line, b.mine ? bx - bw + 16 : bx, b.y + 14 + i * 40));
+    });
+
+    // Headline overlay bottom
+    c.fillStyle = 'rgba(10,10,10,0.92)';
+    c.fillRect(60, s - 260, s - 120, 200);
+    c.fillStyle = accent;
+    c.font = `800 52px 'Syne'`;
+    c.textBaseline = 'top';
+    c.fillText('Controle pelo WhatsApp.', 84, s - 240);
+    c.fillStyle = 'rgba(245,245,240,0.6)';
+    c.font = `300 28px 'DM Sans'`;
+    c.fillText('Sem planilha. Sem complicação.', 84, s - 176);
+  }
+
+  if (layout === 'pricing') {
+    // Bold price display
+    c.fillStyle = accent + '15';
+    c.fillRect(0, 0, s, s);
+
+    // Big number
+    c.fillStyle = '#f5f5f0';
+    c.font = `800 220px 'Bebas Neue'`;
+    c.textBaseline = 'top';
+    c.textAlign = 'center';
+    c.fillText('R$49,90', s / 2, 160);
+
+    c.fillStyle = accent;
+    c.font = `800 64px 'Syne'`;
+    c.fillText('VITALÍCIO', s / 2, 420);
+
+    c.fillStyle = 'rgba(245,245,240,0.5)';
+    c.font = `300 32px 'DM Sans'`;
+    c.fillText('uma vez. para sempre.', s / 2, 510);
+
+    // Features
+    const feats = ['✅  Registro via WhatsApp', '✅  Relatórios automáticos', '✅  Dashboard em tempo real', '✅  Suporte incluso'];
+    c.textAlign = 'left';
+    feats.forEach((f, i) => {
+      c.fillStyle = 'rgba(245,245,240,0.8)';
+      c.font = `400 30px 'DM Sans'`;
+      c.fillText(f, 120, 620 + i * 68);
+    });
+
+    // Tag
+    c.fillStyle = accent;
+    c.fillRect(0, s - 110, s, 110);
+    c.fillStyle = '#000';
+    c.font = `700 36px 'Syne'`;
+    c.textAlign = 'center';
+    c.fillText('VAGAS LIMITADAS — LINK NA BIO', s / 2, s - 62);
+    c.textAlign = 'left';
+  }
+
+  if (layout === 'quote') {
+    // Large quote style
+    c.fillStyle = accent;
+    c.font = `800 260px 'Bebas Neue'`;
+    c.textBaseline = 'top';
+    c.globalAlpha = 0.06;
+    c.fillText('"', 40, -30);
+    c.globalAlpha = 1;
+
+    // Tag
+    c.fillStyle = accent + '22';
+    roundRect(c, 60, 90, 240, 44, 22); c.fill();
+    c.fillStyle = accent;
+    c.font = `500 20px 'DM Sans'`;
+    c.fillText(post.tag, 84, 118);
+
+    // Quote lines
+    c.fillStyle = '#f5f5f0';
+    c.font = `800 72px 'Syne'`;
+    const qlines = post.headline.split('\n');
+    qlines.forEach((line, i) => c.fillText(line, 60, 180 + i * 88));
+
+    c.fillStyle = accent;
+    c.fillRect(60, 180 + qlines.length * 88 + 24, 80, 4);
+
+    c.fillStyle = 'rgba(245,245,240,0.5)';
+    c.font = `300 28px 'DM Sans'`;
+    c.fillText(post.sub, 60, 180 + qlines.length * 88 + 60);
+
+    // Bottom accent
+    c.fillStyle = accent + '22';
+    c.fillRect(0, s - 140, s, 140);
+    c.fillStyle = accent;
+    c.font = `700 28px 'Syne'`;
+    c.fillText('FinanceZap — financezap.com.br', 60, s - 80);
+    c.fillStyle = 'rgba(245,245,240,0.4)';
+    c.font = `300 22px 'DM Sans'`;
+    c.fillText('Link na bio para começar', 60, s - 40);
+  }
+
+  if (layout === 'result') {
+    // Big number result
+    c.fillStyle = accent + '12';
+    for (let i = 0; i < 5; i++) {
+      c.fillStyle = accent + '08';
+      c.beginPath();
+      c.arc(s - 100 + i * 60, 200 + i * 80, 180 - i * 20, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    c.fillStyle = accent + '22';
+    roundRect(c, 60, 80, 220, 44, 22); c.fill();
+    c.fillStyle = accent;
+    c.font = `500 20px 'DM Sans'`;
+    c.fillText(post.tag, 84, 108);
+
+    c.fillStyle = '#f5f5f0';
+    c.font = `800 170px 'Bebas Neue'`;
+    c.textBaseline = 'top';
+    c.fillText('R$3.200', 60, 160);
+    c.fillStyle = accent;
+    c.font = `800 80px 'Syne'`;
+    c.fillText('economizados', 60, 370);
+    c.fillStyle = '#f5f5f0';
+    c.font = `800 60px 'Syne'`;
+    c.fillText('em 2 meses.', 60, 468);
+
+    c.fillStyle = 'rgba(245,245,240,0.45)';
+    c.font = `300 30px 'DM Sans'`;
+    c.fillText('Não é magia. É só saber', 60, 580);
+    c.fillText('para onde o dinheiro vai.', 60, 628);
+
+    c.fillStyle = accent;
+    c.fillRect(60, 720, s - 120, 2);
+
+    c.fillStyle = 'rgba(245,245,240,0.3)';
+    c.font = `300 26px 'DM Sans'`;
+    c.fillText('Resultado de usuário real após 60 dias de uso.', 60, 760);
+  }
+
+  // LOGO bottom-left (all layouts)
+  if (layout !== 'product' && layout !== 'pricing') {
+    c.fillStyle = accent + '22';
+    roundRect(c, 60, s - 110, 220, 50, 10); c.fill();
+    c.fillStyle = accent;
+    c.font = `700 24px 'Bebas Neue'`;
+    c.textBaseline = 'middle';
+    c.fillText('FINANCEZAP', 80, s - 85);
+
+    c.fillStyle = 'rgba(245,245,240,0.25)';
+    c.font = `300 22px 'DM Sans'`;
+    c.textBaseline = 'middle';
+    c.fillText('link na bio', s - 180, s - 85);
+  }
+
+  c.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function downloadCurrent() {
+  const link = document.createElement('a');
+  link.download = `financezap-post-${currentPost + 1}-${posts[currentPost].type.replace(/\s+/g, '-').toLowerCase()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function buildGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = posts.map((p, i) => {
+    const cv = document.createElement('canvas');
+    cv.width = 540; cv.height = 540;
+    drawPost(cv, p, accentColor, accentBg, 540);
+    return `<div class="gallery-item" onclick="selectPost(${i}); showPage('editor', document.querySelector('.nav-item'))">
+      ${cv.outerHTML}
+      <div class="gallery-info">
+        <div class="gallery-type">${p.type}</div>
+        <div class="gallery-name">Post ${i + 1}</div>
+        <button class="gallery-dl" onclick="event.stopPropagation(); dlGallery(${i})">⬇ Baixar PNG</button>
+      </div>
+    </div>`;
+  }).join('');
+  // re-render thumbnails via canvas API
+  grid.querySelectorAll('canvas').forEach((cv, i) => {
+    cv.width = 540; cv.height = 540;
+    drawPost(cv, posts[i], accentColor, accentBg, 540);
+  });
+}
+
+function dlGallery(i) {
+  const cv = document.createElement('canvas');
+  cv.width = 1080; cv.height = 1080;
+  drawPost(cv, posts[i], accentColor, accentBg, 1080);
+  const link = document.createElement('a');
+  link.download = `financezap-post-${i + 1}.png`;
+  link.href = cv.toDataURL('image/png');
+  link.click();
+}
+
+// INIT
+buildSelector();
+drawPost(canvas, posts[0], accentColor, accentBg, 1080);
+buildGallery();
+</script>
+</body>
+</html>
