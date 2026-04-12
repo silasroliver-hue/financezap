@@ -1345,8 +1345,13 @@ function previewIgImage() {
   const url = document.getElementById('ig-image-url').value.trim();
   const wrap = document.getElementById('ig-image-preview');
   const img  = document.getElementById('ig-preview-img');
-  if (url) { img.src = url; wrap.style.display = 'block'; }
-  else      { wrap.style.display = 'none'; }
+  if (url && /^https:\/\//i.test(url)) {
+    img.src = url;
+    wrap.style.display = 'block';
+  } else {
+    img.src = '';
+    wrap.style.display = 'none';
+  }
 }
 
 function openIgAI()  { document.getElementById('ig-ai-panel').style.display = 'block'; }

@@ -1946,6 +1946,12 @@ api.post(
     if (!["feed", "story"].includes(tipo)) {
       return res.status(400).json({ error: "tipo deve ser 'feed' ou 'story'" });
     }
+    try {
+      const u = new URL(image_url);
+      if (u.protocol !== "https:") throw new Error();
+    } catch {
+      return res.status(400).json({ error: "image_url deve ser uma URL HTTPS válida" });
+    }
     const sb = getSupabase();
     const { data, error } = await sb
       .from("instagram_posts")
@@ -1972,7 +1978,15 @@ api.patch(
     const { titulo, legenda, image_url, tipo, agendado_para, status } = req.body;
     const updates = {};
     if (titulo !== undefined)        updates.titulo        = titulo.trim();
-    if (image_url !== undefined)     updates.image_url     = image_url.trim();
+    if (image_url !== undefined) {
+      try {
+        const u = new URL(image_url);
+        if (u.protocol !== "https:") throw new Error();
+      } catch {
+        return res.status(400).json({ error: "image_url deve ser uma URL HTTPS válida" });
+      }
+      updates.image_url = image_url.trim();
+    }
     if (tipo !== undefined)          updates.tipo          = tipo;
     if (agendado_para !== undefined) updates.agendado_para = agendado_para;
     if (status !== undefined)        updates.status        = status;
@@ -2034,7 +2048,19 @@ api.post(
   asyncHandler(async (req, res) => {
     const { id, ig_post_id, status, erro_msg } = req.body;
     if (!id || !status) return res.status(400).json({ error: "id e status obrigatórios" });
+    if (!["publicado", "erro"].includes(status)) {
+      return res.status(400).json({ error: "status deve ser 'publicado' ou 'erro'" });
+    }
     const sb = getSupabase();
+    const { data: existing, error: fetchErr } = await sb
+      .from("instagram_posts")
+      .select("id, status")
+      .eq("id", id)
+      .single();
+    if (fetchErr || !existing) return res.status(404).json({ error: "Post não encontrado" });
+    if (existing.status !== "pendente") {
+      return res.status(409).json({ error: "Post já foi processado" });
+    }
     const updates = { status };
     if (ig_post_id)  updates.ig_post_id   = ig_post_id;
     if (erro_msg)    updates.erro_msg      = erro_msg;
